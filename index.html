@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Zen | Creative Coder & Digital Artist</title>
+  <!-- 引入 p5.js 作为全站动态背景引擎 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>
+    /* 极简冷峻的基础重置 */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { 
+      width: 100%; height: 100%; overflow-x: hidden; 
+      background-color: #050505; color: #fff;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    
+    /* 让 p5.js 画布铺满屏幕，并固定在最底层 */
+    #canvas-container {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 0; pointer-events: auto; /* 允许鼠标与背景互动 */
+    }
+
+    /* 悬浮在背景之上的 UI 层 */
+    #ui-layer {
+      position: relative;
+      z-index: 10;
+      pointer-events: none; /* 让鼠标穿透 UI 碰到背景，除非是按钮 */
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: flex-start;
+      padding: 0 10vw;
+    }
+
+    /* 极简排版与排版动画 */
+    h1 {
+      font-size: clamp(3rem, 8vw, 6rem);
+      font-weight: 200; letter-spacing: -2px; line-height: 1;
+      margin-bottom: 1rem; text-transform: uppercase;
+      mix-blend-mode: exclusion; /* 与黑白背景产生奇妙的高级叠加效果 */
+    }
+    h2 {
+      font-size: clamp(1rem, 2vw, 1.5rem);
+      font-weight: 300; letter-spacing: 4px; color: #888;
+      margin-bottom: 3rem; text-transform: uppercase;
+    }
+    
+    .nav-links { pointer-events: auto; display: flex; gap: 30px; }
+    .nav-links a {
+      color: #fff; text-decoration: none; font-size: 14px;
+      text-transform: uppercase; letter-spacing: 2px;
+      position: relative; padding-bottom: 5px;
+      transition: color 0.3s;
+    }
+    .nav-links a:hover { color: #888; }
+    .nav-links a::after {
+      content: ''; position: absolute; left: 0; bottom: 0;
+      width: 0; height: 1px; background: #fff;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .nav-links a:hover::after { width: 100%; }
+
+    /* 滚动的作品集区域 (Glassmorphism 毛玻璃风格) */
+    .works-section {
+      position: relative; z-index: 10; pointer-events: auto;
+      padding: 10vh 10vw; background: rgba(10, 10, 10, 0.6);
+      backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .works-title { font-size: 2rem; font-weight: 200; margin-bottom: 3rem; letter-spacing: 2px; }
+    
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px;
+    }
+    .card {
+      border: 1px solid rgba(255,255,255,0.2); padding: 20px;
+      transition: transform 0.4s, border-color 0.4s; cursor: pointer;
+    }
+    .card:hover { transform: translateY(-10px); border-color: rgba(255,255,255,0.8); }
+    .card h3 { font-size: 1.2rem; font-weight: 300; margin-bottom: 10px; }
+    .card p { font-size: 0.9rem; color: #888; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+  <!-- p5.js 动态背景容器 -->
+  <div id="canvas-container"></div>
+
+  <!-- 首页首屏 UI -->
+  <main id="ui-layer">
+    <h1>One Zen</h1>
+    <h2>Generative Art & Creative Coding</h2>
+    <div class="nav-links">
+      <a href="#works">Selected Works</a>
+      <a href="https://github.com" target="_blank">GitHub</a>
+      <a href="mailto:hello@example.com">Contact</a>
+    </div>
+  </main>
+
+  <!-- 作品集展示区 -->
+  <section id="works" class="works-section">
+    <h2 class="works-title">Interactive Archive</h2>
+    <div class="grid">
+      <!-- 预留位置，以后可以用 iframe 把真正的交互程序嵌进来 -->
+      <div class="card">
+        <h3>Machine Hallucination: Flow</h3>
+        <p>A WebGL-based data sculpture using 3D Perlin noise to simulate fluid dynamics in latent space. Additive blending creates neon trails.</p>
+      </div>
+      <div class="card">
+        <h3>Chrono-Snake Pro</h3>
+        <p>A classic game reimagined with procedural pixel art, time-based mechanics, and raw HTML5 canvas rendering without external assets.</p>
+      </div>
+      <div class="card">
+        <h3>Bauhaus Geometry Cam</h3>
+        <p>Computer vision driven interactive mirror. Real-time downsampling translates facial brightness into primary colored Bauhaus shapes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- p5.js 黑白极简冷峻网格抖动算法 -->
+  <script>
+    let cols, rows;
+    let scl = 40; // 网格线间距 (非常细的线型网格)
+    let zoff = 0;
+
+    function setup() {
+      let canvas = createCanvas(windowWidth, windowHeight);
+      canvas.parent('canvas-container'); // 将画布塞进最底层的 div
+      cols = floor(width / scl) + 2;
+      rows = floor(height / scl) + 2;
+    }
+
+    function draw() {
+      // 带有极轻微残影的冷峻黑色背景
+      background(5, 5, 5, 50); 
+      
+      stroke(255, 255, 255, 40); // 极细、极淡的白色线条 (冷峻感)
+      strokeWeight(1);
+      noFill();
+
+      // 将坐标系移到屏幕中央，方便根据鼠标位置产生透视偏移
+      translate(width / 2, height / 2);
+      
+      // 鼠标交互：极简的视差效果 (Parallax)
+      // 当鼠标移动时，整个网格会有轻微的倾斜和偏移，打破死板
+      let targetRotX = map(mouseY, 0, height, -0.05, 0.05);
+      let targetRotY = map(mouseX, 0, width, -0.05, 0.05);
+      
+      // 让网格中心稍微偏移，对齐屏幕左上角以布满全屏
+      translate(-width/2 - scl, -height/2 - scl);
+
+      // 核心算法：柏林噪声驱动的网格抖动 (Noise-driven Grid Distortion)
+      let yoff = 0;
+      for (let y = 0; y < rows; y++) {
+        let xoff = 0;
+        beginShape(LINES); // 用离散的线条代替封闭多边形，更具当代科技感
+        for (let x = 0; x < cols; x++) {
+          
+          // 计算当前网格点的噪声值
+          let n = noise(xoff, yoff, zoff);
+          
+          // 鼠标排斥力 (Repulsion Force)
+          // 计算当前网格点与鼠标的距离
+          let screenX = x * scl;
+          let screenY = y * scl;
+          let d = dist(mouseX, mouseY, screenX, screenY);
+          
+          // 如果鼠标靠近，产生几何扭曲
+          let distortion = 0;
+          if (d < 300) {
+            distortion = map(d, 0, 300, 50, 0); // 距离越近，扭曲越强
+          }
+
+          // 将噪声和鼠标扭曲结合，形成波浪起伏的偏移量
+          let offset = map(n, 0, 1, -20, 20) + distortion;
+          
+          // 偶尔产生一些断裂的“故障艺术 (Glitch)”效果
+          if (n > 0.65) {
+            vertex(x * scl, y * scl + offset);
+            vertex((x+1) * scl, y * scl - offset);
+          } else {
+            vertex(x * scl, y * scl + offset);
+            vertex(x * scl, (y+1) * scl + offset);
+          }
+          
+          xoff += 0.05; // 空间噪声平滑度
+        }
+        endShape();
+        yoff += 0.05;
+      }
+      
+      zoff += 0.005; // 时间流逝，网格缓慢像海面一样呼吸
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      cols = floor(width / scl) + 2;
+      rows = floor(height / scl) + 2;
+    }
+  </script>
+</body>
+</html>
