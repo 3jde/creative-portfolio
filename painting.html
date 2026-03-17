@@ -21,6 +21,17 @@
     .section-desc { color: #888; margin-bottom: 60px; font-size: 1rem; line-height: 1.6; max-width: 600px; }
 
     .empty-state { flex-grow: 1; display: flex; justify-content: center; align-items: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 4px; color: #555; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; }
+    
+    .project-showcase h4 { font-size: 1.2rem; font-weight: 300; letter-spacing: 1px; margin-bottom: 30px; color: #fff; border-left: 3px solid #fff; padding-left: 15px; }
+    
+    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; align-items: center; }
+    .photo-grid img { width: 100%; height: auto; display: block; filter: grayscale(20%); transition: filter 0.4s, transform 0.4s; border-radius: 2px; }
+    .photo-grid img:hover { filter: grayscale(0%); transform: scale(1.01); }
+
+    @media (max-width: 768px) {
+      .photo-grid { grid-template-columns: 1fr !important; }
+      .photo-grid img { grid-column: span 1 !important; height: auto !important; }
+    }
   </style>
 </head>
 <body>
