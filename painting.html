@@ -24,13 +24,24 @@
     
     .project-showcase h4 { font-size: 1.2rem; font-weight: 300; letter-spacing: 1px; margin-bottom: 30px; color: #fff; border-left: 3px solid #fff; padding-left: 15px; }
     
-    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; align-items: center; }
-    .photo-grid img { width: 100%; height: auto; display: block; filter: grayscale(20%); transition: filter 0.4s, transform 0.4s; border-radius: 2px; }
-    .photo-grid img:hover { filter: grayscale(0%); transform: scale(1.01); }
+    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px 20px; align-items: start; }
+    
+    .art-item { display: flex; flex-direction: column; gap: 15px; }
+    
+    /* 使用 CSS 溢出隐藏 + 放大，实现“视觉无损去画框” */
+    .img-wrapper { overflow: hidden; border-radius: 2px; background: #111; }
+    .photo-grid img { 
+      width: 100%; height: auto; display: block; 
+      filter: grayscale(20%); transition: filter 0.4s, transform 0.4s; 
+      transform: scale(1.06); /* 稍微放大 6% 以裁切掉边缘的画框 */
+    }
+    .photo-grid img:hover { filter: grayscale(0%); transform: scale(1.08); }
+
+    .art-title { font-size: 0.85rem; letter-spacing: 3px; color: #aaa; text-transform: uppercase; text-align: center; }
 
     @media (max-width: 768px) {
-      .photo-grid { grid-template-columns: 1fr !important; }
-      .photo-grid img { grid-column: span 1 !important; height: auto !important; }
+      .photo-grid { grid-template-columns: 1fr !important; gap: 60px !important; }
+      .art-item { grid-column: span 1 !important; }
     }
   </style>
 </head>
@@ -50,14 +61,62 @@
     
     <div class="project-showcase">
       <h4>Selected Canvas Works (油画精选)</h4>
-      <div class="photo-grid" style="grid-template-columns: repeat(2, 1fr);">
-        <img src="assets/painting_6.jpg" alt="Colosseum Sketch" style="grid-column: span 2; height: 500px; object-position: center;">
-        <img src="assets/painting_5.jpg" alt="Portrait Sketch" style="height: 450px; object-position: center;">
-        <img src="assets/painting_7.jpg" alt="Alleyway Painting" style="height: 450px; object-position: center;">
-        <img src="assets/painting_1.jpg" alt="Fish Still Life" style="height: 400px; object-position: center;">
-        <img src="assets/painting_2.jpg" alt="Barren Landscape" style="height: 400px; object-position: center;">
-        <img src="assets/painting_3.jpg" alt="Rural Houses" style="grid-column: span 2; height: 450px; object-position: center;">
-        <img src="assets/painting_4.jpg" alt="Landscape with Trees" style="grid-column: span 2; height: 500px; object-position: center;">
+      <div class="photo-grid">
+        
+        <!-- 压轴素描 (全宽) -->
+        <div class="art-item" style="grid-column: span 2;">
+          <div class="img-wrapper">
+            <img src="assets/painting_6.jpg" alt="Echoes of Stone">
+          </div>
+          <div class="art-title">01 | Echoes of Stone (废墟回响)</div>
+        </div>
+
+        <!-- 第二行：并列展示 -->
+        <div class="art-item">
+          <div class="img-wrapper">
+            <img src="assets/painting_5.jpg" alt="The Gaze">
+          </div>
+          <div class="art-title">02 | The Gaze (凝视)</div>
+        </div>
+
+        <div class="art-item">
+          <div class="img-wrapper">
+            <img src="assets/painting_7.jpg" alt="Monochrome Alley">
+          </div>
+          <div class="art-title">03 | Monochrome Alley (水墨孤巷)</div>
+        </div>
+
+        <!-- 第三行：静物与荒野 -->
+        <div class="art-item">
+          <div class="img-wrapper">
+            <img src="assets/painting_1.jpg" alt="Silent Still">
+          </div>
+          <div class="art-title">04 | Silent Still (静止的沉默)</div>
+        </div>
+
+        <div class="art-item">
+          <div class="img-wrapper">
+            <img src="assets/painting_2.jpg" alt="Wasteland">
+          </div>
+          <div class="art-title">05 | Wasteland (荒原)</div>
+        </div>
+
+        <!-- 全宽展示的风景 -->
+        <div class="art-item" style="grid-column: span 2;">
+          <div class="img-wrapper">
+            <img src="assets/painting_3.jpg" alt="Rustic Memory">
+          </div>
+          <div class="art-title">06 | Rustic Memory (村落印记)</div>
+        </div>
+
+        <!-- 压轴风景 -->
+        <div class="art-item" style="grid-column: span 2;">
+          <div class="img-wrapper">
+            <img src="assets/painting_4.jpg" alt="Verdant Whispers">
+          </div>
+          <div class="art-title">07 | Verdant Whispers (树影呢喃)</div>
+        </div>
+
       </div>
     </div>
   </div>
