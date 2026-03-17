@@ -83,6 +83,24 @@
     .card:hover { transform: translateY(-10px); border-color: rgba(255,255,255,0.8); }
     .card h3 { font-size: 1.2rem; font-weight: 300; margin-bottom: 10px; }
     .card p { font-size: 0.9rem; color: #888; line-height: 1.6; }
+
+    /* 项目展示专属样式 */
+    .project-showcase {
+      margin-top: 30px;
+      border-top: 1px dashed rgba(255,255,255,0.1);
+      padding-top: 20px;
+    }
+    .project-showcase h4 {
+      font-size: 1rem; font-weight: 300; letter-spacing: 1px; margin-bottom: 20px; color: #fff;
+    }
+    .photo-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+    }
+    .photo-grid img {
+      width: 100%; height: 200px; object-fit: cover;
+      filter: grayscale(20%); transition: filter 0.4s;
+    }
+    .photo-grid img:hover { filter: grayscale(0%); }
   </style>
 </head>
 <body>
@@ -118,7 +136,18 @@
       <div id="interior-design" class="card">
         <h3>[ 02 ] Interior Design</h3>
         <p>Spatial narratives, material exploration, and functional minimalism. Bridging architecture and human experience.</p>
-        <p style="margin-top:20px; font-size:0.8rem; color:#fff; cursor:pointer;">[ View Spaces → ]</p>
+        
+        <!-- 华兴源创项目展示区 -->
+        <div class="project-showcase">
+          <h4>HYC Headquarters (华兴源创总部大楼) // 2017</h4>
+          <div class="photo-grid">
+            <img src="assets/hyc_2017_1.jpg" alt="HYC Headquarters Interior - Atrium">
+            <img src="assets/hyc_2017_2.jpg" alt="HYC Headquarters Interior - Ceiling Detail">
+            <img src="assets/hyc_2017_3.jpg" alt="HYC Headquarters Interior - Reception">
+            <img src="assets/hyc_2017_4.jpg" alt="HYC Headquarters Interior - Corridor">
+          </div>
+          <p style="margin-top:20px; font-size:0.8rem; color:#fff; cursor:pointer;">[ View Full Project → ]</p>
+        </div>
       </div>
 
       <!-- 类别块 3：油画 -->
