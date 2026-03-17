@@ -35,18 +35,21 @@
 
     /* 极简排版与排版动画 */
     h1 {
-      font-size: clamp(3rem, 8vw, 6rem);
-      font-weight: 200; letter-spacing: -2px; line-height: 1;
-      margin-bottom: 1rem; text-transform: uppercase;
+      font-size: clamp(4rem, 10vw, 8rem); /* 放大字体 */
+      font-weight: 900; /* 加粗到极致 */
+      letter-spacing: -4px; line-height: 1;
+      margin-bottom: 1.5rem; text-transform: uppercase;
       mix-blend-mode: exclusion; /* 与黑白背景产生奇妙的高级叠加效果 */
+      font-family: 'Arial Black', Impact, sans-serif; /* 使用更粗更具冲击力的无衬线字体 */
     }
     h2 {
       font-size: clamp(1rem, 2vw, 1.5rem);
-      font-weight: 300; letter-spacing: 4px; color: #888;
-      margin-bottom: 3rem; text-transform: uppercase;
+      font-weight: 300; letter-spacing: 6px; color: #888;
+      margin-bottom: 5rem; /* 增加与下方导航的留白 */
+      text-transform: uppercase;
     }
     
-    .nav-links { pointer-events: auto; display: flex; gap: 30px; }
+    .nav-links { pointer-events: auto; display: flex; gap: 40px; /* 增加导航间距 */ }
     .nav-links a {
       color: #fff; text-decoration: none; font-size: 14px;
       text-transform: uppercase; letter-spacing: 2px;
@@ -89,32 +92,42 @@
 
   <!-- 首页首屏 UI -->
   <main id="ui-layer">
-    <h1>One Zen</h1>
-    <h2>Generative Art & Creative Coding</h2>
+    <h1>ONE ZEN</h1>
+    <h2>Generative Art & Spatial Design</h2>
     <div class="nav-links">
-      <a href="#works">Selected Works</a>
-      <a href="https://github.com" target="_blank">GitHub</a>
+      <a href="#digital-art">Digital Art</a>
+      <a href="#interior-design">Interior Design</a>
+      <a href="#oil-painting">Oil Painting</a>
       <a href="mailto:hello@example.com">Contact</a>
     </div>
   </main>
 
   <!-- 作品集展示区 -->
   <section id="works" class="works-section">
-    <h2 class="works-title">Interactive Archive</h2>
+    <h2 class="works-title">Exhibition Archive</h2>
     <div class="grid">
-      <!-- 预留位置，以后可以用 iframe 把真正的交互程序嵌进来 -->
-      <div class="card">
-        <h3>Machine Hallucination: Flow</h3>
-        <p>A WebGL-based data sculpture using 3D Perlin noise to simulate fluid dynamics in latent space. Additive blending creates neon trails.</p>
+      
+      <!-- 类别块 1：数字艺术 -->
+      <div id="digital-art" class="card">
+        <h3>[ 01 ] Digital Art</h3>
+        <p>Generative systems, procedural geometry, and interactive installations driven by code and real-time data.</p>
+        <p style="margin-top:20px; font-size:0.8rem; color:#fff; cursor:pointer;">[ Explore Projects → ]</p>
       </div>
-      <div class="card">
-        <h3>Chrono-Snake Pro</h3>
-        <p>A classic game reimagined with procedural pixel art, time-based mechanics, and raw HTML5 canvas rendering without external assets.</p>
+
+      <!-- 类别块 2：室内设计 -->
+      <div id="interior-design" class="card">
+        <h3>[ 02 ] Interior Design</h3>
+        <p>Spatial narratives, material exploration, and functional minimalism. Bridging architecture and human experience.</p>
+        <p style="margin-top:20px; font-size:0.8rem; color:#fff; cursor:pointer;">[ View Spaces → ]</p>
       </div>
-      <div class="card">
-        <h3>Bauhaus Geometry Cam</h3>
-        <p>Computer vision driven interactive mirror. Real-time downsampling translates facial brightness into primary colored Bauhaus shapes.</p>
+
+      <!-- 类别块 3：油画 -->
+      <div id="oil-painting" class="card">
+        <h3>[ 03 ] Oil Painting</h3>
+        <p>Textural studies and emotional landscapes rendered on canvas. The analog counterpart to digital precision.</p>
+        <p style="margin-top:20px; font-size:0.8rem; color:#fff; cursor:pointer;">[ View Canvas → ]</p>
       </div>
+
     </div>
   </section>
 
