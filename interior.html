@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interior Design | One Zen</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background-color: #050505; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow-x: hidden; }
+    
+    /* Navbar */
+    .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 30px 5vw; border-bottom: 1px solid rgba(255,255,255,0.1); background: #050505; position: sticky; top: 0; z-index: 100; }
+    .logo { font-family: 'Arial Black', Impact, sans-serif; font-size: 1.5rem; text-decoration: none; color: #fff; letter-spacing: -1px; }
+    .nav-links { display: flex; gap: 30px; }
+    .nav-links a { color: #888; text-decoration: none; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; transition: color 0.3s; }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+
+    /* Content */
+    .content { padding: 80px 5vw; max-width: 1400px; margin: 0 auto; }
+    .section-title { font-size: 3rem; font-weight: 200; letter-spacing: 2px; margin-bottom: 20px; text-transform: uppercase; }
+    .section-desc { color: #888; margin-bottom: 60px; font-size: 1rem; line-height: 1.6; max-width: 600px; }
+
+    .project-showcase { margin-bottom: 100px; }
+    .project-showcase h4 { font-size: 1.2rem; font-weight: 300; letter-spacing: 1px; margin-bottom: 30px; color: #fff; border-left: 3px solid #fff; padding-left: 15px; }
+    
+    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .photo-grid img { width: 100%; object-fit: cover; filter: grayscale(20%); transition: filter 0.4s, transform 0.4s; border-radius: 2px; }
+    .photo-grid img:hover { filter: grayscale(0%); transform: scale(1.01); }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <a href="index.html" class="logo">ONE ZEN</a>
+    <div class="nav-links">
+      <a href="digital.html">Digital Art</a>
+      <a href="interior.html" class="active" style="color:#fff; border-bottom:1px solid #fff; padding-bottom:5px;">Interior Design</a>
+      <a href="painting.html">Oil Painting</a>
+    </div>
+  </nav>
+
+  <div class="content">
+    <h1 class="section-title">Interior Design</h1>
+    <p class="section-desc">Spatial narratives, material exploration, and functional minimalism. Bridging architecture and human experience.</p>
+    
+    <!-- Project 1 -->
+    <div class="project-showcase">
+      <h4>HYC Headquarters (华兴源创总部大楼) // 2017</h4>
+      <div class="photo-grid">
+        <img src="assets/hyc_2017_1.jpg" alt="HYC Headquarters Interior - Atrium" style="height: 300px;">
+        <img src="assets/hyc_2017_2.jpg" alt="HYC Headquarters Interior - Ceiling Detail" style="height: 300px;">
+        <img src="assets/hyc_2017_3.jpg" alt="HYC Headquarters Interior - Reception" style="height: 300px;">
+        <img src="assets/hyc_2017_4.jpg" alt="HYC Headquarters Interior - Corridor" style="height: 300px;">
+        <img src="assets/hyc_2017_5.jpg" alt="HYC Headquarters Interior - Glass Meeting Room" style="grid-column: span 2; height: 400px; object-position: center;">
+      </div>
+    </div>
+
+    <!-- Project 2 -->
+    <div class="project-showcase">
+      <h4>HYC Smart Factory (华兴源创智慧工厂)</h4>
+      <div class="photo-grid">
+        <img src="assets/hyc_factory_5.jpg" alt="HYC Smart Factory Exterior" style="grid-column: span 2; height: 450px; object-position: center bottom;">
+        <img src="assets/hyc_factory_1.jpg" alt="HYC Smart Factory Entrance" style="height: 350px;">
+        <img src="assets/hyc_factory_4.jpg" alt="HYC Smart Factory Stairs" style="height: 350px;">
+        <img src="assets/hyc_factory_2.jpg" alt="HYC Smart Factory Interior 1" style="height: 350px;">
+        <img src="assets/hyc_factory_3.jpg" alt="HYC Smart Factory Interior 2" style="height: 350px;">
+        <img src="assets/hyc_exterior_1.jpg" alt="HYC Exterior Dusk" style="grid-column: span 2; height: 500px; object-position: center bottom;">
+        <img src="assets/hyc_exterior_2.jpg" alt="HYC Exterior Facade" style="grid-column: span 2; height: 500px;">
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

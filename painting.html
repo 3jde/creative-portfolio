@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oil Painting | One Zen</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background-color: #050505; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow-x: hidden; }
+    
+    /* Navbar */
+    .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 30px 5vw; border-bottom: 1px solid rgba(255,255,255,0.1); background: #050505; position: sticky; top: 0; z-index: 100; }
+    .logo { font-family: 'Arial Black', Impact, sans-serif; font-size: 1.5rem; text-decoration: none; color: #fff; letter-spacing: -1px; }
+    .nav-links { display: flex; gap: 30px; }
+    .nav-links a { color: #888; text-decoration: none; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; transition: color 0.3s; }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+
+    /* Content */
+    .content { padding: 80px 5vw; max-width: 1400px; margin: 0 auto; min-height: 70vh; display: flex; flex-direction: column; }
+    .section-title { font-size: 3rem; font-weight: 200; letter-spacing: 2px; margin-bottom: 20px; text-transform: uppercase; }
+    .section-desc { color: #888; margin-bottom: 60px; font-size: 1rem; line-height: 1.6; max-width: 600px; }
+
+    .empty-state { flex-grow: 1; display: flex; justify-content: center; align-items: center; border: 1px dashed rgba(255,255,255,0.2); border-radius: 4px; color: #555; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <a href="index.html" class="logo">ONE ZEN</a>
+    <div class="nav-links">
+      <a href="digital.html">Digital Art</a>
+      <a href="interior.html">Interior Design</a>
+      <a href="painting.html" class="active" style="color:#fff; border-bottom:1px solid #fff; padding-bottom:5px;">Oil Painting</a>
+    </div>
+  </nav>
+
+  <div class="content">
+    <h1 class="section-title">Oil Painting</h1>
+    <p class="section-desc">Textural studies and emotional landscapes rendered on canvas. The analog counterpart to digital precision.</p>
+    
+    <div class="empty-state">
+      [ Awaiting Canvas Uploads ... ]
+    </div>
+  </div>
+</body>
+</html>
