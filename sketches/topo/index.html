@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Topographic Face (Interactive Art)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #0A0A0A; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script>
+    let video;
+    let scl = 10;
+    let cols, rows;
+    let zValues;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      video = createCapture(VIDEO);
+      cols = floor(width / scl);
+      rows = floor(height / scl);
+      video.size(cols, rows);
+      video.hide();
+      
+      zValues = new Array(cols).fill(0).map(() => new Array(rows).fill(0));
+    }
+
+    function draw() {
+      background(10, 10, 10);
+      
+      orbitControl(2, 2, 0.1);
+      
+      translate(-width/2, -height/2 + 50, -200);
+      rotateX(PI / 3); // 倾斜视角，营造等高线地貌感
+
+      if (video.loadedmetadata) {
+        video.loadPixels();
+        if (video.pixels.length > 0) {
+          // 极简冷峻配色：深灰底、青色/紫色线条渐变
+          noFill();
+          strokeWeight(2);
+
+          for (let y = 0; y < rows - 1; y++) {
+            beginShape(TRIANGLE_STRIP);
+            for (let x = 0; x < cols; x++) {
+              
+              // 获取并平滑当前像素亮度
+              let index = ((cols - x - 1) + y * cols) * 4;
+              let r = video.pixels[index];
+              let g = video.pixels[index+1];
+              let b = video.pixels[index+2];
+              let bright = (r + g + b) / 3;
+              
+              // 平滑过渡 (Lerp) 避免地形突然撕裂
+              zValues[x][y] = lerp(zValues[x][y], map(bright, 0, 255, -150, 150), 0.1);
+
+              // 当代色彩：用 Z 轴高度映射颜色 (青蓝紫渐变)
+              let c = lerpColor(color(0, 200, 255), color(150, 0, 255), map(zValues[x][y], -150, 150, 0, 1));
+              stroke(c);
+
+              vertex(x * scl, y * scl, zValues[x][y]);
+              
+              // 预取下一行的值绘制三角形条带
+              let index2 = ((cols - x - 1) + (y+1) * cols) * 4;
+              let r2 = video.pixels[index2];
+              let g2 = video.pixels[index2+1];
+              let b2 = video.pixels[index2+2];
+              let bright2 = (r2 + g2 + b2) / 3;
+              zValues[x][y+1] = lerp(zValues[x][y+1], map(bright2, 0, 255, -150, 150), 0.1);
+
+              vertex(x * scl, (y+1) * scl, zValues[x][y+1]);
+            }
+            endShape();
+          }
+        }
+      }
+    }
+    
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      cols = floor(width / scl);
+      rows = floor(height / scl);
+      video.size(cols, rows);
+      zValues = new Array(cols).fill(0).map(() => new Array(rows).fill(0));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Bauhaus Geometry (Interactive Art)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #F5F5DC; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script>
+    let video;
+    // 使用大方块，包豪斯风格 (Bauhaus)
+    let gridW = 32, gridH = 24; 
+    let cellW, cellH;
+    let bauhausColors;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      video = createCapture(VIDEO);
+      video.size(gridW, gridH); // 极低分辨率矩阵
+      video.hide();
+      
+      cellW = width / gridW;
+      cellH = height / gridH;
+
+      // 包豪斯经典四原色：红、蓝、黄、米白/黑
+      bauhausColors = [
+        color(226, 44, 45),   // 经典红
+        color(0, 87, 184),    // 经典蓝
+        color(248, 203, 30),  // 经典黄
+        color(30, 30, 30),    // 深灰黑
+        color(245, 245, 220)  // 米白
+      ];
+      noStroke();
+    }
+
+    function draw() {
+      if (!video.loadedmetadata) return;
+
+      background(245, 245, 220); // 底色
+      video.loadPixels();
+      
+      if (video.pixels.length > 0) {
+        for (let y = 0; y < gridH; y++) {
+          for (let x = 0; x < gridW; x++) {
+            // 镜像坐标
+            let index = ((gridW - x - 1) + y * gridW) * 4;
+            let r = video.pixels[index];
+            let g = video.pixels[index+1];
+            let b = video.pixels[index+2];
+
+            let brightness = (r + g + b) / 3;
+
+            // 根据亮度映射形状和颜色 (Shape & Color Thresholding)
+            let cIndex = floor(map(brightness, 0, 255, 0, 4.99));
+            fill(bauhausColors[cIndex]);
+
+            let cx = x * cellW;
+            let cy = y * cellH;
+
+            push();
+            translate(cx + cellW / 2, cy + cellH / 2);
+            
+            // 亮度的不同决定了绘制不同的基本几何图形
+            if (brightness < 60) {
+              rectMode(CENTER);
+              rect(0, 0, cellW * 0.9, cellH * 0.9); // 大方块
+            } else if (brightness < 120) {
+              circle(0, 0, cellW * 0.8); // 圆形
+            } else if (brightness < 180) {
+              // 旋转三角形
+              rotate(radians(frameCount + x * y));
+              triangle(0, -cellH/2.5, -cellW/2.5, cellH/2.5, cellW/2.5, cellH/2.5);
+            } else if (brightness < 240) {
+              // 半圆 (Arcs)
+              arc(0, 0, cellW, cellH, 0, PI);
+            } else {
+              // 高光区域留白 (不画，显示底色)
+            }
+            pop();
+          }
+        }
+      }
+    }
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      cellW = width / gridW;
+      cellH = height / gridH;
+    }
+  </script>
+</body>
+</html>

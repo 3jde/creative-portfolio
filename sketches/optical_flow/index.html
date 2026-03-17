@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Fluid Optical Flow (Interactive Art)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script>
+    let video;
+    let prevFrame;
+    let particles = [];
+    const numParticles = 2000;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      video = createCapture(VIDEO);
+      // 使用极低分辨率计算光流，保证极致流畅
+      video.size(64, 48);
+      video.hide();
+      prevFrame = createImage(video.width, video.height);
+      
+      for (let i = 0; i < numParticles; i++) {
+        particles.push(new Particle());
+      }
+      background(0);
+    }
+
+    function draw() {
+      // 制造轻微的拖影，增加流体感
+      fill(0, 15);
+      noStroke();
+      rect(0, 0, width, height);
+
+      if (video.loadedmetadata) {
+        video.loadPixels();
+        prevFrame.loadPixels();
+        
+        if (video.pixels.length > 0 && prevFrame.pixels.length > 0) {
+          // 渲染并更新所有粒子
+          for (let p of particles) {
+            p.followFlow(video, prevFrame);
+            p.update();
+            p.show();
+          }
+        }
+        
+        // 保存当前帧用于下一帧对比
+        prevFrame.copy(video, 0, 0, video.width, video.height, 0, 0, video.width, video.height);
+      }
+    }
+
+    class Particle {
+      constructor() {
+        this.pos = createVector(random(width), random(height));
+        this.vel = createVector(0, 0);
+        this.acc = createVector(0, 0);
+        // 高饱和度的当代色彩：荧光粉、亮青色、亮黄色
+        this.color = color(random([ '#FF007F', '#00F0FF', '#FFEA00' ]));
+        this.size = random(2, 6);
+      }
+
+      followFlow(vid, prev) {
+        // 将粒子的屏幕坐标映射到低分辨率视频网格
+        let x = floor(map(this.pos.x, 0, width, 0, vid.width));
+        let y = floor(map(this.pos.y, 0, height, 0, vid.height));
+        x = constrain(x, 0, vid.width - 1);
+        y = constrain(y, 0, vid.height - 1);
+
+        // 计算水平镜像索引
+        let index = ((vid.width - x - 1) + y * vid.width) * 4;
+
+        // 计算当前帧与上一帧的亮度差 (Movement detection)
+        let currB = (vid.pixels[index] + vid.pixels[index+1] + vid.pixels[index+2]) / 3;
+        let prevB = (prev.pixels[index] + prev.pixels[index+1] + prev.pixels[index+2]) / 3;
+        let diff = currB - prevB;
+
+        // 如果该区域有运动，产生推力
+        if (abs(diff) > 15) {
+          // 简单的发散力场
+          let angle = noise(this.pos.x * 0.01, this.pos.y * 0.01, frameCount * 0.01) * TWO_PI * 2;
+          let force = p5.Vector.fromAngle(angle);
+          force.mult(abs(diff) * 0.05);
+          this.acc.add(force);
+        }
+      }
+
+      update() {
+        this.vel.add(this.acc);
+        this.vel.limit(8); // 限制最大速度，保持优雅
+        this.pos.add(this.vel);
+        this.acc.mult(0);
+        
+        // 摩擦力
+        this.vel.mult(0.95);
+
+        // 边界环绕
+        if (this.pos.x > width) this.pos.x = 0;
+        if (this.pos.x < 0) this.pos.x = width;
+        if (this.pos.y > height) this.pos.y = 0;
+        if (this.pos.y < 0) this.pos.y = height;
+      }
+
+      show() {
+        noStroke();
+        // 根据速度动态改变透明度
+        let alpha = map(this.vel.mag(), 0, 8, 50, 255);
+        this.color.setAlpha(alpha);
+        fill(this.color);
+        circle(this.pos.x, this.pos.y, this.size);
+      }
+    }
+    
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      background(0);
+    }
+  </script>
+</body>
+</html>
