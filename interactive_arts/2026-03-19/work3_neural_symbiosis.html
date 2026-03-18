@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Work 03: Neural Symbiosis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; font-family: sans-serif; }
+        .text-overlay { position: absolute; bottom: 20px; left: 20px; right: 20px; text-align: center; pointer-events: none; }
+        .zh { font-size: 14px; margin-bottom: 5px; opacity: 0.8; }
+        .en { font-size: 12px; font-style: italic; opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div class="text-overlay">
+        <div class="zh">探讨人机共生时代的联结脆弱性。网络因人类的介入（长按）而聚合生长，又因关注的抽离而分崩离析。</div>
+        <div class="en">Exploring the fragility of connection in the era of human-machine symbiosis. The network aggregates due to human intervention, and falls apart when attention is withdrawn.</div>
+    </div>
+    <script>
+        let nodes = [];
+        let numNodes = 80;
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            for(let i=0; i<numNodes; i++) {
+                nodes.push(new Node(random(width), random(height)));
+            }
+        }
+        function draw() {
+            background(0, 15);
+            for(let i=0; i<nodes.length; i++) {
+                nodes[i].update();
+                nodes[i].display();
+                for(let j=i+1; j<nodes.length; j++) {
+                    let d = dist(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y);
+                    if(d < 120) {
+                        stroke(100, 200, 255, map(d, 0, 120, 255, 0));
+                        strokeWeight(map(d, 0, 120, 2, 0.1));
+                        line(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y);
+                    }
+                }
+            }
+        }
+        class Node {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.vx = random(-1, 1); this.vy = random(-1, 1);
+            }
+            update() {
+                if(mouseIsPressed) {
+                    let mx = mouseX, my = mouseY;
+                    let d = dist(this.x, this.y, mx, my);
+                    if(d < 400) {
+                        this.vx += (mx - this.x) * 0.002;
+                        this.vy += (my - this.y) * 0.002;
+                    }
+                }
+                this.vx *= 0.98; this.vy *= 0.98;
+                this.x += this.vx; this.y += this.vy;
+                if(this.x < 0 || this.x > width) this.vx *= -1;
+                if(this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            display() {
+                noStroke(); fill(255);
+                let breathing = map(sin(frameCount*0.1), -1, 1, 3, 6);
+                ellipse(this.x, this.y, mouseIsPressed ? breathing : 3);
+            }
+        }
+        function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+    </script>
+</body>
+</html>

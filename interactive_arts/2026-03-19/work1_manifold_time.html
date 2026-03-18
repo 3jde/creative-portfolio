@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Work 01: Manifold Time</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; font-family: sans-serif; }
+        .text-overlay { position: absolute; bottom: 20px; left: 20px; right: 20px; text-align: center; pointer-events: none; }
+        .zh { font-size: 14px; margin-bottom: 5px; opacity: 0.8; }
+        .en { font-size: 12px; font-style: italic; opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div class="text-overlay">
+        <div class="zh">本作品探讨数字维度中的时间感知。互动者的每一次滑动，都是在数字沙漏中刻下的不可逆痕迹。</div>
+        <div class="en">This work explores the perception of time in the digital dimension. Every swipe is an irreversible mark carved into the digital hourglass.</div>
+    </div>
+    <script>
+        let particles = [];
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            background(0);
+            for(let i=0; i<200; i++) particles.push(new Particle());
+        }
+        function draw() {
+            background(0, 0, 0, 20); // Time trail effect
+            let mouseV = createVector(mouseX - pmouseX, mouseY - pmouseY);
+            let speed = mouseV.mag();
+            for(let p of particles) {
+                p.update(speed);
+                p.display(speed);
+            }
+        }
+        class Particle {
+            constructor() {
+                this.pos = createVector(random(width), random(height));
+                this.vel = p5.Vector.random2D().mult(random(1, 3));
+                this.acc = createVector(0,0);
+            }
+            update(speed) {
+                if (speed > 10) {
+                    let mousePos = createVector(mouseX, mouseY);
+                    let force = p5.Vector.sub(this.pos, mousePos);
+                    force.normalize();
+                    force.mult(speed * 0.05);
+                    this.acc.add(force);
+                } else {
+                    this.acc.add(p5.Vector.random2D().mult(0.1));
+                }
+                this.vel.add(this.acc);
+                this.vel.limit(map(speed, 0, 100, 2, 10));
+                this.pos.add(this.vel);
+                this.acc.mult(0);
+                if(this.pos.x < 0) this.pos.x = width;
+                if(this.pos.x > width) this.pos.x = 0;
+                if(this.pos.y < 0) this.pos.y = height;
+                if(this.pos.y > height) this.pos.y = 0;
+            }
+            display(speed) {
+                let r = map(speed, 0, 50, 50, 255);
+                let b = map(speed, 0, 50, 255, 50);
+                noStroke();
+                fill(r, 100, b, 150);
+                ellipse(this.pos.x, this.pos.y, 4, 4);
+            }
+        }
+        function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+    </script>
+</body>
+</html>
