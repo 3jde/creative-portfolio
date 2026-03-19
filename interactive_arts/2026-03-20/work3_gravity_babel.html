@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Work 03: Gravity Babel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; font-family: sans-serif; }
+        .text-overlay { position: absolute; top: 20px; left: 20px; right: 20px; text-align: center; pointer-events: none; }
+        .zh { font-size: 14px; margin-bottom: 5px; opacity: 0.8; }
+        .en { font-size: 12px; font-style: italic; opacity: 0.5; }
+        .hint { margin-top: 15px; font-size: 12px; color: #888; letter-spacing: 2px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <div class="text-overlay">
+        <div class="zh">我们在无意义的字母坠落与碰撞中，偶然瞥见词汇的诞生与毁灭。犹如在混沌的数字宇宙中重建巴别塔。</div>
+        <div class="en">In the meaningless fall and collision of letters, we accidentally glimpse the birth and destruction of words.</div>
+        <div class="hint">CLICK ANYWHERE TO SPAWN LETTERS</div>
+    </div>
+    <script>
+        let Engine = Matter.Engine, World = Matter.World, Bodies = Matter.Bodies, Body = Matter.Body;
+        let engine, world;
+        let letters = [];
+        let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            engine = Engine.create();
+            world = engine.world;
+            let options = { isStatic: true, restitution: 0.5 };
+            World.add(world, [
+                Bodies.rectangle(width/2, height + 25, width, 50, options), // floor
+                Bodies.rectangle(-25, height/2, 50, height, options),       // left
+                Bodies.rectangle(width + 25, height/2, 50, height, options) // right
+            ]);
+            textAlign(CENTER, CENTER);
+            textSize(40);
+            textFont('Impact');
+        }
+
+        function draw() {
+            background(5, 5, 10);
+            Engine.update(engine);
+            
+            for(let i=0; i<letters.length; i++) {
+                let p = letters[i];
+                push();
+                translate(p.body.position.x, p.body.position.y);
+                rotate(p.body.angle);
+                fill(255);
+                noStroke();
+                text(p.char, 0, 0);
+                pop();
+            }
+        }
+
+        function mousePressed() {
+            spawnLetter(mouseX, mouseY);
+        }
+
+        function spawnLetter(x, y) {
+            let char = alphabet.charAt(floor(random(alphabet.length)));
+            let size = 40;
+            let body = Bodies.rectangle(x, y, size, size, {
+                restitution: 0.8,
+                friction: 0.5
+            });
+            World.add(world, body);
+            letters.push({ body: body, char: char });
+            
+            // Limit to 100 letters so performance doesn't die
+            if(letters.length > 100) {
+                World.remove(world, letters[0].body);
+                letters.shift();
+            }
+        }
+        function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+    </script>
+</body>
+</html>

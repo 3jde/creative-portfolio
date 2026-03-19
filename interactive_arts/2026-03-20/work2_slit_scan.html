@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Work 02: Slit-Scan Typography</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; font-family: sans-serif; }
+        .text-overlay { position: absolute; bottom: 20px; left: 20px; right: 20px; text-align: center; pointer-events: none; }
+        .zh { font-size: 14px; margin-bottom: 5px; opacity: 0.8; }
+        .en { font-size: 12px; font-style: italic; opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div class="text-overlay">
+        <div class="zh">文字本是确切的真理，却在你的干涉下发生时间维度的错位与畸变。</div>
+        <div class="en">Words, originally definite truths, suffer dislocation and distortion in the dimension of time through your interference.</div>
+    </div>
+    <script>
+        let pg;
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            pg = createGraphics(windowWidth, windowHeight);
+            pg.background(0);
+            pg.fill(255);
+            pg.textAlign(CENTER, CENTER);
+            pg.textSize(windowWidth * 0.1);
+            pg.textFont('Impact');
+            pg.text("WE ARE BUILT", width/2, height/2 - 80);
+            pg.text("OF TIME", width/2, height/2 + 80);
+        }
+        function draw() {
+            background(0);
+            let slits = 100;
+            let w = width / slits;
+            
+            for(let i = 0; i < slits; i++) {
+                let x = i * w;
+                let distToMouse = dist(x, height/2, mouseX, mouseY);
+                // The closer the mouse, the more "time offset" happens
+                let delay = map(distToMouse, 0, width, 0, 50);
+                
+                let yOffset = sin(frameCount * 0.05 + delay) * map(mouseY, 0, height, 0, 150);
+                
+                // image(img, dx, dy, dWidth, dHeight, sx, sy, [sWidth], [sHeight])
+                image(pg, x, yOffset, w, height, x, 0, w, height);
+            }
+        }
+        function windowResized() { resizeCanvas(windowWidth, windowHeight); setup(); }
+    </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Work 01: 86400 Seconds</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; font-family: sans-serif; }
+        .text-overlay { position: absolute; bottom: 20px; left: 20px; right: 20px; text-align: center; pointer-events: none; }
+        .zh { font-size: 14px; margin-bottom: 5px; opacity: 0.8; }
+        .en { font-size: 12px; font-style: italic; opacity: 0.5; }
+        #info { position: absolute; top: 20px; left: 20px; font-family: monospace; font-size: 16px; opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div id="info"></div>
+    <div class="text-overlay">
+        <div class="zh">时间是一场 86400 次的倒数。每秒钟熄灭的像素，是宇宙从你手中夺走的时间切片。</div>
+        <div class="en">Time is a countdown of 86,400 strokes. Every extinguished pixel is a slice of time taken from you.</div>
+    </div>
+    <script>
+        let cols = 360, rows = 240;
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            noStroke();
+        }
+        function draw() {
+            // Calculate Beijing Time (UTC+8)
+            let d = new Date();
+            let utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+            let bjTime = new Date(utc + (3600000 * 8));
+            let h = bjTime.getHours();
+            let m = bjTime.getMinutes();
+            let s = bjTime.getSeconds();
+            
+            let passed = h * 3600 + m * 60 + s;
+            document.getElementById('info').innerText = `BEIJING TIME: ${nf(h,2)}:${nf(m,2)}:${nf(s,2)}\nPASSED SECONDS: ${passed} / 86400`;
+
+            // Draw beautiful gradient background representing the whole day
+            for(let y = 0; y < rows; y++) {
+                let r = map(y, 0, rows, 255, 50);
+                let g = map(y, 0, rows, 100, 20);
+                let b = map(y, 0, rows, 50, 200);
+                fill(r, g, b);
+                rect(0, y * (height/rows), width, height/rows + 1);
+            }
+
+            // Draw the "passed" time as black boxes (extinguished pixels)
+            let passedRows = floor(passed / cols);
+            let passedCols = passed % cols;
+            
+            let cellW = width / cols;
+            let cellH = height / rows;
+
+            fill(0);
+            // Black out full rows
+            if(passedRows > 0) {
+                rect(0, 0, width, passedRows * cellH + 0.5);
+            }
+            // Black out current row up to passed col
+            rect(0, passedRows * cellH, passedCols * cellW, cellH + 0.5);
+        }
+        function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+    </script>
+</body>
+</html>
