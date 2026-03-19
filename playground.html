@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字游乐场 (Digital Playground) | One Zen</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background-color: #050505; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    
+    .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 30px 5vw; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; z-index: 100; background: #050505; }
+    .nav-logo a { color: #fff; text-decoration: none; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+    .nav-menu { display: flex; gap: 30px; }
+    .nav-menu a { color: #888; text-decoration: none; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; transition: color 0.3s; }
+    .nav-menu a:hover, .nav-menu a.active { color: #fff; }
+
+    .header-section { padding: 10vh 5vw; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .header-section h1 { font-size: clamp(3rem, 6vw, 6rem); text-transform: uppercase; font-weight: 900; letter-spacing: -2px; margin-bottom: 20px; }
+    .header-section p { font-size: 1.2rem; color: #888; max-width: 600px; line-height: 1.6; }
+
+    .games-grid { padding: 5vw; display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 40px; }
+    .game-card { border: 1px solid rgba(255,255,255,0.1); padding: 40px 30px; border-radius: 4px; transition: border-color 0.3s, transform 0.3s; display: flex; flex-direction: column; gap: 15px; align-items: center; text-align: center; }
+    .game-card:hover { border-color: rgba(255,255,255,0.5); transform: translateY(-5px); }
+    .game-title { font-size: 1.5rem; font-weight: bold; letter-spacing: 1px; color: #fff; }
+    .game-desc { font-size: 0.95rem; color: #aaa; line-height: 1.5; margin-top: 10px; }
+    .status-badge { display: inline-block; padding: 5px 12px; border: 1px solid #444; border-radius: 20px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 15px; }
+
+    @media (max-width: 768px) {
+      .top-nav { flex-direction: column; gap: 20px; align-items: flex-start; }
+      .nav-menu { flex-wrap: wrap; gap: 15px; }
+      .games-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    <div class="nav-logo"><a href="index.html">ONE ZEN</a></div>
+    <div class="nav-menu">
+      <a href="generative.html">玩码奔腾</a>
+      <a href="digital.html">Digital Art</a>
+      <a href="interior.html">Interior Design</a>
+      <a href="playground.html" class="active">数字游乐场</a>
+    </div>
+  </nav>
+
+  <header class="header-section">
+    <h1>数字游乐场 <br><span style="color: #444;">Digital Playground</span></h1>
+    <p>独立游戏与先锋交互体验实验区 (Indie Games & Interactive Experiences Lab). 
+    <br><br>
+    这里将存放我与 AI 共同研发的网页端互动游戏项目。探讨规则、叙事与代码的无限可能。<br><br><span style="font-size: 0.9em; opacity: 0.7; font-style: italic;">This section will host web-based interactive game projects co-developed by me and AI, exploring the infinite possibilities of rules, narratives, and code.</span></p>
+  </header>
+
+  <div class="games-grid">
+    <div class="game-card" style="border-style: dashed; opacity: 0.6;">
+      <div class="status-badge">In Development</div>
+      <div class="game-title">Project 01: [未定名]</div>
+      <div class="game-desc">首款联合开发的实验性数字互动游戏正在秘密构建中，敬请期待...<br><br><em>The first co-developed experimental digital interactive game is currently under secret construction. Stay tuned...</em></div>
+    </div>
+  </div>
+
+</body>
+</html>
