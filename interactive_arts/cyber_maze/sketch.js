@@ -23,13 +23,6 @@ let playerName = "";
 let nameInputUi, hudUi, winUi, recordAnimUi;
 let playerNameInput, hudPlayer, hudLevel, hudTime, hudBest, winMsg, winStats;
 
-// Sounds (Optional - gracefully degrades if not available)
-let bgm, hitSound, winSound;
-
-// We do NOT use preload() for sounds to prevent the sketch from hanging indefinitely 
-// on GitHub Pages when the audio assets don't exist yet.
-// Instead, we load them asynchronously in setup().
-
 function setup() {
     let canvas = createCanvas(800, 800, WEBGL);
     canvas.parent('game-container');
@@ -64,19 +57,13 @@ function setup() {
     select('#quit-btn').mousePressed(quitGame);
 
     // Enter Key Start
-    playerNameInput.elt.addEventListener("keyup", function(event) {
-        if (event.key === "Enter") {
-            startGame();
-        }
-    });
-
-    // Attempt to load sounds asynchronously without blocking setup
-    try {
-        soundFormats('mp3', 'ogg');
-        bgm = loadSound('assets/bgm.mp3', () => { if (bgm && bgm.isLoaded()) bgm.loop(); }, () => { console.log("BGM silent mode"); });
-        hitSound = loadSound('assets/hit.mp3', () => {}, () => {});
-        winSound = loadSound('assets/win.mp3', () => {}, () => {});
-    } catch(e) {}
+    if (playerNameInput && playerNameInput.elt) {
+        playerNameInput.elt.addEventListener("keyup", function(event) {
+            if (event.key === "Enter") {
+                startGame();
+            }
+        });
+    }
 }
 
 function startGame() {
@@ -170,7 +157,6 @@ function draw() {
             checkRecord();
             gameState = 1;
             transitionTimer = 120;
-            if (winSound && winSound.isLoaded()) winSound.play();
         }
     } else if (gameState === 1) {
         ball.radius *= 0.9;
@@ -319,10 +305,6 @@ class Ball {
                 this.vel.y *= -0.5;
                 hitWall = true;
             }
-        }
-
-        if (hitWall && impactSpeed > 0.8 && hitSound && hitSound.isLoaded()) {
-            hitSound.play();
         }
     }
 
