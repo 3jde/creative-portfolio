@@ -3,71 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Art | One Zen</title>
+  <title>Digital Art Directory | One Zen</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background-color: #050505; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow-x: hidden; }
+    body { background-color: #050505; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
     
-    /* Navbar */
-    .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 30px 5vw; border-bottom: 1px solid rgba(255,255,255,0.1); background: #050505; position: sticky; top: 0; z-index: 100; }
-    .logo { font-family: 'Arial Black', Impact, sans-serif; font-size: 1.5rem; text-decoration: none; color: #fff; letter-spacing: -1px; }
-    .nav-links { display: flex; gap: 30px; }
-    .nav-links a { color: #888; text-decoration: none; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; transition: color 0.3s; }
-    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 30px 5vw; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; z-index: 100; background: #050505; }
+    .nav-logo a { color: #fff; text-decoration: none; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+    .nav-menu { display: flex; gap: 30px; }
+    .nav-menu a { color: #888; text-decoration: none; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; transition: color 0.3s; }
+    .nav-menu a:hover, .nav-menu a.active { color: #fff; }
 
-    /* Content */
-    .content { padding: 80px 5vw; max-width: 1400px; margin: 0 auto; }
-    .section-title { font-size: 3rem; font-weight: 200; letter-spacing: 2px; margin-bottom: 20px; text-transform: uppercase; }
-    .section-desc { color: #888; margin-bottom: 60px; font-size: 1rem; line-height: 1.6; max-width: 600px; }
+    .header-section { padding: 10vh 5vw; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .header-section h1 { font-size: clamp(3rem, 6vw, 6rem); text-transform: uppercase; font-weight: 900; letter-spacing: -2px; margin-bottom: 20px; }
+    .header-section p { font-size: 1.2rem; color: #888; max-width: 600px; line-height: 1.6; }
 
-    .sketch-container { border: 1px solid rgba(255,255,255,0.1); margin-bottom: 50px; background: #0a0a0a; border-radius: 4px; overflow: hidden; }
-    .sketch-header { padding: 15px 20px; background: #111; font-size: 0.9rem; color: #aaa; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; }
-    .sketch-title { color: #fff; letter-spacing: 1px; }
-    iframe { width: 100%; height: 600px; border: none; display: block; }
+    .games-grid { padding: 5vw; display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 40px; }
+    .game-card { border: 1px solid rgba(255,255,255,0.1); padding: 40px 30px; border-radius: 4px; transition: border-color 0.3s, transform 0.3s; display: flex; flex-direction: column; gap: 15px; align-items: center; text-align: center; height: 100%; }
+    .game-card:hover { border-color: rgba(255,255,255,0.5); transform: translateY(-5px); }
+    .game-title { font-size: 1.5rem; font-weight: bold; letter-spacing: 1px; color: #fff; }
+    .game-desc { font-size: 0.95rem; color: #aaa; line-height: 1.5; margin-top: 10px; }
+    .status-badge { display: inline-block; padding: 5px 12px; border: 1px solid #444; border-radius: 20px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 15px; }
+
+    @media (max-width: 768px) {
+      .top-nav { flex-direction: column; gap: 20px; align-items: flex-start; }
+      .nav-menu { flex-wrap: wrap; gap: 15px; }
+      .games-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
+
   <nav class="top-nav">
-    <a href="index.html" class="logo">ONE ZEN</a>
-    <div class="nav-links">
+    <div class="nav-logo"><a href="index.html">ONE ZEN</a></div>
+    <div class="nav-menu">
       <a href="generative.html">玩码奔腾</a>
-      <a href="digital.html" class="active" style="color:#fff; border-bottom:1px solid #fff; padding-bottom:5px;">Digital Art</a>
+      <a href="digital.html" class="active">Digital Art</a>
       <a href="interior.html">Interior Design</a>
       <a href="playground.html">数字游乐场</a>
     </div>
   </nav>
 
-  <div class="content">
-    <h1 class="section-title">Digital Art</h1>
-    <p class="section-desc">Generative systems, procedural geometry, and interactive installations driven by code and real-time data.</p>
+  <header class="header-section">
+    <h1>Digital Art <br><span style="color: #444;">Interactive</span></h1>
+    <p>Generative systems, procedural geometry, and interactive installations driven by code and real-time data.<br><br>
+    点击进入独立页面体验基于摄像头的沉浸式互动作品。<br><br><span style="font-size: 0.9em; opacity: 0.7; font-style: italic;">Click into each individual artwork to experience immersive camera-based interactions.</span></p>
+  </header>
+
+  <div class="games-grid">
+    <a href="digital_optical.html" style="text-decoration: none; color: inherit;">
+      <div class="game-card">
+        <div class="status-badge">p5.js / Camera</div>
+        <div class="game-title">01. Fluid Optical Flow</div>
+        <div class="game-desc">基于光流算法的交互式粒子系统视觉实验。<br><br><em>Interactive Camera & Particle System based on optical flow algorithms.</em></div>
+      </div>
+    </a>
     
-    <!-- Sketch 1 -->
-    <div class="sketch-container">
-      <div class="sketch-header">
-        <span class="sketch-title">01. Fluid Optical Flow</span>
-        <span>Interactive Camera / p5.js</span>
+    <a href="digital_bauhaus.html" style="text-decoration: none; color: inherit;">
+      <div class="game-card">
+        <div class="status-badge">Computer Vision</div>
+        <div class="game-title">02. Bauhaus Geometry</div>
+        <div class="game-desc">受包豪斯启发的实时几何形体生成，由面部和肢体追踪驱动。<br><br><em>Real-time shape generation inspired by Bauhaus using face & body tracking.</em></div>
       </div>
-      <iframe src="sketches/optical_flow/index.html" allow="camera" scrolling="no"></iframe>
-    </div>
-
-    <!-- Sketch 2 -->
-    <div class="sketch-container">
-      <div class="sketch-header">
-        <span class="sketch-title">02. Bauhaus Geometry</span>
-        <span>Computer Vision / Shape Generation</span>
+    </a>
+    
+    <a href="digital_topo.html" style="text-decoration: none; color: inherit;">
+      <div class="game-card">
+        <div class="status-badge">3D Mesh / Map</div>
+        <div class="game-title">03. Topographic Face</div>
+        <div class="game-desc">从摄像头输入实时提取亮度数据映射而成的 3D 地形网格面像。<br><br><em>3D Mesh generated from real-time brightness mapping of the webcam feed.</em></div>
       </div>
-      <iframe src="sketches/bauhaus/index.html" allow="camera" scrolling="no"></iframe>
-    </div>
-
-    <!-- Sketch 3 -->
-    <div class="sketch-container">
-      <div class="sketch-header">
-        <span class="sketch-title">03. Topographic Face</span>
-        <span>3D Mesh / Brightness Mapping</span>
-      </div>
-      <iframe src="sketches/topo/index.html" allow="camera" scrolling="no"></iframe>
-    </div>
-
+    </a>
   </div>
+
 </body>
 </html>
