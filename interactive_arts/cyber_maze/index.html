@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,38 +9,52 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <!-- Canvas will be injected here -->
-        
-        <!-- UI Overlay: Name Input -->
-        <div id="name-input-ui" class="overlay">
-            <h1 class="cyber-title">CYBER MAZE V2.0</h1>
-            <p>ENTER YOUR NAME:</p>
-            <input type="text" id="player-name" placeholder="Agent_47" maxlength="10">
-            <button id="start-btn" class="cyber-btn">START [ENTER]</button>
+    <!-- Top Navigation Bar (Consistent with Site) -->
+    <nav class="top-nav">
+        <div class="nav-logo"><a href="../../index.html">ONE ZEN</a></div>
+        <div class="nav-menu">
+            <a href="../../generative.html">玩码奔腾</a>
+            <a href="../../digital.html">Digital Art</a>
+            <a href="../../interior.html">Interior Design</a>
+            <a href="../../playground.html" class="active">数字游乐场</a>
         </div>
+    </nav>
 
-        <!-- UI Overlay: HUD -->
-        <div id="hud" class="overlay hidden hud-corner">
-            <p id="hud-player">Player: </p>
-            <p id="hud-level">LEVEL: </p>
-            <p id="hud-time">TIME: 0.00 s</p>
-            <p id="hud-best" class="text-green">BEST: --</p>
-        </div>
+    <!-- Game Area -->
+    <div class="game-wrapper">
+        <div id="game-container">
+            <!-- UI Overlay: Name Input -->
+            <div id="name-input-ui" class="overlay">
+                <h1 class="cyber-title">CYBER MAZE V2.0</h1>
+                <p>ENTER YOUR NAME:</p>
+                <input type="text" id="player-name" placeholder="Agent_47" maxlength="10">
+                <br>
+                <button id="start-btn" class="cyber-btn">START [ENTER]</button>
+            </div>
 
-        <!-- Record Animation -->
-        <div id="record-anim" class="overlay hidden center-anim">
-            <h2 class="text-gold blink">NEW RECORD! MEOW! 🌺</h2>
-        </div>
+            <!-- UI Overlay: HUD -->
+            <div id="hud" class="overlay hidden hud-corner">
+                <p id="hud-player">Player: </p>
+                <p id="hud-level">LEVEL: </p>
+                <p id="hud-time">TIME: 0.00 s</p>
+                <p id="hud-best" class="text-green">BEST: --</p>
+                <p class="hint-text">Move Mouse to Tilt Platform</p>
+            </div>
 
-        <!-- UI Overlay: Victory -->
-        <div id="win-ui" class="overlay hidden">
-            <h1 class="text-gold">VICTORY! MEOW!</h1>
-            <p id="win-msg" class="text-silver"></p>
-            <p id="win-stats" class="text-green"></p>
-            <div class="btn-group">
-                <button id="restart-btn" class="cyber-btn">PLAY AGAIN</button>
-                <button id="quit-btn" class="cyber-btn btn-danger">QUIT GAME</button>
+            <!-- Record Animation -->
+            <div id="record-anim" class="overlay hidden center-anim">
+                <h2 class="text-gold blink">NEW RECORD! MEOW! 🌺</h2>
+            </div>
+
+            <!-- UI Overlay: Victory -->
+            <div id="win-ui" class="overlay hidden">
+                <h1 class="text-gold">VICTORY! MEOW!</h1>
+                <p id="win-msg" class="text-silver"></p>
+                <p id="win-stats" class="text-green"></p>
+                <div class="btn-group">
+                    <button id="restart-btn" class="cyber-btn">PLAY AGAIN</button>
+                    <button id="quit-btn" class="cyber-btn btn-danger">QUIT</button>
+                </div>
             </div>
         </div>
     </div>

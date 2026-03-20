@@ -19,79 +19,61 @@ let newRecord = false;
 let records = {};
 let playerName = "";
 
-// DOM Elements
-let nameInputUi, hudUi, winUi, recordAnimUi;
-let playerNameInput, hudPlayer, hudLevel, hudTime, hudBest, winMsg, winStats;
-
 function setup() {
     let canvas = createCanvas(800, 800, WEBGL);
     canvas.parent('game-container');
     maxRot = radians(20);
     
-    // Smooth rendering
-    pixelDensity(displayDensity());
+    // Prevent retina display lag by forcing density to 1
+    pixelDensity(1); 
 
-    // Load local storage records
-    let saved = localStorage.getItem('cyberMazeRecords');
-    if (saved) {
-        records = JSON.parse(saved);
+    // Load local storage records safely
+    try {
+        let saved = localStorage.getItem('cyberMazeRecords');
+        if (saved) {
+            records = JSON.parse(saved);
+        }
+    } catch(e) {
+        records = {};
     }
 
-    // Bind DOM
-    nameInputUi = select('#name-input-ui');
-    hudUi = select('#hud');
-    winUi = select('#win-ui');
-    recordAnimUi = select('#record-anim');
-
-    playerNameInput = select('#player-name');
-    hudPlayer = select('#hud-player');
-    hudLevel = select('#hud-level');
-    hudTime = select('#hud-time');
-    hudBest = select('#hud-best');
-    winMsg = select('#win-msg');
-    winStats = select('#win-stats');
-
-    // Button Events
-    select('#start-btn').mousePressed(startGame);
-    select('#restart-btn').mousePressed(restartGame);
-    select('#quit-btn').mousePressed(quitGame);
+    // Button Events via standard JS
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    document.getElementById('restart-btn').addEventListener('click', restartGame);
+    document.getElementById('quit-btn').addEventListener('click', quitGame);
 
     // Enter Key Start
-    if (playerNameInput && playerNameInput.elt) {
-        playerNameInput.elt.addEventListener("keyup", function(event) {
-            if (event.key === "Enter") {
-                startGame();
-            }
-        });
-    }
+    let nameInput = document.getElementById('player-name');
+    nameInput.addEventListener("keyup", function(event) {
+        if (event.key === "Enter") {
+            startGame();
+        }
+    });
 }
 
 function startGame() {
-    let val = "";
-    if (playerNameInput && playerNameInput.elt) {
-        val = playerNameInput.elt.value.trim();
-    }
+    let val = document.getElementById('player-name').value.trim();
     if (val === "") val = "Guest";
     playerName = val;
 
-    nameInputUi.addClass('hidden');
-    hudUi.removeClass('hidden');
+    document.getElementById('name-input-ui').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
 
-    hudPlayer.html(`Player: ${playerName}`);
+    document.getElementById('hud-player').innerText = `Player: ${playerName}`;
     level = 1;
     initLevel();
 }
 
 function restartGame() {
-    winUi.addClass('hidden');
-    hudUi.removeClass('hidden');
+    document.getElementById('win-ui').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
     level = 1;
     initLevel();
 }
 
 function quitGame() {
-    winUi.addClass('hidden');
-    nameInputUi.removeClass('hidden');
+    document.getElementById('win-ui').classList.add('hidden');
+    document.getElementById('name-input-ui').classList.remove('hidden');
     gameState = -1;
 }
 
@@ -111,33 +93,41 @@ function initLevel() {
 
     ball = new Ball(cellSize/2, cellSize/2, cellSize * 0.35);
     newRecord = false;
-    recordAnimUi.addClass('hidden');
+    document.getElementById('record-anim').classList.add('hidden');
     gameState = 0;
     
-    hudLevel.html(`LEVEL: ${level}`);
+    document.getElementById('hud-level').innerText = `LEVEL: ${level}`;
     
     let best = getBestTime(playerName, level);
-    if (best) hudBest.html(`BEST: ${best.toFixed(2)} s`);
-    else hudBest.html("BEST: --");
+    if (best) {
+        document.getElementById('hud-best').innerText = `BEST: ${best.toFixed(2)} s`;
+    } else {
+        document.getElementById('hud-best').innerText = "BEST: --";
+    }
 
     levelStartTime = millis();
 }
 
 function draw() {
+    // Clear background every frame
     background(25, 30, 40);
 
     if (gameState === -1 || gameState === 2) {
-        // Just draw a static dark background for menus
         return;
     }
 
-    // Input to Rotation
-    let targetRotZ = map(mouseX, 0, width, -maxRot, maxRot);
-    let targetRotX = map(mouseY, 0, height, maxRot, -maxRot);
+    // Fix mouse logic to prevent extreme tilting initially
+    let mX = constrain(mouseX, 0, width);
+    let mY = constrain(mouseY, 0, height);
     
-    // Clamp targets
-    targetRotZ = constrain(targetRotZ, -maxRot, maxRot);
-    targetRotX = constrain(targetRotX, -maxRot, maxRot);
+    // If mouse is at 0,0 (initial state before move), set it to center to prevent instant tilt
+    if (mouseX === 0 && mouseY === 0) {
+        mX = width / 2;
+        mY = height / 2;
+    }
+
+    let targetRotZ = map(mX, 0, width, -maxRot, maxRot);
+    let targetRotX = map(mY, 0, height, maxRot, -maxRot);
 
     rotX = lerp(rotX, targetRotX, 0.1);
     rotZ = lerp(rotZ, targetRotZ, 0.1);
@@ -149,7 +139,10 @@ function draw() {
         ball.update(maze);
 
         currentLevelTime = (millis() - levelStartTime) / 1000.0;
-        hudTime.html(`TIME: ${currentLevelTime.toFixed(2)} s`);
+        // Throttle DOM updates to prevent performance drop
+        if (frameCount % 5 === 0) {
+            document.getElementById('hud-time').innerText = `TIME: ${currentLevelTime.toFixed(2)} s`;
+        }
 
         let dx = ball.pos.x - maze.goalX;
         let dy = ball.pos.y - maze.goalY;
@@ -164,7 +157,7 @@ function draw() {
         transitionTimer--;
         
         if (newRecord) {
-            recordAnimUi.removeClass('hidden');
+            document.getElementById('record-anim').classList.remove('hidden');
         }
 
         if (transitionTimer <= 0) {
@@ -178,12 +171,10 @@ function draw() {
     rotateX(rotX);
     rotateZ(rotZ);
 
-    // Lights
-    ambientLight(80, 80, 80);
-    pointLight(255, 255, 255, 0, 0, 400);
-    directionalLight(200, 200, 200, 0.5, 0.5, -1);
-    specularMaterial(255, 255, 255);
-    shininess(120);
+    // Fix glowing ball: Use moderate lights
+    ambientLight(150, 150, 150);
+    directionalLight(220, 220, 220, 0.5, 0.5, -1);
+    directionalLight(100, 100, 120, -0.5, -0.5, -0.5); // Fill light
 
     translate(-cols*cellSize/2, -rows*cellSize/2, 0);
 
@@ -203,7 +194,7 @@ function draw() {
     translate(maze.goalX, maze.goalY, 0.5);
     fill(5);
     noStroke();
-    ellipse(0, 0, cellSize*0.7, cellSize*0.7);
+    circle(0, 0, cellSize*0.7);
     pop();
 
     // Metallic Ball
@@ -221,7 +212,9 @@ function checkRecord() {
     let pRec = records[playerName];
     if (!pRec[lvlKey] || currentLevelTime < pRec[lvlKey]) {
         pRec[lvlKey] = currentLevelTime;
-        localStorage.setItem('cyberMazeRecords', JSON.stringify(records));
+        try {
+            localStorage.setItem('cyberMazeRecords', JSON.stringify(records));
+        } catch(e) {}
         newRecord = true;
     }
 }
@@ -234,17 +227,17 @@ function getBestTime(name, lvl) {
 }
 
 function showWinScreen() {
-    hudUi.addClass('hidden');
-    recordAnimUi.addClass('hidden');
-    winUi.removeClass('hidden');
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('record-anim').classList.add('hidden');
+    document.getElementById('win-ui').classList.remove('hidden');
     
-    winMsg.html(`Master ${playerName}, you cleared all levels!`);
+    document.getElementById('win-msg').innerText = `Master ${playerName}, you cleared all levels!`;
 
     let t1 = getBestTime(playerName, 1) || 0;
     let t2 = getBestTime(playerName, 2) || 0;
     let t3 = getBestTime(playerName, 3) || 0;
     
-    winStats.html(`Lvl 1: ${t1.toFixed(2)}s | Lvl 2: ${t2.toFixed(2)}s | Lvl 3: ${t3.toFixed(2)}s`);
+    document.getElementById('win-stats').innerText = `Lvl 1: ${t1.toFixed(2)}s | Lvl 2: ${t2.toFixed(2)}s | Lvl 3: ${t3.toFixed(2)}s`;
 }
 
 // -----------------------------
@@ -273,37 +266,30 @@ class Ball {
     checkCollision(m, isX) {
         let cx = constrain(floor(this.pos.x / m.w), 0, m.cols - 1);
         let cy = constrain(floor(this.pos.y / m.w), 0, m.rows - 1);
-        let cell = m.grid[cx][cy];
         
+        // Safety check against NaN
+        if(isNaN(cx) || isNaN(cy)) return;
+        
+        let cell = m.grid[cx][cy];
         let padding = m.wallT / 2;
-        let hitWall = false;
-        let impactSpeed = 0;
 
         if (isX) {
             if (cell.walls[3] && this.pos.x - this.radius < cx * m.w + padding) {
                 this.pos.x = cx * m.w + this.radius + padding;
-                impactSpeed = abs(this.vel.x);
                 this.vel.x *= -0.5;
-                hitWall = true;
             }
             if (cell.walls[1] && this.pos.x + this.radius > (cx+1) * m.w - padding) {
                 this.pos.x = (cx+1) * m.w - this.radius - padding;
-                impactSpeed = abs(this.vel.x);
                 this.vel.x *= -0.5;
-                hitWall = true;
             }
         } else {
             if (cell.walls[0] && this.pos.y - this.radius < cy * m.w + padding) {
                 this.pos.y = cy * m.w + this.radius + padding;
-                impactSpeed = abs(this.vel.y);
                 this.vel.y *= -0.5;
-                hitWall = true;
             }
             if (cell.walls[2] && this.pos.y + this.radius > (cy+1) * m.w - padding) {
                 this.pos.y = (cy+1) * m.w - this.radius - padding;
-                impactSpeed = abs(this.vel.y);
                 this.vel.y *= -0.5;
-                hitWall = true;
             }
         }
     }
@@ -312,10 +298,12 @@ class Ball {
         push();
         translate(this.pos.x, this.pos.y, this.radius);
         noStroke();
-        fill(100, 110, 120);
-        ambientMaterial(50, 50, 60);
-        specularMaterial(255);
-        shininess(120);
+        
+        // Solid metal look (fixed glowing issue)
+        fill(150, 160, 170);
+        specularMaterial(255, 255, 255);
+        shininess(50); // Lower shininess to prevent laser-like glow
+        
         sphereDetail(24);
         sphere(this.radius);
         pop();
@@ -357,7 +345,9 @@ class Maze {
         current.visited = true;
 
         let generating = true;
-        while(generating) {
+        let failsafe = 0; // Prevent any possible infinite loops in generation
+        while(generating && failsafe < 5000) {
+            failsafe++;
             let next = this.getUnvisitedNeighbor(current);
             if (next) {
                 next.visited = true;
@@ -400,7 +390,7 @@ class Maze {
     }
 
     display() {
-        fill(70, 130, 220);
+        fill(50, 110, 200);
         noStroke();
 
         for (let i = 0; i < this.cols; i++) {
