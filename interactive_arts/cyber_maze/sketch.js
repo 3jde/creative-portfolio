@@ -40,8 +40,8 @@ function setup() {
     try {
         bgm = new Audio('assets/bgm.mp3');
         bgm.loop = true;
-        hitSound = new Audio('assets/hit.mp3');
-        winSound = new Audio('assets/win.mp3');
+        hitSound = new Audio('assets/hit.wav');
+        winSound = new Audio('assets/win.wav');
     } catch(e) {}
 
     // Button Events
@@ -248,6 +248,29 @@ function getBestTime(name, lvl) {
     return null;
 }
 
+// Google Sheets API URL for cloud leaderboard
+const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyotX3BFzUIawJayQgFUJMN5m0CmPNXxcQdkwY8FLYqSNMkosaBRqUb3fOcqRLNXz_koA/exec";
+
+function uploadScoreToCloud(playerName, scoreTime) {
+    if (!playerName || playerName === "Guest") return;
+    
+    // Create form data
+    let formData = new FormData();
+    formData.append('player', playerName);
+    formData.append('score', scoreTime.toFixed(2));
+    
+    // Send to Google Sheets without waiting for response (fire and forget)
+    fetch(GOOGLE_SHEETS_API_URL, {
+        method: 'POST',
+        body: formData,
+        mode: 'no-cors' // Prevent CORS errors, we don't need to read the response
+    }).then(() => {
+        console.log("Score uploaded to cloud!");
+    }).catch(err => {
+        console.log("Cloud upload failed:", err);
+    });
+}
+
 function showWinScreen() {
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('record-anim').classList.add('hidden');
@@ -259,7 +282,13 @@ function showWinScreen() {
     let t2 = getBestTime(playerName, 2) || 0;
     let t3 = getBestTime(playerName, 3) || 0;
     
-    document.getElementById('win-stats').innerText = `Lvl 1: ${t1.toFixed(2)}s | Lvl 2: ${t2.toFixed(2)}s | Lvl 3: ${t3.toFixed(2)}s`;
+    let totalScore = t1 + t2 + t3;
+    document.getElementById('win-stats').innerText = `Lvl 1: ${t1.toFixed(2)}s | Lvl 2: ${t2.toFixed(2)}s | Lvl 3: ${t3.toFixed(2)}s\nTOTAL: ${totalScore.toFixed(2)}s`;
+
+    // Upload total score to Google Sheets
+    if (totalScore > 0) {
+        uploadScoreToCloud(playerName, totalScore);
+    }
 }
 
 // -----------------------------
