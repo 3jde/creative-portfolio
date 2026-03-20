@@ -26,17 +26,9 @@ let playerNameInput, hudPlayer, hudLevel, hudTime, hudBest, winMsg, winStats;
 // Sounds (Optional - gracefully degrades if not available)
 let bgm, hitSound, winSound;
 
-function preload() {
-    // Attempt to load sounds (will ignore errors if files are missing on GitHub Pages)
-    try {
-        soundFormats('mp3', 'ogg');
-        bgm = loadSound('assets/bgm.mp3');
-        hitSound = loadSound('assets/hit.mp3');
-        winSound = loadSound('assets/win.mp3');
-    } catch(e) {
-        console.log("No audio files found. Running silent mode.");
-    }
-}
+// We do NOT use preload() for sounds to prevent the sketch from hanging indefinitely 
+// on GitHub Pages when the audio assets don't exist yet.
+// Instead, we load them asynchronously in setup().
 
 function setup() {
     let canvas = createCanvas(800, 800, WEBGL);
@@ -78,13 +70,20 @@ function setup() {
         }
     });
 
-    if (bgm && bgm.isLoaded()) {
-        bgm.loop();
-    }
+    // Attempt to load sounds asynchronously without blocking setup
+    try {
+        soundFormats('mp3', 'ogg');
+        bgm = loadSound('assets/bgm.mp3', () => { if (bgm && bgm.isLoaded()) bgm.loop(); }, () => { console.log("BGM silent mode"); });
+        hitSound = loadSound('assets/hit.mp3', () => {}, () => {});
+        winSound = loadSound('assets/win.mp3', () => {}, () => {});
+    } catch(e) {}
 }
 
 function startGame() {
-    let val = playerNameInput.value().trim();
+    let val = "";
+    if (playerNameInput && playerNameInput.elt) {
+        val = playerNameInput.elt.value.trim();
+    }
     if (val === "") val = "Guest";
     playerName = val;
 
