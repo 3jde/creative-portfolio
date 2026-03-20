@@ -19,35 +19,39 @@ let newRecord = false;
 let records = {};
 let playerName = "";
 
+// Native HTML5 Audio objects (no p5.sound required)
+let bgm, hitSound, winSound;
+
 function setup() {
     let canvas = createCanvas(800, 800, WEBGL);
     canvas.parent('game-container');
     maxRot = radians(20);
     
-    // Prevent retina display lag by forcing density to 1
     pixelDensity(1); 
 
-    // Load local storage records safely
     try {
         let saved = localStorage.getItem('cyberMazeRecords');
-        if (saved) {
-            records = JSON.parse(saved);
-        }
+        if (saved) records = JSON.parse(saved);
     } catch(e) {
         records = {};
     }
 
-    // Button Events via standard JS
+    // Initialize HTML5 Audio Elements safely
+    try {
+        bgm = new Audio('assets/bgm.mp3');
+        bgm.loop = true;
+        hitSound = new Audio('assets/hit.mp3');
+        winSound = new Audio('assets/win.mp3');
+    } catch(e) {}
+
+    // Button Events
     document.getElementById('start-btn').addEventListener('click', startGame);
     document.getElementById('restart-btn').addEventListener('click', restartGame);
     document.getElementById('quit-btn').addEventListener('click', quitGame);
 
-    // Enter Key Start
     let nameInput = document.getElementById('player-name');
     nameInput.addEventListener("keyup", function(event) {
-        if (event.key === "Enter") {
-            startGame();
-        }
+        if (event.key === "Enter") startGame();
     });
 
     rotX = 0;
@@ -65,6 +69,12 @@ function startGame() {
     document.getElementById('hud-player').innerText = `Player: ${playerName}`;
     level = 1;
     initLevel();
+
+    // Safely attempt to play BGM (browsers require user interaction first, which click provides)
+    if (bgm) {
+        bgm.currentTime = 0;
+        bgm.play().catch(e => console.log("BGM play blocked or missing file."));
+    }
 }
 
 function restartGame() {
@@ -158,6 +168,10 @@ function draw() {
             checkRecord();
             gameState = 1;
             transitionTimer = 120;
+            if (winSound) {
+                winSound.currentTime = 0;
+                winSound.play().catch(e => {});
+            }
         }
     } else if (gameState === 1) {
         ball.radius *= 0.9;
@@ -289,25 +303,40 @@ class Ball {
         
         let cell = m.grid[cx][cy];
         let padding = m.wallT / 2;
+        let hitWall = false;
+        let impactSpeed = 0;
 
         if (isX) {
             if (cell.walls[3] && this.pos.x - this.radius < cx * m.w + padding) {
                 this.pos.x = cx * m.w + this.radius + padding;
+                impactSpeed = abs(this.vel.x);
                 this.vel.x *= -0.5;
+                hitWall = true;
             }
             if (cell.walls[1] && this.pos.x + this.radius > (cx+1) * m.w - padding) {
                 this.pos.x = (cx+1) * m.w - this.radius - padding;
+                impactSpeed = abs(this.vel.x);
                 this.vel.x *= -0.5;
+                hitWall = true;
             }
         } else {
             if (cell.walls[0] && this.pos.y - this.radius < cy * m.w + padding) {
                 this.pos.y = cy * m.w + this.radius + padding;
+                impactSpeed = abs(this.vel.y);
                 this.vel.y *= -0.5;
+                hitWall = true;
             }
             if (cell.walls[2] && this.pos.y + this.radius > (cy+1) * m.w - padding) {
                 this.pos.y = (cy+1) * m.w - this.radius - padding;
+                impactSpeed = abs(this.vel.y);
                 this.vel.y *= -0.5;
+                hitWall = true;
             }
+        }
+
+        if (hitWall && impactSpeed > 0.8 && hitSound) {
+            hitSound.currentTime = 0;
+            hitSound.play().catch(e => {});
         }
     }
 
