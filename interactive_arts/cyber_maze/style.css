@@ -1,0 +1,124 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #191e28;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#game-container {
+    position: relative;
+    width: 800px;
+    height: 800px;
+    box-shadow: 0 0 50px rgba(0, 255, 150, 0.2);
+}
+
+.overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 100%;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.cyber-title {
+    color: #00ff96;
+    font-size: 3rem;
+    text-shadow: 0 0 10px rgba(0,255,150,0.5);
+    margin-bottom: 50px;
+}
+
+#player-name {
+    background: transparent;
+    border: 2px solid #00ff96;
+    color: #fff;
+    font-size: 1.5rem;
+    padding: 10px;
+    width: 300px;
+    text-align: center;
+    outline: none;
+    font-family: 'Courier New', Courier, monospace;
+    margin-bottom: 30px;
+}
+
+#player-name:focus {
+    box-shadow: 0 0 15px #00ff96;
+}
+
+.cyber-btn {
+    background: transparent;
+    border: 2px solid #00ff96;
+    color: #00ff96;
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    font-family: 'Courier New', Courier, monospace;
+    transition: all 0.2s;
+}
+
+.cyber-btn:hover {
+    background: #00ff96;
+    color: #000;
+    box-shadow: 0 0 20px #00ff96;
+}
+
+.btn-danger {
+    border-color: #ff3366;
+    color: #ff3366;
+}
+.btn-danger:hover {
+    background: #ff3366;
+    color: #fff;
+    box-shadow: 0 0 20px #ff3366;
+}
+
+.btn-group {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.hud-corner {
+    top: 20px;
+    left: 20px;
+    transform: none;
+    text-align: left;
+    width: auto;
+    background: rgba(0,0,0,0.5);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+.hud-corner p {
+    margin: 5px 0;
+    font-size: 1.1rem;
+}
+
+.text-gold { color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+.text-green { color: #64ff64; }
+.text-silver { color: #cccccc; font-size: 1.5rem;}
+
+.center-anim {
+    z-index: 100;
+}
+
+@keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; text-shadow: 0 0 20px red; }
+}
+
+.blink {
+    animation: flash 0.5s infinite;
+}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Maze V2.0 - WebGL Edition</title>
+    <!-- p5.js libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Canvas will be injected here -->
+        
+        <!-- UI Overlay: Name Input -->
+        <div id="name-input-ui" class="overlay">
+            <h1 class="cyber-title">CYBER MAZE V2.0</h1>
+            <p>ENTER YOUR NAME:</p>
+            <input type="text" id="player-name" placeholder="Agent_47" maxlength="10">
+            <button id="start-btn" class="cyber-btn">START [ENTER]</button>
+        </div>
+
+        <!-- UI Overlay: HUD -->
+        <div id="hud" class="overlay hidden hud-corner">
+            <p id="hud-player">Player: </p>
+            <p id="hud-level">LEVEL: </p>
+            <p id="hud-time">TIME: 0.00 s</p>
+            <p id="hud-best" class="text-green">BEST: --</p>
+        </div>
+
+        <!-- Record Animation -->
+        <div id="record-anim" class="overlay hidden center-anim">
+            <h2 class="text-gold blink">NEW RECORD! MEOW! 🌺</h2>
+        </div>
+
+        <!-- UI Overlay: Victory -->
+        <div id="win-ui" class="overlay hidden">
+            <h1 class="text-gold">VICTORY! MEOW!</h1>
+            <p id="win-msg" class="text-silver"></p>
+            <p id="win-stats" class="text-green"></p>
+            <div class="btn-group">
+                <button id="restart-btn" class="cyber-btn">PLAY AGAIN</button>
+                <button id="quit-btn" class="cyber-btn btn-danger">QUIT GAME</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="sketch.js"></script>
+</body>
+</html>
