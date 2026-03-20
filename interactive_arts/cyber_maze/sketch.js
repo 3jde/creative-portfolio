@@ -318,11 +318,12 @@ class Ball {
         
         // Solid metal look, no blowing out highlights
         fill(150, 160, 170);
-        specularMaterial(255);
+        specularMaterial(255, 255, 255);
         shininess(30); 
         
-        sphereDetail(24);
-        sphere(this.radius);
+        // In p5.js, sphereDetail() does not exist like it does in Java Processing.
+        // Detail is passed directly to the sphere() function.
+        sphere(this.radius, 24, 24);
         pop();
     }
 }
