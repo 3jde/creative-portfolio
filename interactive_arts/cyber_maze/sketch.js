@@ -49,6 +49,9 @@ function setup() {
             startGame();
         }
     });
+
+    rotX = 0;
+    rotZ = 0;
 }
 
 function startGame() {
@@ -87,7 +90,7 @@ function initLevel() {
         return; 
     }
 
-    cellSize = 400.0 / max(cols, rows);
+    cellSize = 400.0 / Math.max(cols, rows);
     maze = new Maze(cols, rows, cellSize);
     maze.generate();
 
@@ -106,6 +109,8 @@ function initLevel() {
     }
 
     levelStartTime = millis();
+    rotX = 0;
+    rotZ = 0;
 }
 
 function draw() {
@@ -116,18 +121,21 @@ function draw() {
         return;
     }
 
-    // Fix mouse logic to prevent extreme tilting initially
-    let mX = constrain(mouseX, 0, width);
-    let mY = constrain(mouseY, 0, height);
+    // --- CRITICAL FIX: Prevent NaN mouse coordinates ---
+    let targetRotZ = 0;
+    let targetRotX = 0;
     
-    // If mouse is at 0,0 (initial state before move), set it to center to prevent instant tilt
-    if (mouseX === 0 && mouseY === 0) {
-        mX = width / 2;
-        mY = height / 2;
+    // Only apply rotation if mouse is valid and actively over the canvas
+    if (typeof mouseX === 'number' && !isNaN(mouseX) && typeof mouseY === 'number' && !isNaN(mouseY)) {
+        if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+            targetRotZ = map(mouseX, 0, width, -maxRot, maxRot);
+            targetRotX = map(mouseY, 0, height, maxRot, -maxRot);
+        }
     }
 
-    let targetRotZ = map(mX, 0, width, -maxRot, maxRot);
-    let targetRotX = map(mY, 0, height, maxRot, -maxRot);
+    // Safety fallback for rotations
+    if (isNaN(rotX)) rotX = 0;
+    if (isNaN(rotZ)) rotZ = 0;
 
     rotX = lerp(rotX, targetRotX, 0.1);
     rotZ = lerp(rotZ, targetRotZ, 0.1);
@@ -139,7 +147,7 @@ function draw() {
         ball.update(maze);
 
         currentLevelTime = (millis() - levelStartTime) / 1000.0;
-        // Throttle DOM updates to prevent performance drop
+        // Throttle DOM updates
         if (frameCount % 5 === 0) {
             document.getElementById('hud-time').innerText = `TIME: ${currentLevelTime.toFixed(2)} s`;
         }
@@ -153,7 +161,8 @@ function draw() {
         }
     } else if (gameState === 1) {
         ball.radius *= 0.9;
-        ball.pos.lerp(createVector(maze.goalX, maze.goalY), 0.2);
+        let targetVec = createVector(maze.goalX, maze.goalY);
+        ball.pos.lerp(targetVec, 0.2);
         transitionTimer--;
         
         if (newRecord) {
@@ -171,10 +180,9 @@ function draw() {
     rotateX(rotX);
     rotateZ(rotZ);
 
-    // Fix glowing ball: Use moderate lights
-    ambientLight(150, 150, 150);
-    directionalLight(220, 220, 220, 0.5, 0.5, -1);
-    directionalLight(100, 100, 120, -0.5, -0.5, -0.5); // Fill light
+    // --- CRITICAL FIX: Lighting (Prevent glowing blown-out highlights) ---
+    ambientLight(80, 90, 100); 
+    directionalLight(180, 180, 180, 0.5, 0.5, -1);
 
     translate(-cols*cellSize/2, -rows*cellSize/2, 0);
 
@@ -251,12 +259,22 @@ class Ball {
     }
 
     applyForce(gx, gy) {
-        this.vel.x += gx;
-        this.vel.y += gy;
-        this.vel.mult(0.97); // friction
+        if (!isNaN(gx) && !isNaN(gy)) {
+            this.vel.x += gx;
+            this.vel.y += gy;
+            this.vel.mult(0.97); // friction
+        }
     }
 
     update(m) {
+        // Fallback emergency reset if something injects NaN
+        if (isNaN(this.pos.x) || isNaN(this.pos.y)) {
+            this.pos.x = m.w / 2;
+            this.pos.y = m.w / 2;
+            this.vel.x = 0;
+            this.vel.y = 0;
+        }
+
         this.pos.x += this.vel.x;
         this.checkCollision(m, true);
         this.pos.y += this.vel.y;
@@ -267,7 +285,6 @@ class Ball {
         let cx = constrain(floor(this.pos.x / m.w), 0, m.cols - 1);
         let cy = constrain(floor(this.pos.y / m.w), 0, m.rows - 1);
         
-        // Safety check against NaN
         if(isNaN(cx) || isNaN(cy)) return;
         
         let cell = m.grid[cx][cy];
@@ -299,10 +316,10 @@ class Ball {
         translate(this.pos.x, this.pos.y, this.radius);
         noStroke();
         
-        // Solid metal look (fixed glowing issue)
+        // Solid metal look, no blowing out highlights
         fill(150, 160, 170);
-        specularMaterial(255, 255, 255);
-        shininess(50); // Lower shininess to prevent laser-like glow
+        specularMaterial(255);
+        shininess(30); 
         
         sphereDetail(24);
         sphere(this.radius);
@@ -320,11 +337,12 @@ class Cell {
 }
 
 class Maze {
-    constructor(c, r, width) {
+    constructor(c, r, cellW) {
         this.cols = c;
         this.rows = r;
-        this.w = width;
-        this.wallT = 10;
+        this.w = cellW;
+        // Keep walls thick, but dynamic to prevent getting stuck in Level 3
+        this.wallT = Math.max(4, this.w * 0.15); 
         this.wallH = 25;
         this.grid = [];
         
@@ -345,7 +363,7 @@ class Maze {
         current.visited = true;
 
         let generating = true;
-        let failsafe = 0; // Prevent any possible infinite loops in generation
+        let failsafe = 0; 
         while(generating && failsafe < 5000) {
             failsafe++;
             let next = this.getUnvisitedNeighbor(current);
