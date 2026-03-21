@@ -1,33 +1,56 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>数字游乐场 (Digital Playground) | One Zen</title>
+  <title>PLAYGROUND | ONE ZEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background-color: #050505; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    :root { --neon: #ccff00; --bg: #000000; }
+    body { background-color: var(--bg); color: var(--neon); font-family: 'Space Mono', monospace; text-transform: uppercase; }
     
-    .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 30px 5vw; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; z-index: 100; background: #050505; }
-    .nav-logo a { color: #fff; text-decoration: none; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
-    .nav-menu { display: flex; gap: 30px; }
-    .nav-menu a { color: #888; text-decoration: none; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; transition: color 0.3s; }
-    .nav-menu a:hover, .nav-menu a.active { color: #fff; }
+    .top-nav { 
+      display: flex; justify-content: space-between; align-items: center; 
+      padding: 20px 4vw; border-bottom: 2px dashed var(--neon); 
+      position: sticky; top: 0; background: var(--bg); z-index: 100;
+    }
+    .nav-logo { font-family: 'VT323', monospace; font-size: 2rem; text-decoration: none; color: var(--neon); }
+    .nav-menu { display: flex; gap: 20px; }
+    .nav-menu a { 
+      color: var(--neon); text-decoration: none; padding: 5px 15px; 
+      border: 1px solid transparent; transition: 0.2s;
+    }
+    .nav-menu a:hover, .nav-menu a.active { background: var(--neon); color: var(--bg); border-color: var(--neon); }
+    .nav-menu a::before { content: '< '; }
+    .nav-menu a::after { content: ' >'; }
 
-    .header-section { padding: 10vh 5vw; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .header-section h1 { font-size: clamp(3rem, 6vw, 6rem); text-transform: uppercase; font-weight: 900; letter-spacing: -2px; margin-bottom: 20px; }
-    .header-section p { font-size: 1.2rem; color: #888; max-width: 600px; line-height: 1.6; }
+    .header-section { padding: 8vh 4vw; border-bottom: 2px dashed var(--neon); }
+    .header-section h1 { font-family: 'VT323', monospace; font-size: clamp(3rem, 8vw, 6rem); font-weight: normal; margin-bottom: 20px; }
+    .header-section h1::before { content: '(ERROR 404) '; color: var(--bg); background: var(--neon); padding: 0 10px; margin-right: 20px; }
+    .header-section p { max-width: 600px; line-height: 1.6; border-left: 4px solid var(--neon); padding-left: 20px; }
 
-    .games-grid { padding: 5vw; display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 40px; }
-    .game-card { border: 1px solid rgba(255,255,255,0.1); padding: 40px 30px; border-radius: 4px; transition: border-color 0.3s, transform 0.3s; display: flex; flex-direction: column; gap: 15px; align-items: center; text-align: center; }
-    .game-card:hover { border-color: rgba(255,255,255,0.5); transform: translateY(-5px); }
-    .game-title { font-size: 1.5rem; font-weight: bold; letter-spacing: 1px; color: #fff; }
-    .game-desc { font-size: 0.95rem; color: #aaa; line-height: 1.5; margin-top: 10px; }
-    .status-badge { display: inline-block; padding: 5px 12px; border: 1px solid #444; border-radius: 20px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 15px; }
+    .games-grid { padding: 4vw; display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 40px; }
+    .game-card { 
+      border: 1px solid var(--neon); padding: 40px 30px; position: relative; 
+      transition: 0.3s; background: var(--bg); display: flex; flex-direction: column; 
+      align-items: center; text-align: center; height: 100%;
+    }
+    .game-card::before { content: '+'; position: absolute; top: -10px; left: -10px; background: var(--bg); padding: 0 5px; }
+    .game-card::after { content: '+'; position: absolute; bottom: -10px; right: -10px; background: var(--bg); padding: 0 5px; }
+    .game-card:hover { background: var(--neon); color: var(--bg); transform: translate(5px, -5px); box-shadow: -5px 5px 0 0 rgba(204,255,0,0.3); cursor: crosshair; }
+    
+    .status-badge { display: inline-block; padding: 5px 12px; border: 1px dashed var(--neon); font-size: 0.75rem; margin-bottom: 20px; animation: blink 2s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+    .game-card:hover .status-badge { border-color: var(--bg); }
+    
+    .game-title { font-family: 'VT323', monospace; font-size: 2.5rem; margin-bottom: 15px; }
+    .game-desc { font-size: 0.85rem; line-height: 1.6; }
 
     @media (max-width: 768px) {
       .top-nav { flex-direction: column; gap: 20px; align-items: flex-start; }
       .nav-menu { flex-wrap: wrap; gap: 15px; }
+      .header-section h1::before { display: block; width: max-content; margin-bottom: 10px; }
       .games-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -35,27 +58,27 @@
 <body>
 
   <nav class="top-nav">
-    <div class="nav-logo"><a href="index.html">ONE ZEN</a></div>
+    <a href="index.html" class="nav-logo">ONE_ZEN_</a>
     <div class="nav-menu">
-      <a href="generative.html">玩码奔腾</a>
-      <a href="digital.html">Digital Art</a>
-      <a href="playground.html" class="active">数字游乐场</a>
+      <a href="generative.html">CODE ART</a>
+      <a href="digital.html">DIGITAL ART</a>
+      <a href="playground.html" class="active">PLAYGROUND</a>
     </div>
   </nav>
 
   <header class="header-section">
-    <h1>数字游乐场 <br><span style="color: #444;">Digital Playground</span></h1>
-    <p>独立游戏与先锋交互体验实验区 (Indie Games & Interactive Experiences Lab). 
-    <br><br>
-    这里将存放我与 AI 共同研发的网页端互动游戏项目。探讨规则、叙事与代码的无限可能。<br><br><span style="font-size: 0.9em; opacity: 0.7; font-style: italic;">This section will host web-based interactive game projects co-developed by me and AI, exploring the infinite possibilities of rules, narratives, and code.</span></p>
+    <h1>PLAYGROUND</h1>
+    <p>INDIE GAMES & INTERACTIVE LAB.<br>
+    ========================================<br>
+    Web-based interactive game projects exploring the infinite possibilities of rules, narratives, and code.</p>
   </header>
 
   <div class="games-grid">
     <a href="interactive_arts/cyber_maze/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card" style="border-color: rgba(0, 255, 150, 0.3);">
-        <div class="status-badge" style="border-color: #00ff96; color: #00ff96;">Live Test 01</div>
-        <div class="game-title">Cyber Maze V2.0</div>
-        <div class="game-desc">赛博朋克风 3D 重力滚球迷宫。这是首个联合开发的网页端互动游戏，基于 WebGL 与 p5.js 构建的物理交互实验，支持本地成绩排行与重力感应操作。<br><br><em>A cyberpunk 3D gravity rolling ball maze. The first co-developed interactive game, built with WebGL and p5.js, featuring local high scores and physics-based tilt controls.</em></div>
+      <div class="game-card">
+        <div class="status-badge">[ LIVE TEST 01 ]</div>
+        <div class="game-title">CYBER MAZE V2.0</div>
+        <div class="game-desc">A cyberpunk 3D gravity rolling ball maze built with WebGL and p5.js, featuring local high scores and physics-based tilt controls.</div>
       </div>
     </a>
   </div>
