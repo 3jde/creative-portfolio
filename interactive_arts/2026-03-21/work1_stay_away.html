@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Stay Away</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; background-color: #111; }
+    #canvas-container { display: block; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <script>
+    let particles = [];
+    
+    function setup() {
+      let canvas = createCanvas(windowWidth, windowHeight);
+      canvas.parent('canvas-container');
+      
+      let pg = createGraphics(windowWidth, windowHeight);
+      pg.pixelDensity(1); 
+      pg.background(0);
+      pg.fill(255);
+      pg.textAlign(CENTER, CENTER);
+      
+      // 极度放大的字号，让画面充满压迫感
+      let tSize = min(windowWidth / 4, 250);
+      pg.textSize(tSize);
+      pg.textFont('Arial');
+      pg.textStyle(BOLD);
+      
+      // 设置极度紧凑的行距 (默认是 textSize 的 1.2 倍左右，我们压缩到 0.75)
+      pg.textLeading(tSize * 0.75);
+      
+      // 强烈的排斥警告词汇
+      let msg = "STAY\nAWAY"; 
+      
+      // 整体画面往下压一点点，因为紧凑行距会导致重心偏移
+      pg.text(msg, windowWidth / 2, windowHeight / 2 + tSize * 0.1);
+      
+      pg.loadPixels();
+      
+      let step = 6; 
+      for (let y = 0; y < windowHeight; y += step) {
+        for (let x = 0; x < windowWidth; x += step) {
+          let index = (x + y * windowWidth) * 4;
+          let r = pg.pixels[index];
+          if (r > 128) {
+            particles.push(new Particle(x, y));
+          }
+        }
+      }
+    }
+
+    class Particle {
+      constructor(x, y) {
+        this.targetX = x;
+        this.targetY = y;
+        this.x = random(width);
+        this.y = random(height);
+        this.vx = 0;
+        this.vy = 0;
+        // 既然是警告，颜色换成危险的红色系和橙色系
+        if(random(1) > 0.5) {
+            this.color = color(random(200, 255), random(50, 80), 0); // 警示橙
+        } else {
+            this.color = color(random(220, 255), 0, random(30, 80)); // 警告红
+        }
+        this.size = random(3, 7);
+      }
+      
+      update() {
+        let dx = mouseX - this.x;
+        let dy = mouseY - this.y;
+        let d = sqrt(dx*dx + dy*dy);
+        
+        // 排斥力场放大！让它跑得更远更快，符合“滚开”的意义
+        let force = 0;
+        if (d < 180) { // 扩大感知范围
+          force = (180 - d) * -0.25; // 增强排斥力
+          this.vx += (dx / d) * force;
+          this.vy += (dy / d) * force;
+        }
+        
+        // 恢复引力变弱一点，让它被弹开后显得有点“挣扎”
+        let tx = this.targetX - this.x;
+        let ty = this.targetY - this.y;
+        this.vx += tx * 0.05; 
+        this.vy += ty * 0.05;
+        
+        this.vx *= 0.85;
+        this.vy *= 0.85;
+        
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+      
+      show() {
+        fill(this.color);
+        noStroke();
+        circle(this.x, this.y, this.size);
+      }
+    }
+
+    function draw() {
+      // 背景加深
+      background(10, 10, 10, 80); 
+      for (let p of particles) {
+        p.update();
+        p.show();
+      }
+    }
+
+    function windowResized() {
+      location.reload();
+    }
+  </script>
+</body>
+</html>
