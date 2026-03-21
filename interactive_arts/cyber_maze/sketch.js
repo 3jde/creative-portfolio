@@ -71,10 +71,10 @@ function startGame() {
     initLevel();
 
     // Safely attempt to play BGM (browsers require user interaction first, which click provides)
-    if (bgm) {
-        bgm.currentTime = 0;
-        bgm.play().catch(e => console.log("BGM play blocked or missing file."));
-    }
+    // if (bgm) {
+    //     bgm.currentTime = 0;
+    //     bgm.play().catch(e => console.log("BGM play blocked or missing file."));
+    // }
 }
 
 function restartGame() {
