@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Topographic Face | Digital Art | One Zen</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background-color: #050505; color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+    
+    .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 0 3vw; border-bottom: 1px solid rgba(255,255,255,0.1); background: #050505; z-index: 100; height: 70px; flex-shrink: 0; position: relative;}
+    .nav-logo a { color: #fff; text-decoration: none; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+    
+    .sketch-info { position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; text-align: center; }
+    .sketch-title { font-size: 1rem; font-weight: bold; letter-spacing: 1px; color: #fff; }
+    .sketch-meta { font-size: 0.7rem; color: #888; margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .nav-menu { display: flex; gap: 20px; align-items: center; }
+    .nav-menu a { color: #888; text-decoration: none; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; transition: color 0.3s; }
+    .nav-menu a:hover { color: #fff; }
+    
+    .back-btn { border: 1px solid #444; padding: 6px 15px; border-radius: 20px; color: #fff !important; transition: all 0.3s; display: flex; align-items: center; gap: 5px;}
+    .back-btn:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+
+    .iframe-container { flex: 1; width: 100%; background: #0a0a0a; position: relative; }
+    iframe { width: 100%; height: 100%; border: none; display: block; }
+    
+    @media (max-width: 768px) {
+        .sketch-info { display: none; }
+        .nav-menu { gap: 15px; }
+        .nav-logo a { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-logo"><a href="index.html">ONE ZEN</a></div>
+    
+    <div class="sketch-info">
+        <span class="sketch-title">03. Topographic Face</span>
+        <span class="sketch-meta">3D Mesh / Brightness Mapping</span>
+    </div>
+    
+    <div class="nav-menu">
+      <a href="digital.html" class="back-btn">← 返回目录 (Back)</a>
+    </div>
+  </nav>
+  
+  <div class="iframe-container">
+    <iframe src="sketches/topo/index.html" allow="camera"></iframe>
+  </div>
+</body>
+</html>
