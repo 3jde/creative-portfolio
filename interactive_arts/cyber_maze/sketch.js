@@ -249,7 +249,7 @@ function getBestTime(name, lvl) {
 }
 
 // Google Sheets API URL for cloud leaderboard
-const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyotX3BFzUIawJayQgFUJMN5m0CmPNXxcQdkwY8FLYqSNMkosaBRqUb3fOcqRLNXz_koA/exec";
+const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbzMPDSB7bL9633H6fXBVhd3icFxYz67oLyYdvaJ2Py-YPGYt9FtaHbelKZ1wRDGCgXeNA/exec";
 
 function uploadScoreToCloud(playerName, scoreTime) {
     if (!playerName || playerName === "Guest") return;
@@ -263,7 +263,7 @@ function uploadScoreToCloud(playerName, scoreTime) {
     fetch(GOOGLE_SHEETS_API_URL, {
         method: 'POST',
         body: formData,
-        mode: 'no-cors' // Prevent CORS errors, we don't need to read the response
+        // Prevent CORS errors, we don't need to read the response
     }).then(() => {
         console.log("Score uploaded to cloud!");
     }).catch(err => {
