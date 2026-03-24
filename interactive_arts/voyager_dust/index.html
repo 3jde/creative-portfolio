@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voyager 1 : Loneliness & Stardust</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="voyager.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <!-- 音乐会在用户点击页面后自动循环播放 -->
+    <script>
+      window.addEventListener('click', () => {
+        const audio = new Audio('../../assets/music/jing.mp3');
+        audio.loop = true;
+        audio.play();
+      }, { once: true });
+    </script>
+</body>
+</html>
