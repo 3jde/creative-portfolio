@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Impact: Famous Stars</title>
+    <title>Visual Impact: Stars</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <script src="visual.js"></script>
     <style>
         body { margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #000000; color: white; font-family: sans-serif; }
         canvas { display: block; }
     </style>
-<script>
-  window.addEventListener('click', () => {
-    const audio = new Audio(Math.random() > 0.5 ? '../assets/music/jing.mp3' : '../assets/music/song.mp3');
-    audio.loop = true;
-    audio.play();
-  }, { once: true });
-</script>
+</head>
 <body>
+    <script>
+      window.addEventListener('click', () => {
+        const audio = new Audio('../../assets/music/jing.mp3'); // 默认播放静水
+        audio.loop = true;
+        audio.play();
+      }, { once: true });
+    </script>
 </body>
 </html>
