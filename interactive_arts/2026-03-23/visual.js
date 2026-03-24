@@ -1,5 +1,5 @@
 let particles = [];
-const numParticles = 100; // Fewer particles for names
+const numParticles = 80; 
 const famousNames = [
   "Einstein", "Curie", "Newton", "Hawking", "Galileo",
   "Shakespeare", "Da Vinci", "Beethoven", "Mozart", "Van Gogh",
@@ -10,60 +10,78 @@ const famousNames = [
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  // Optional: Set text properties once
   textAlign(CENTER, CENTER);
-  textSize(16);
+  textSize(14);
   for (let i = 0; i < numParticles; i++) {
     particles.push(new Particle());
   }
 }
 
 function draw() {
-  background(0, 0, 0, 80); // Darker, semi-transparent background for cosmic feel
+  background(0, 50);
 
   for (let i = 0; i < particles.length; i++) {
-    let p = particles[i];
-    p.update();
-    p.show();
-    if (p.isFinished()) {
-      particles.splice(i, 1);
-      particles.push(new Particle());
-    }
+    particles[i].update();
+    particles[i].show();
   }
 }
 
 class Particle {
   constructor() {
+    this.reset();
+  }
+
+  reset() {
     this.x = random(width);
     this.y = random(height);
-    this.vx = random(-0.5, 0.5); // Slower movement for names
-    this.vy = random(-0.5, 0.5);
-    this.alpha = 255;
-    this.color = color(random(200, 255), random(200, 255), random(150, 255)); // Brighter, starry colors
-    this.size = random(3, 7); // Slightly larger for better text visibility
-    this.name = random(famousNames); // Assign a famous name
+    this.size = random(2, 5);
+    this.color = color(random(200, 255), random(200, 255), random(220, 255));
+    this.name = random(famousNames);
+    
+    // Flicker logic
+    this.alpha = 0;
+    this.targetAlpha = random(100, 255);
+    this.flickerSpeed = random(0.005, 0.02);
+    this.timer = random(2000, 6000); // Wait time before start
+    this.state = 'hidden'; // hidden, fadingIn, visible, fadingOut
   }
 
   update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.alpha -= 1.5; // Slower fade out
-    this.vx *= 0.995; // More damping
-    this.vy *= 0.995;
+    if (this.timer > 0) {
+      this.timer -= 16; // approx 60fps
+      return;
+    }
+
+    if (this.state === 'hidden') {
+      this.state = 'fadingIn';
+    } else if (this.state === 'fadingIn') {
+      this.alpha += this.flickerSpeed * 255;
+      if (this.alpha >= this.targetAlpha) {
+        this.alpha = this.targetAlpha;
+        this.state = 'visible';
+        this.timer = random(2000, 6000); // Time visible
+      }
+    } else if (this.state === 'visible') {
+      if (this.timer <= 0) this.state = 'fadingOut';
+      else this.timer -= 16;
+    } else if (this.state === 'fadingOut') {
+      this.alpha -= this.flickerSpeed * 255;
+      if (this.alpha <= 0) {
+        this.alpha = 0;
+        this.state = 'hidden';
+        this.timer = random(2000, 6000); // Wait until next appearance
+      }
+    }
   }
 
   show() {
+    if (this.alpha <= 0) return;
+    
     noStroke();
     fill(this.color, this.alpha);
-    ellipse(this.x, this.y, this.size); // Draw the "star" dot
-
-    // Draw the name
-    fill(255, this.alpha); // White text, fades with particle
-    text(this.name, this.x, this.y - this.size / 2 - 5); // Position text above the dot
-  }
-
-  isFinished() {
-    return this.alpha < 0 || this.x < -50 || this.x > width + 50 || this.y < -50 || this.y > height + 50; // Extend bounds slightly
+    ellipse(this.x, this.y, this.size);
+    fill(255, this.alpha);
+    text(this.name, this.x, this.y - 10);
   }
 }
 
