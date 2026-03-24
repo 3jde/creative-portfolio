@@ -10,7 +10,13 @@
         body { margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #000000; color: white; font-family: sans-serif; }
         canvas { display: block; }
     </style>
-</head>
+<script>
+  window.addEventListener('click', () => {
+    const audio = new Audio(Math.random() > 0.5 ? '../assets/music/jing.mp3' : '../assets/music/song.mp3');
+    audio.loop = true;
+    audio.play();
+  }, { once: true });
+</script>
 <body>
 </body>
 </html>

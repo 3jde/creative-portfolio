@@ -11,7 +11,13 @@
         .en { font-size: 12px; font-style: italic; opacity: 0.5; }
         #info { position: absolute; top: 20px; left: 20px; font-family: monospace; font-size: 16px; opacity: 0.6; }
     </style>
-</head>
+<script>
+  window.addEventListener('click', () => {
+    const audio = new Audio(Math.random() > 0.5 ? '../../assets/music/jing.mp3' : '../../assets/music/song.mp3');
+    audio.loop = true;
+    audio.play();
+  }, { once: true });
+</script>
 <body>
     <div id="info"></div>
     <div class="text-overlay">

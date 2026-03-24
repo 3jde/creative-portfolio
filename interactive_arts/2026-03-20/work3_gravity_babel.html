@@ -12,7 +12,13 @@
         .en { font-size: 12px; font-style: italic; opacity: 0.5; }
         .hint { margin-top: 15px; font-size: 12px; color: #888; letter-spacing: 2px; text-transform: uppercase; }
     </style>
-</head>
+<script>
+  window.addEventListener('click', () => {
+    const audio = new Audio(Math.random() > 0.5 ? '../../assets/music/jing.mp3' : '../../assets/music/song.mp3');
+    audio.loop = true;
+    audio.play();
+  }, { once: true });
+</script>
 <body>
     <div class="text-overlay">
         <div class="zh">我们在无意义的字母坠落与碰撞中，偶然瞥见词汇的诞生与毁灭。犹如在混沌的数字宇宙中重建巴别塔。</div>
