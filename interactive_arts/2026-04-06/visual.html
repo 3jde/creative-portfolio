@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Visual Impact: Organic Maximalism</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>body { margin: 0; overflow: hidden; background: #000; }</style>
+</head>
+<body>
+    <script>
+    let agents = [];
+    const palette = ['#ccff00', '#ff0066', '#00ffcc', '#0066ff'];
+    function setup() {
+        createCanvas(windowWidth, windowHeight);
+        background(0);
+        for(let i=0; i<400; i++) agents.push(new Agent());
+    }
+    function draw() {
+        agents.forEach(a => { a.update(); a.show(); });
+    }
+    class Agent {
+        constructor() {
+            this.pos = createVector(random(width), random(height));
+            this.vel = p5.Vector.random2D();
+            this.col = color(random(palette));
+            this.col.setAlpha(15);
+        }
+        update() {
+            let n = noise(this.pos.x * 0.005, this.pos.y * 0.005, frameCount * 0.002) * TWO_PI * 2;
+            this.vel.add(p5.Vector.fromAngle(n).mult(0.1));
+            this.vel.limit(2);
+            this.pos.add(this.vel);
+            if(this.pos.x<0)this.pos.x=width; if(this.pos.x>width)this.pos.x=0;
+            if(this.pos.y<0)this.pos.y=height; if(this.pos.y>height)this.pos.y=0;
+        }
+        show() {
+            stroke(this.col);
+            strokeWeight(1);
+            point(this.pos.x, this.pos.y);
+        }
+    }
+    </script>
+</body>
+</html>
