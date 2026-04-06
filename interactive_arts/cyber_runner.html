@@ -91,6 +91,14 @@
     <!-- Start Screen -->
     <div id="start-screen" class="overlay">
       <h1>CYBER RUNNER</h1>
+
+      <div id="leaderboard" style="margin-bottom: 20px; background: rgba(0,0,0,0.7); border: 1px dashed #00FFC8; padding: 15px 30px; border-radius: 8px;">
+        <h3 style="color: #FFD700; margin-bottom: 10px; font-size: 1.2rem; letter-spacing: 1px;">HALL OF FAME</h3>
+        <div id="leaderboard-list" style="font-size: 1.1rem; line-height: 1.8;">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
       <input type="text" id="player-name" placeholder="Enter your name" autocomplete="off" />
       <button id="btn-start">Start Game</button>
     </div>
@@ -114,6 +122,7 @@
     // Game States: START, PLAYING, PAUSED, GAMEOVER
     let gameState = 'START'; 
     let playerName = "Player";
+    let topScores = [];
 
     let player = { x: 50, y: 200, vx: 0, vy: 0, size: 30 };
     let goal = { x: 550, y: 200, size: 40 };
@@ -131,6 +140,40 @@
     const uiGameOver = document.getElementById('game-over-screen');
     const inputName = document.getElementById('player-name');
     const statDisplay = document.getElementById('final-stats');
+    const leaderboardList = document.getElementById('leaderboard-list');
+
+    // Load leaderboard on script start
+    loadLeaderboard();
+
+    function loadLeaderboard() {
+      let saved = localStorage.getItem('cyberRunnerLeaderboard');
+      if (saved) {
+        topScores = JSON.parse(saved);
+      } else {
+        topScores = [
+          { name: "ZEN", level: 10 },
+          { name: "NEO", level: 8 },
+          { name: "TRINITY", level: 5 }
+        ];
+      }
+      renderLeaderboard();
+    }
+
+    function saveToLeaderboard(name, level) {
+      topScores.push({ name, level });
+      topScores.sort((a, b) => b.level - a.level);
+      topScores = topScores.slice(0, 3);
+      localStorage.setItem('cyberRunnerLeaderboard', JSON.stringify(topScores));
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      leaderboardList.innerHTML = '';
+      topScores.forEach((entry, index) => {
+        let color = index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32';
+        leaderboardList.innerHTML += `<div style="color: ${color};">#${index + 1} ${entry.name.padEnd(10, '\u00A0')} Lv.${entry.level}</div>`;
+      });
+    }
 
     // --- Button Listeners ---
     document.getElementById('btn-start').onclick = () => {
@@ -173,6 +216,7 @@
     function triggerGameOver() {
       gameState = 'GAMEOVER';
       statDisplay.innerText = `${playerName} reached Level ${level}`;
+      saveToLeaderboard(playerName, level);
       uiGameOver.classList.remove('hidden');
     }
 
