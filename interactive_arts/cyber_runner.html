@@ -91,6 +91,14 @@
     <!-- Start Screen -->
     <div id="start-screen" class="overlay">
       <h1>CYBER RUNNER</h1>
+
+      <div id="leaderboard" style="margin-bottom: 20px; background: rgba(0,0,0,0.7); border: 1px dashed #00FFC8; padding: 15px 30px; border-radius: 8px;">
+        <h3 style="color: #FFD700; margin-bottom: 10px; font-size: 1.2rem; letter-spacing: 1px;">HALL OF FAME</h3>
+        <div id="leaderboard-list" style="font-size: 1.1rem; line-height: 1.8;">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
       <input type="text" id="player-name" placeholder="Enter your name" autocomplete="off" />
       <button id="btn-start">Start Game</button>
     </div>
@@ -114,6 +122,7 @@
     // Game States: START, PLAYING, PAUSED, GAMEOVER
     let gameState = 'START'; 
     let playerName = "Player";
+    let topScores = []; // To store high scores
 
     let player = { x: 50, y: 200, vx: 0, vy: 0, size: 30 };
     let goal = { x: 550, y: 200, size: 40 };
@@ -131,6 +140,43 @@
     const uiGameOver = document.getElementById('game-over-screen');
     const inputName = document.getElementById('player-name');
     const statDisplay = document.getElementById('final-stats');
+    const leaderboardList = document.getElementById('leaderboard-list');
+
+    // Load leaderboard on script start
+    loadLeaderboard();
+
+    function loadLeaderboard() {
+      let saved = localStorage.getItem('cyberRunnerLeaderboard');
+      if (saved) {
+        topScores = JSON.parse(saved);
+      } else {
+        // Mock default scores
+        topScores = [
+          { name: "ZEN", level: 10 },
+          { name: "NEO", level: 8 },
+          { name: "TRINITY", level: 5 }
+        ];
+      }
+      renderLeaderboard();
+    }
+
+    function saveToLeaderboard(name, level) {
+      topScores.push({ name, level });
+      // Sort descending by level
+      topScores.sort((a, b) => b.level - a.level);
+      // Keep only top 3
+      topScores = topScores.slice(0, 3);
+      localStorage.setItem('cyberRunnerLeaderboard', JSON.stringify(topScores));
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      leaderboardList.innerHTML = '';
+      topScores.forEach((entry, index) => {
+        let color = index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32';
+        leaderboardList.innerHTML += `<div style="color: ${color};">#${index + 1} ${entry.name.padEnd(10, '\u00A0')} Lv.${entry.level}</div>`;
+      });
+    }
 
     // --- Button Listeners ---
     document.getElementById('btn-start').onclick = () => {
@@ -173,12 +219,13 @@
     function triggerGameOver() {
       gameState = 'GAMEOVER';
       statDisplay.innerText = `${playerName} reached Level ${level}`;
+      saveToLeaderboard(playerName, level);
       uiGameOver.classList.remove('hidden');
     }
 
     // --- p5.js Setup & Loop ---
     function setup() {
-      let canvas = createCanvas(600, 400);
+      let canvas = createCanvas(1920, 1080);
       canvas.parent('game-container');
     }
 
@@ -280,24 +327,87 @@
         background(30);
       }
 
-      // Draw Goal
-      fill(255, 215, 0);
-      noStroke();
-      circle(goal.x, goal.y, goal.size);
+      // Draw Goal (Princess Emoji)
+      textSize(goal.size);
+      textAlign(CENTER, CENTER);
+      text('👸', goal.x, goal.y);
 
-      // Draw Obstacles
-      fill(255, 51, 102);
+      // Draw Obstacles (Dragon Emoji)
       for (let obs of obstacles) {
-        circle(obs.x, obs.y, obs.size);
+        
+        // Obstacle Movement and Bouncing
+        obs.x += obs.vx;
+        obs.y += obs.vy;
+
+        // Bounce off left/right walls
+        if (obs.x < obs.size/2 || obs.x > width - obs.size/2) {
+          obs.vx *= -1;
+        }
+        // Bounce off top/bottom walls
+        if (obs.y < obs.size/2 || obs.y > height - obs.size/2) {
+          obs.vy *= -1;
+        }
+
+        textSize(obs.size);
+        textAlign(CENTER, CENTER);
+        
+        // Optional: flip dragon horizontally based on movement direction
+        push();
+        translate(obs.x, obs.y);
+        if (obs.vx > 0) {
+          scale(-1, 1);
+        }
+        text('🐉', 0, 0);
+        pop();
+        
+        // Simple circle collision detection with player
+        let d = dist(player.x, player.y, obs.x, obs.y);
+        if (d < (player.size/2 + obs.size/2)) {
+          
+          // Deduct score only if not invulnerable
+          if (invulnTimer === 0) {
+            score -= 20; // Harder penalty to make game over reachable
+            hitFlash = 100;
+            invulnTimer = 30;
+            
+            if (score <= 0) {
+              score = 0;
+              triggerGameOver();
+            }
+          }
+          // Push player back
+          let angle = atan2(player.y - obs.y, player.x - obs.x);
+          player.vx = cos(angle) * 8;
+          player.vy = sin(angle) * 8;
+        }
       }
 
-      // Draw Player
-      if (invulnTimer > 0 && frameCount % 10 < 5) {
-        fill(0, 255, 200, 100);
-      } else {
-        fill(0, 255, 200);
+      // Check Goal Collision (Next Level)
+      if (dist(player.x, player.y, goal.x, goal.y) < (player.size/2 + goal.size/2)) {
+        score += 50;
+        level++;
+        player.x = 50;
+        player.y = height / 2;
+        player.vx = 0;
+        player.vy = 0;
+        resetLevel();
       }
-      circle(player.x, player.y, player.size);
+
+      // Draw Player (Witch Emoji)
+      push();
+      translate(player.x, player.y);
+      if (player.vx < -0.1) {
+        scale(-1, 1); // Face left
+      }
+      if (invulnTimer > 0 && frameCount % 10 < 5) {
+        tint(255, 100); // For images if we used them, emoji blinking is handled differently
+        textSize(player.size);
+        text('👻', 0, 0); // Turn into a ghost when invulnerable
+      } else {
+        textSize(player.size);
+        text('🧙‍♀️', 0, 0);
+      }
+      pop();
 
       // UI Text overlay on Canvas
       fill(255);
