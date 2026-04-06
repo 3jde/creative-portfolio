@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>p5.js Game Prototype (Complete)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #1a1a1a;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+    }
+    #game-wrapper {
+      position: relative;
+      box-shadow: 0 0 20px rgba(0,255,200,0.2);
+    }
+    /* UI Overlays */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      z-index: 10;
+    }
+    .hidden {
+      display: none !important;
+    }
+    h1 {
+      color: #00FFC8;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+    }
+    h2 {
+      color: #FFD700;
+    }
+    input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #00FFC8;
+      background: #222;
+      color: white;
+      outline: none;
+      border-radius: 5px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    button {
+      background: transparent;
+      color: #00FFC8;
+      border: 2px solid #00FFC8;
+      padding: 10px 30px;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin: 10px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #00FFC8;
+      color: #000;
+    }
+    .btn-danger {
+      color: #FF3366;
+      border-color: #FF3366;
+    }
+    .btn-danger:hover {
+      background: #FF3366;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-wrapper">
+    <!-- p5 Canvas will go here -->
+    <div id="game-container"></div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay">
+      <h1>CYBER RUNNER</h1>
+      <input type="text" id="player-name" placeholder="Enter your name" autocomplete="off" />
+      <button id="btn-start">Start Game</button>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pause-screen" class="overlay hidden">
+      <h1>GAME PAUSED</h1>
+      <button id="btn-continue">Continue</button>
+      <button id="btn-quit" class="btn-danger">Quit Game</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="overlay hidden">
+      <h1 style="color: #FF3366;">GAME OVER</h1>
+      <h2 id="final-stats"></h2>
+      <button id="btn-restart">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    // Game States: START, PLAYING, PAUSED, GAMEOVER
+    let gameState = 'START'; 
+    let playerName = "Player";
+
+    let player = { x: 50, y: 200, vx: 0, vy: 0, size: 30 };
+    let goal = { x: 550, y: 200, size: 40 };
+    let obstacles = [];
+    
+    let score = 100; // Start with 100 points/lives
+    let level = 1;
+    
+    let hitFlash = 0;
+    let invulnTimer = 0;
+
+    // --- DOM Elements ---
+    const uiStart = document.getElementById('start-screen');
+    const uiPause = document.getElementById('pause-screen');
+    const uiGameOver = document.getElementById('game-over-screen');
+    const inputName = document.getElementById('player-name');
+    const statDisplay = document.getElementById('final-stats');
+
+    // --- Button Listeners ---
+    document.getElementById('btn-start').onclick = () => {
+      let name = inputName.value.trim();
+      if (name) playerName = name;
+      startGame();
+    };
+
+    document.getElementById('btn-continue').onclick = () => {
+      gameState = 'PLAYING';
+      uiPause.classList.add('hidden');
+    };
+
+    document.getElementById('btn-quit').onclick = () => {
+      gameState = 'START';
+      uiPause.classList.add('hidden');
+      uiStart.classList.remove('hidden');
+    };
+
+    document.getElementById('btn-restart').onclick = () => {
+      startGame();
+    };
+
+    function startGame() {
+      score = 100;
+      level = 1;
+      player.x = 50;
+      player.y = height / 2;
+      player.vx = 0;
+      player.vy = 0;
+      hitFlash = 0;
+      invulnTimer = 0;
+      resetLevel();
+      
+      gameState = 'PLAYING';
+      uiStart.classList.add('hidden');
+      uiGameOver.classList.add('hidden');
+    }
+
+    function triggerGameOver() {
+      gameState = 'GAMEOVER';
+      statDisplay.innerText = `${playerName} reached Level ${level}`;
+      uiGameOver.classList.remove('hidden');
+    }
+
+    // --- p5.js Setup & Loop ---
+    function setup() {
+      let canvas = createCanvas(600, 400);
+      canvas.parent('game-container');
+    }
+
+    function resetLevel() {
+      obstacles = [];
+      let maxSpeed = 1 + (level * 0.5); 
+      let obsCount = Math.min(5 + Math.floor(level / 2), 15);
+
+      for (let i = 0; i < obsCount; i++) {
+        let vx = random(-maxSpeed, maxSpeed);
+        let vy = random(-maxSpeed, maxSpeed);
+        if (abs(vx) < 0.5) vx = vx < 0 ? -0.5 : 0.5;
+        if (abs(vy) < 0.5) vy = vy < 0 ? -0.5 : 0.5;
+
+        obstacles.push({
+          x: random(150, 500),
+          y: random(50, 350),
+          size: random(40, 80),
+          vx: vx,
+          vy: vy
+        });
+      }
+    }
+
+    function keyPressed() {
+      // ESC key to toggle pause
+      if (keyCode === ESCAPE) {
+        if (gameState === 'PLAYING') {
+          gameState = 'PAUSED';
+          uiPause.classList.remove('hidden');
+        } else if (gameState === 'PAUSED') {
+          gameState = 'PLAYING';
+          uiPause.classList.add('hidden');
+        }
+      }
+    }
+
+    function draw() {
+      // 1. UPDATE LOGIC (Only if playing)
+      if (gameState === 'PLAYING') {
+        if (hitFlash > 0) hitFlash -= 10;
+        if (invulnTimer > 0) invulnTimer--;
+
+        player.vx *= 0.85;
+        player.vy *= 0.85;
+
+        let speed = 1.5;
+        if (keyIsDown(UP_ARROW) || keyIsDown(87)) player.vy -= speed;
+        if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) player.vy += speed;
+        if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) player.vx -= speed;
+        if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) player.vx += speed;
+
+        player.x += player.vx;
+        player.y += player.vy;
+
+        player.x = constrain(player.x, player.size/2, width - player.size/2);
+        player.y = constrain(player.y, player.size/2, height - player.size/2);
+
+        for (let obs of obstacles) {
+          obs.x += obs.vx;
+          obs.y += obs.vy;
+
+          if (obs.x < obs.size/2 || obs.x > width - obs.size/2) obs.vx *= -1;
+          if (obs.y < obs.size/2 || obs.y > height - obs.size/2) obs.vy *= -1;
+
+          let d = dist(player.x, player.y, obs.x, obs.y);
+          if (d < (player.size/2 + obs.size/2)) {
+            if (invulnTimer === 0) {
+              score -= 20; // Harder penalty to make game over reachable
+              hitFlash = 100;
+              invulnTimer = 30;
+              
+              if (score <= 0) {
+                score = 0;
+                triggerGameOver();
+              }
+            }
+            let angle = atan2(player.y - obs.y, player.x - obs.x);
+            player.vx = cos(angle) * 8;
+            player.vy = sin(angle) * 8;
+          }
+        }
+
+        if (dist(player.x, player.y, goal.x, goal.y) < (player.size/2 + goal.size/2)) {
+          score += 50;
+          level++;
+          player.x = 50;
+          player.y = height / 2;
+          player.vx = 0;
+          player.vy = 0;
+          resetLevel();
+        }
+      }
+
+      // 2. RENDER LOGIC (Always runs so background stays visible during pause/gameover)
+      if (hitFlash > 0 && gameState === 'PLAYING') {
+        background(150, 0, 0);
+      } else {
+        background(30);
+      }
+
+      // Draw Goal
+      fill(255, 215, 0);
+      noStroke();
+      circle(goal.x, goal.y, goal.size);
+
+      // Draw Obstacles
+      fill(255, 51, 102);
+      for (let obs of obstacles) {
+        circle(obs.x, obs.y, obs.size);
+      }
+
+      // Draw Player
+      if (invulnTimer > 0 && frameCount % 10 < 5) {
+        fill(0, 255, 200, 100);
+      } else {
+        fill(0, 255, 200);
+      }
+      circle(player.x, player.y, player.size);
+
+      // UI Text overlay on Canvas
+      fill(255);
+      textAlign(LEFT, TOP);
+      textSize(18);
+      text(`${playerName} | Level: ${level} | Score: ${score}`, 10, 10);
+      
+      if (gameState === 'PLAYING') {
+        textSize(12);
+        fill(150);
+        text('WASD: Move | ESC: Pause', 10, 35);
+      }
+    }
+  </script>
+</body>
+</html>
