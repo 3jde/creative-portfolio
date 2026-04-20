@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novel Interaction: Flow Field</title>
+    <style>body { margin: 0; padding: 0; overflow: hidden; background: #000; }</style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script>
+        let cols, rows, scl = 20;
+        function setup() { createCanvas(windowWidth, windowHeight); cols = width/scl; rows = height/scl; }
+        function draw() {
+            background(0, 20);
+            stroke(255, 50);
+            for(let y=0; y<rows; y++) {
+                for(let x=0; x<cols; x++) {
+                    let angle = noise(x*0.1, y*0.1, frameCount*0.01) * TWO_PI * 2;
+                    push();
+                    translate(x*scl, y*scl);
+                    rotate(angle);
+                    line(0, 0, scl, 0);
+                    pop();
+                }
+            }
+        }
+    </script>
+</head>
+<body></body>
+</html>

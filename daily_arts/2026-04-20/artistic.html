@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artistic Quality: Generative Mandala</title>
+    <style>body { margin: 0; padding: 0; overflow: hidden; background: #fff; }</style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script>
+        function setup() { createCanvas(windowWidth, windowHeight); colorMode(HSB); noFill(); }
+        function draw() {
+            translate(width/2, height/2);
+            stroke(frameCount % 360, 100, 100);
+            rotate(frameCount * 0.05);
+            ellipse(0, 0, 200 + sin(frameCount*0.02)*100, 100);
+        }
+    </script>
+</head>
+<body></body>
+</html>
