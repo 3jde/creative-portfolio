@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #111; }</style>
+</head>
+<body>
+  <script>
+    let nodes = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      for(let i=0; i<50; i++) nodes.push(createVector(random(width), random(height)));
+    }
+    function draw() {
+      background(17, 17, 17, 50);
+      stroke(0, 255, 150);
+      for(let n of nodes) {
+        let d = dist(mouseX, mouseY, n.x, n.y);
+        if(d < 150) {
+          n.x += (mouseX - n.x) * 0.05;
+          n.y += (mouseY - n.y) * 0.05;
+          strokeWeight(map(d, 0, 150, 3, 0));
+          line(mouseX, mouseY, n.x, n.y);
+        } else {
+          n.x += random(-1, 1); n.y += random(-1, 1);
+        }
+        fill(255); noStroke(); circle(n.x, n.y, 4);
+      }
+    }
+  </script>
+</body>
+</html>

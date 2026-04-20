@@ -242,7 +242,8 @@
           y: random(50, 350),
           size: random(40, 80),
           vx: vx,
-          vy: vy
+          vy: vy,
+          trail: [] // 预留存放历史坐标的数组
         });
       }
     }
@@ -282,6 +283,10 @@
         player.y = constrain(player.y, player.size/2, height - player.size/2);
 
         for (let obs of obstacles) {
+          // 记录粒子拖尾
+          obs.trail.push({x: obs.x, y: obs.y});
+          if (obs.trail.length > 10) obs.trail.shift(); // 最多留10个残影
+
           obs.x += obs.vx;
           obs.y += obs.vy;
 
@@ -329,9 +334,20 @@
       noStroke();
       circle(goal.x, goal.y, goal.size);
 
-      // Draw Obstacles
-      fill(255, 51, 102);
+      // Draw Obstacles with Trails
       for (let obs of obstacles) {
+        // 画出拖尾
+        if (obs.trail) {
+          for (let i = 0; i < obs.trail.length; i++) {
+            let pos = obs.trail[i];
+            let alpha = map(i, 0, obs.trail.length, 0, 150); // 越早的坐标越透明
+            let trailSize = map(i, 0, obs.trail.length, obs.size * 0.3, obs.size * 0.9); // 越早的越小
+            fill(255, 51, 102, alpha);
+            circle(pos.x, pos.y, trailSize);
+          }
+        }
+        // 画出本体
+        fill(255, 51, 102);
         circle(obs.x, obs.y, obs.size);
       }
 

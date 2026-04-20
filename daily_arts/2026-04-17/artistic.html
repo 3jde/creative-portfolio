@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #f4f4f4; }</style>
+</head>
+<body>
+  <script>
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      noLoop();
+    }
+    function draw() {
+      background(244);
+      stroke(0);
+      strokeWeight(4);
+      drawRect(50, 50, width - 100, height - 100, 4);
+    }
+    function drawRect(x, y, w, h, depth) {
+      if (depth === 0 || (random() < 0.3 && depth < 4)) {
+        fill(random(['#ff0000', '#0000ff', '#ffff00', '#ffffff']));
+        rect(x, y, w, h);
+        return;
+      }
+      if (w > h) {
+        let split = random(0.3, 0.7) * w;
+        drawRect(x, y, split, h, depth - 1);
+        drawRect(x + split, y, w - split, h, depth - 1);
+      } else {
+        let split = random(0.3, 0.7) * h;
+        drawRect(x, y, w, split, depth - 1);
+        drawRect(x, y + split, w, h - split, depth - 1);
+      }
+    }
+    function mousePressed() { redraw(); }
+  </script>
+</body>
+</html>
