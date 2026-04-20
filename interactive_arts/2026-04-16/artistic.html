@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #EAE6D6; }</style>
+</head>
+<body>
+  <script>
+    let colors = ['#FF4E50', '#FC913A', '#F9D423', '#EDE574', '#E1F5C4'];
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      noLoop();
+    }
+    function draw() {
+      background('#EAE6D6');
+      for(let i=0; i<100; i++) {
+        fill(random(colors) + 'AA');
+        noStroke();
+        let r = random(20, 150);
+        rect(random(width), random(height), r, r * random(0.5, 2));
+      }
+      filter(BLUR, 2);
+    }
+    function mousePressed() { redraw(); }
+  </script>
+</body>
+</html>

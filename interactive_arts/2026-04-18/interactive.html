@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #EAEAEA; }</style>
+</head>
+<body>
+  <script>
+    let letters = [];
+    let msg = "KINETIC";
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      textAlign(CENTER, CENTER);
+      textSize(120);
+      textStyle(BOLD);
+      for(let i=0; i<msg.length; i++) {
+        letters.push(new KineticLetter(msg[i], width/2 - (msg.length*40) + i*80, height/2));
+      }
+    }
+    function draw() {
+      background('#EAEAEA');
+      for(let l of letters) {
+        l.update();
+        l.display();
+      }
+    }
+    class KineticLetter {
+      constructor(char, x, y) {
+        this.char = char;
+        this.baseX = x; this.baseY = y;
+        this.x = x; this.y = y;
+        this.vx = 0; this.vy = 0;
+      }
+      update() {
+        let d = dist(mouseX, mouseY, this.x, this.y);
+        if (d < 150) {
+          let force = map(d, 0, 150, 5, 0);
+          this.vx += (this.x - mouseX) * 0.05 * force;
+          this.vy += (this.y - mouseY) * 0.05 * force;
+        }
+        this.vx += (this.baseX - this.x) * 0.1;
+        this.vy += (this.baseY - this.y) * 0.1;
+        this.vx *= 0.85; this.vy *= 0.85;
+        this.x += this.vx; this.y += this.vy;
+      }
+      display() {
+        fill('#111');
+        text(this.char, this.x, this.y);
+      }
+    }
+  </script>
+</body>
+</html>
