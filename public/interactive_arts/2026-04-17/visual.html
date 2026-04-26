@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #000; }</style>
+</head>
+<body>
+  <script>
+    let cols, rows;
+    let scl = 20;
+    let w, h;
+    let flying = 0;
+    let terrain = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      w = windowWidth * 1.5;
+      h = windowHeight * 1.5;
+      cols = w / scl;
+      rows = h / scl;
+      for (let x = 0; x < cols; x++) {
+        terrain[x] = [];
+      }
+    }
+    function draw() {
+      flying -= 0.05;
+      let yoff = flying;
+      for (let y = 0; y < rows; y++) {
+        let xoff = 0;
+        for (let x = 0; x < cols; x++) {
+          terrain[x][y] = map(noise(xoff, yoff), 0, 1, -100, 100);
+          xoff += 0.1;
+        }
+        yoff += 0.1;
+      }
+      background(0);
+      stroke(0, 255, 255, 100);
+      fill(0, 50, 100, 50);
+      rotateX(PI / 3);
+      translate(-w / 2, -h / 2);
+      for (let y = 0; y < rows - 1; y++) {
+        beginShape(TRIANGLE_STRIP);
+        for (let x = 0; x < cols; x++) {
+          vertex(x * scl, y * scl, terrain[x][y]);
+          vertex(x * scl, (y + 1) * scl, terrain[x][y + 1]);
+        }
+        endShape();
+      }
+    }
+  </script>
+</body>
+</html>

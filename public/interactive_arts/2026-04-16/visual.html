@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #000; }</style>
+</head>
+<body>
+  <script>
+    let particles = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      for(let i=0; i<1000; i++) particles.push(new Particle());
+    }
+    function draw() {
+      background(0);
+      rotateY(frameCount * 0.01);
+      for(let p of particles) {
+        p.update();
+        p.show();
+      }
+    }
+    class Particle {
+      constructor() {
+        this.pos = p5.Vector.random3D().mult(random(100, 400));
+        this.c = color(random(100,255), random(50,200), 255);
+      }
+      update() {
+        this.pos.x += sin(frameCount * 0.05 + this.pos.y) * 2;
+      }
+      show() {
+        push();
+        translate(this.pos.x, this.pos.y, this.pos.z);
+        noStroke(); fill(this.c); sphere(3);
+        pop();
+      }
+    }
+  </script>
+</body>
+</html>
