@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dynamic Poster - 2026.04.26</title>
+<style>
+  :root { 
+    --bg: #0a0a0a; 
+    --text: #e0e0e0; 
+    --accent: #ff4b4b; 
+    --border: rgba(255, 255, 255, 0.1);
+  }
+  body { 
+    margin: 0; 
+    font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif; 
+    background: var(--bg); 
+    color: var(--text); 
+    overflow-x: hidden; 
+  }
+  header { 
+    padding: 15vh 5vw 10vh; 
+    text-align: center; 
+    border-bottom: 1px solid var(--border); 
+  }
+  header h1 { 
+    font-size: clamp(2rem, 5vw, 4rem); 
+    margin: 0; 
+    letter-spacing: 0.15em; 
+    text-transform: uppercase; 
+    font-weight: 300; 
+  }
+  header p { 
+    color: #888; 
+    font-size: 1rem; 
+    letter-spacing: 0.3em; 
+    margin-top: 1.5rem; 
+  }
+  .section { 
+    display: grid; 
+    grid-template-columns: 1fr; 
+    border-bottom: 1px solid var(--border); 
+  }
+  @media (min-width: 900px) {
+    .section { grid-template-columns: 1fr 1fr; }
+    .section:nth-child(even) .text-content { 
+      order: 2; 
+      border-left: 1px solid var(--border); 
+      border-right: none; 
+    }
+    .section:nth-child(even) .iframe-container { order: 1; }
+  }
+  .text-content { 
+    padding: 8vw; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    border-right: 1px solid var(--border); 
+  }
+  .text-content h2 { 
+    font-size: clamp(1.5rem, 3vw, 2.5rem); 
+    font-weight: 300; 
+    margin-bottom: 2rem; 
+    line-height: 1.4;
+    letter-spacing: 0.05em;
+  }
+  .text-content .num { 
+    color: var(--accent); 
+    font-family: "Courier New", Courier, monospace; 
+    font-size: 1.2rem; 
+    margin-bottom: 1rem; 
+    display: block; 
+  }
+  .text-content p { 
+    font-size: 1.1rem; 
+    line-height: 2; 
+    color: #a0a0a0; 
+    text-align: justify; 
+    font-weight: 300;
+  }
+  .iframe-container { 
+    position: relative; 
+    width: 100%; 
+    height: 70vh; 
+    min-height: 500px; 
+    background: #000;
+  }
+  iframe { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    border: none; 
+  }
+  footer { 
+    text-align: center; 
+    padding: 4rem; 
+    color: #444; 
+    font-size: 0.85rem; 
+    letter-spacing: 0.2em; 
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Dynamic Art Canvas</h1>
+  <p>DAILY GENERATIVE EXPERIMENTS // 2026.04.26</p>
+</header>
+
+<div class="section">
+  <div class="text-content">
+    <span class="num">01 / 三维星团</span>
+    <h2>视觉张力<br>VISUAL IMPACT</h2>
+    <p>探索深邃空间中的粒子流体力学。通过 WebGL 渲染的三维星团，在时间序列中展现失重状态下的几何运动美学。每一次视角的旋转，都是数字宇宙微观缩影的重新解构。</p>
+  </div>
+  <div class="iframe-container">
+    <iframe src="visual.html" title="Visual Impact"></iframe>
+  </div>
+</div>
+
+<div class="section">
+  <div class="text-content">
+    <span class="num">02 / 引力网络</span>
+    <h2>敏感响应<br>NOVEL INTERACTION</h2>
+    <p>重构人机交互的边界。鼠标的每一次游走都在重塑节点网络，力场与动态张力在此交织。屏幕不再是冰冷的显示器，而是呈现出如同神经元般充满生命力的敏感响应场。</p>
+  </div>
+  <div class="iframe-container">
+    <iframe src="interactive.html" title="Novel Interaction"></iframe>
+  </div>
+</div>
+
+<div class="section">
+  <div class="text-content">
+    <span class="num">03 / 算法诗意</span>
+    <h2>秩序与混沌<br>ARTISTIC QUALITY</h2>
+    <p>寻找逻辑与随性的诗意平衡。基于柏林噪声（Perlin Noise）生成的极简矢量场，将数字的绝对随机性转化为具有古典构成主义色彩的视觉矩阵。（点击画面可重新生成排布）</p>
+  </div>
+  <div class="iframe-container">
+    <iframe src="artistic.html" title="Artistic Quality"></iframe>
+  </div>
+</div>
+
+<footer>
+  Curated & Coded by luckycat2026 &copy; 2026 ONEZ STUDIO
+</footer>
+
+</body>
+</html>
