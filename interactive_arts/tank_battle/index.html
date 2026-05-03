@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEON TANK GRID | ONE ZEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --neon: #ccff00;
+      --bg: #000000;
+      --warn: #ff3355;
+      --cyan: #19f7ff;
+      --gold: #ffd84d;
+      --panel: rgba(0, 0, 0, 0.82);
+    }
+    html, body { min-height: 100%; background: var(--bg); }
+    body {
+      color: var(--neon);
+      font-family: "Space Mono", monospace;
+      text-transform: uppercase;
+      overflow-x: hidden;
+    }
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 4vw;
+      border-bottom: 2px dashed var(--neon);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+    .nav-logo {
+      font-family: "VT323", monospace;
+      font-size: 2rem;
+      color: var(--neon);
+      text-decoration: none;
+    }
+    .nav-menu { display: flex; gap: 20px; flex-wrap: wrap; }
+    .nav-menu a {
+      color: var(--neon);
+      text-decoration: none;
+      padding: 5px 15px;
+      border: 1px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-menu a:hover,
+    .nav-menu a.active {
+      background: var(--neon);
+      color: var(--bg);
+      border-color: var(--neon);
+    }
+    .nav-menu a::before { content: "< "; }
+    .nav-menu a::after { content: " >"; }
+    .page-shell {
+      min-height: calc(100vh - 76px);
+      padding: 28px 4vw 36px;
+      display: grid;
+      grid-template-columns: minmax(260px, 360px) minmax(320px, 1fr);
+      gap: 28px;
+      align-items: stretch;
+    }
+    .brief, .game-frame {
+      border: 1px solid var(--neon);
+      background: var(--panel);
+      position: relative;
+    }
+    .brief::before,
+    .game-frame::before {
+      content: "+";
+      position: absolute;
+      top: -11px;
+      left: -8px;
+      background: var(--bg);
+      padding: 0 5px;
+    }
+    .brief::after,
+    .game-frame::after {
+      content: "+";
+      position: absolute;
+      right: -8px;
+      bottom: -11px;
+      background: var(--bg);
+      padding: 0 5px;
+    }
+    .brief {
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+    h1 {
+      font-family: "VT323", monospace;
+      font-size: clamp(3.5rem, 7vw, 6.5rem);
+      line-height: 0.86;
+      font-weight: normal;
+      letter-spacing: 0;
+    }
+    .tagline {
+      border-left: 4px solid var(--neon);
+      padding-left: 16px;
+      line-height: 1.6;
+      font-size: 0.9rem;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .stat {
+      border: 1px dashed var(--neon);
+      padding: 12px;
+      min-height: 72px;
+    }
+    .stat span {
+      display: block;
+      color: rgba(204, 255, 0, 0.72);
+      font-size: 0.7rem;
+      margin-bottom: 8px;
+    }
+    .stat strong {
+      display: block;
+      font-family: "VT323", monospace;
+      font-size: 2rem;
+      font-weight: normal;
+    }
+    .controls {
+      border-top: 1px dashed var(--neon);
+      padding-top: 20px;
+      display: grid;
+      gap: 10px;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+    .key {
+      display: inline-block;
+      min-width: 34px;
+      padding: 2px 7px;
+      margin-right: 5px;
+      border: 1px solid var(--neon);
+      text-align: center;
+      color: var(--bg);
+      background: var(--neon);
+    }
+    .return-link {
+      color: var(--neon);
+      text-decoration: none;
+      border: 1px dashed var(--neon);
+      padding: 10px 12px;
+      text-align: center;
+      transition: 0.2s;
+    }
+    .return-link:hover { background: var(--neon); color: var(--bg); }
+    .game-frame {
+      min-height: 680px;
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      font-size: 0.76rem;
+    }
+    .hud div {
+      border: 1px dashed rgba(204, 255, 0, 0.65);
+      padding: 8px 10px;
+      min-height: 46px;
+    }
+    .hud span {
+      display: block;
+      color: rgba(204, 255, 0, 0.65);
+      margin-bottom: 4px;
+    }
+    .hud strong {
+      display: block;
+      color: var(--neon);
+      font-size: 1rem;
+    }
+    .canvas-wrap {
+      position: relative;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--neon);
+      background:
+        linear-gradient(rgba(204, 255, 0, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(204, 255, 0, 0.06) 1px, transparent 1px),
+        #050505;
+      background-size: 24px 24px;
+      overflow: hidden;
+    }
+    canvas {
+      width: min(100%, 860px);
+      aspect-ratio: 4 / 3;
+      max-height: 66vh;
+      image-rendering: pixelated;
+      display: block;
+      outline: none;
+    }
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(3px);
+      text-align: center;
+    }
+    .screen.hidden { display: none; }
+    .screen-panel {
+      max-width: 620px;
+      border: 2px solid var(--neon);
+      background: rgba(0, 0, 0, 0.9);
+      padding: 30px;
+      box-shadow: 0 0 0 8px rgba(204, 255, 0, 0.08);
+    }
+    .screen h2 {
+      font-family: "VT323", monospace;
+      font-size: clamp(3rem, 8vw, 5.4rem);
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+    .screen p {
+      line-height: 1.7;
+      margin: 12px 0 22px;
+      font-size: 0.9rem;
+    }
+    .btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    button {
+      appearance: none;
+      border: 1px solid var(--neon);
+      background: var(--bg);
+      color: var(--neon);
+      padding: 12px 18px;
+      font-family: "Space Mono", monospace;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover,
+    button:focus-visible {
+      background: var(--neon);
+      color: var(--bg);
+      outline: none;
+    }
+    .log-line {
+      min-height: 36px;
+      border-top: 1px dashed rgba(204, 255, 0, 0.5);
+      padding-top: 10px;
+      font-size: 0.8rem;
+      color: rgba(204, 255, 0, 0.8);
+    }
+    .danger { color: var(--warn); }
+    .cyan { color: var(--cyan); }
+    .gold { color: var(--gold); }
+    @media (max-width: 980px) {
+      .page-shell { grid-template-columns: 1fr; }
+      .brief { min-height: auto; }
+      .game-frame { min-height: 620px; }
+    }
+    @media (max-width: 720px) {
+      .top-nav { align-items: flex-start; flex-direction: column; gap: 16px; }
+      .hud { grid-template-columns: repeat(2, 1fr); }
+      .page-shell { padding: 20px; }
+      .game-frame { padding: 12px; min-height: 560px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <a href="../../index.html" class="nav-logo">ONE_ZEN_</a>
+    <div class="nav-menu">
+      <a href="../../generative.html">CODE ART</a>
+      <a href="../../digital.html">DIGITAL ART</a>
+      <a href="../../playground.html" class="active">PLAYGROUND</a>
+    </div>
+  </nav>
+
+  <main class="page-shell">
+    <aside class="brief">
+      <h1>NEON<br>TANK<br>GRID</h1>
+      <p class="tagline">A compact 2D tank battle in a corrupted terminal arena. Break crates, kite hunters, hold the supply zone, and survive escalating enemy waves.</p>
+      <div class="stat-grid">
+        <div class="stat"><span>MODE</span><strong>ARCADE</strong></div>
+        <div class="stat"><span>ENGINE</span><strong>CANVAS</strong></div>
+        <div class="stat"><span>OBJECTIVE</span><strong>WAVES</strong></div>
+        <div class="stat"><span>STYLE</span><strong>NEON</strong></div>
+      </div>
+      <div class="controls">
+        <div><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> Move and aim tank</div>
+        <div><span class="key">UP</span><span class="key">DOWN</span><span class="key">LEFT</span><span class="key">RIGHT</span> Alternate movement</div>
+        <div><span class="key">SPACE</span> Fire shell</div>
+        <div><span class="key">P</span> Pause tactical scan</div>
+        <div><span class="key">R</span> Restart after defeat</div>
+      </div>
+      <a class="return-link" href="../../playground.html">[ RETURN TO PLAYGROUND ]</a>
+    </aside>
+
+    <section class="game-frame">
+      <div class="hud">
+        <div><span>Score</span><strong id="score">0</strong></div>
+        <div><span>Wave</span><strong id="wave">1</strong></div>
+        <div><span>Armor</span><strong id="armor">100</strong></div>
+        <div><span>Ammo</span><strong id="ammo">READY</strong></div>
+        <div><span>Enemies</span><strong id="enemies">0</strong></div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="game" width="960" height="720" tabindex="0" aria-label="Neon Tank Grid game canvas"></canvas>
+        <div class="screen" id="start-screen">
+          <div class="screen-panel">
+            <h2>INSERT SIGNAL</h2>
+            <p>Destroy hostile tanks before they overrun the grid. Shells can crack crates, enemy wrecks drop repair cells, and later waves deploy faster hunters.</p>
+            <div class="btn-row">
+              <button id="start-btn">Start Mission</button>
+            </div>
+          </div>
+        </div>
+        <div class="screen hidden" id="end-screen">
+          <div class="screen-panel">
+            <h2 id="end-title">SIGNAL LOST</h2>
+            <p id="end-copy">The grid has gone quiet.</p>
+            <div class="btn-row">
+              <button id="restart-btn">Restart Mission</button>
+              <button onclick="location.href='../../playground.html'">Exit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="log-line" id="log">System ready. Click start, then use WASD or arrow keys and space.</div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const hud = {
+      score: document.getElementById("score"),
+      wave: document.getElementById("wave"),
+      armor: document.getElementById("armor"),
+      ammo: document.getElementById("ammo"),
+      enemies: document.getElementById("enemies"),
+      log: document.getElementById("log")
+    };
+    const startScreen = document.getElementById("start-screen");
+    const endScreen = document.getElementById("end-screen");
+    const endTitle = document.getElementById("end-title");
+    const endCopy = document.getElementById("end-copy");
+    const keys = new Set();
+    const W = canvas.width;
+    const H = canvas.height;
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const moveCodes = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyW", "KeyA", "KeyS", "KeyD", "Space"];
+    let state;
+    let lastTime = 0;
+    let scan = 0;
+    let audioCtx;
+    let masterGain;
+    let musicGain;
+    let musicTimer;
+    let musicStep = 0;
+
+    function ensureAudio() {
+      if (audioCtx) {
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        return;
+      }
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.24;
+      masterGain.connect(audioCtx.destination);
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = 0.12;
+      musicGain.connect(masterGain);
+    }
+
+    function tone(freq, duration, type, gainValue, destination = masterGain, detune = 0) {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      osc.detune.setValueAtTime(detune, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(gainValue, now + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      osc.connect(gain);
+      gain.connect(destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    }
+
+    function noiseBurst(duration, gainValue, destination = masterGain) {
+      if (!audioCtx) return;
+      const bufferSize = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      const source = audioCtx.createBufferSource();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+      filter.type = "bandpass";
+      filter.frequency.value = 900;
+      filter.Q.value = 0.8;
+      gain.gain.setValueAtTime(gainValue, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+      source.buffer = buffer;
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(destination);
+      source.start();
+    }
+
+    function playShot(enemy = false) {
+      ensureAudio();
+      tone(enemy ? 150 : 210, 0.09, "square", enemy ? 0.08 : 0.12);
+      tone(enemy ? 82 : 96, 0.13, "sawtooth", enemy ? 0.06 : 0.08);
+      noiseBurst(0.045, enemy ? 0.025 : 0.04);
+    }
+
+    function playExplosion(heavy = false) {
+      ensureAudio();
+      tone(heavy ? 58 : 72, 0.32, "sawtooth", heavy ? 0.18 : 0.14);
+      tone(heavy ? 116 : 145, 0.18, "triangle", heavy ? 0.12 : 0.09, masterGain, -18);
+      noiseBurst(heavy ? 0.34 : 0.22, heavy ? 0.15 : 0.11);
+    }
+
+    function playPickup() {
+      ensureAudio();
+      tone(330, 0.08, "triangle", 0.08);
+      setTimeout(() => tone(494, 0.09, "triangle", 0.07), 55);
+      setTimeout(() => tone(660, 0.12, "triangle", 0.06), 110);
+    }
+
+    function playHit() {
+      ensureAudio();
+      tone(115, 0.18, "sawtooth", 0.11);
+      noiseBurst(0.08, 0.07);
+    }
+
+    function startMusic() {
+      ensureAudio();
+      if (musicTimer) return;
+      const bass = [55, 55, 82, 55, 110, 82, 55, 41];
+      const lead = [220, 0, 247, 0, 330, 294, 247, 0, 220, 0, 165, 196, 220, 0, 330, 0];
+      musicTimer = setInterval(() => {
+        if (!state || state.paused || state.over) return;
+        const b = bass[musicStep % bass.length];
+        const l = lead[musicStep % lead.length];
+        tone(b, 0.14, "sawtooth", 0.035, musicGain);
+        if (l) tone(l, 0.08, "square", 0.018, musicGain, musicStep % 4 === 0 ? -8 : 8);
+        if (musicStep % 2 === 0) noiseBurst(0.018, 0.014, musicGain);
+        musicStep += 1;
+      }, 150);
+    }
+
+    function freshState() {
+      return {
+        running: false,
+        paused: false,
+        over: false,
+        score: 0,
+        wave: 1,
+        combo: 1,
+        nextWaveAt: 0,
+        player: {
+          x: W / 2,
+          y: H - 92,
+          r: 20,
+          angle: -Math.PI / 2,
+          speed: 235,
+          armor: 100,
+          cooldown: 0,
+          invuln: 1.2,
+          overclock: 0
+        },
+        bullets: [],
+        enemyBullets: [],
+        enemies: [],
+        particles: [],
+        pickups: [],
+        obstacles: createObstacles()
+      };
+    }
+
+    function createObstacles() {
+      const blocks = [];
+      const templates = [
+        [150, 140, 120, 34], [690, 140, 120, 34],
+        [150, 546, 120, 34], [690, 546, 120, 34],
+        [380, 225, 42, 132], [538, 225, 42, 132],
+        [380, 384, 42, 112], [538, 384, 42, 112],
+        [80, 332, 155, 36], [725, 332, 155, 36]
+      ];
+      templates.forEach((t, index) => blocks.push({
+        x: t[0],
+        y: t[1],
+        w: t[2],
+        h: t[3],
+        hp: index < 4 ? 3 : 4,
+        maxHp: index < 4 ? 3 : 4
+      }));
+      return blocks;
+    }
+
+    function startGame() {
+      startMusic();
+      state = freshState();
+      state.running = true;
+      startScreen.classList.add("hidden");
+      endScreen.classList.add("hidden");
+      spawnWave();
+      canvas.focus();
+      setLog("Wave 1 online. Break line of sight, then counter-fire.");
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+
+    function spawnWave() {
+      const count = 3 + state.wave;
+      const edgeSpawns = [
+        { x: 70, y: 70 }, { x: W - 70, y: 70 },
+        { x: W / 2, y: 70 }, { x: 70, y: H / 2 },
+        { x: W - 70, y: H / 2 }
+      ];
+      for (let i = 0; i < count; i++) {
+        const p = edgeSpawns[i % edgeSpawns.length];
+        const typeRoll = Math.random();
+        const type = state.wave > 3 && typeRoll > 0.68 ? "hunter" : state.wave > 2 && typeRoll < 0.24 ? "heavy" : "scout";
+        state.enemies.push({
+          x: p.x + rand(-22, 22),
+          y: p.y + rand(-18, 18),
+          r: type === "heavy" ? 22 : 18,
+          angle: Math.PI / 2,
+          speed: type === "hunter" ? 108 + state.wave * 7 : type === "heavy" ? 62 : 82 + state.wave * 5,
+          hp: type === "heavy" ? 3 : 2,
+          maxHp: type === "heavy" ? 3 : 2,
+          cooldown: rand(0.6, 1.8),
+          type,
+          strafe: Math.random() > 0.5 ? 1 : -1
+        });
+      }
+      state.nextWaveAt = 0;
+    }
+
+    function loop(now) {
+      if (!state || !state.running) return;
+      const dt = Math.min((now - lastTime) / 1000, 0.033);
+      lastTime = now;
+      if (!state.paused && !state.over) update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function update(dt) {
+      scan = (scan + dt * 120) % (W + 260);
+      updatePlayer(dt);
+      updateEnemies(dt);
+      updateBullets(dt, state.bullets, true);
+      updateBullets(dt, state.enemyBullets, false);
+      updatePickups(dt);
+      updateParticles(dt);
+      checkWave(dt);
+      updateHud();
+    }
+
+    function updatePlayer(dt) {
+      const p = state.player;
+      p.cooldown = Math.max(0, p.cooldown - dt);
+      p.invuln = Math.max(0, p.invuln - dt);
+      p.overclock = Math.max(0, p.overclock - dt);
+      let vx = 0;
+      let vy = 0;
+      if (keys.has("ArrowUp") || keys.has("KeyW")) vy -= 1;
+      if (keys.has("ArrowDown") || keys.has("KeyS")) vy += 1;
+      if (keys.has("ArrowLeft") || keys.has("KeyA")) vx -= 1;
+      if (keys.has("ArrowRight") || keys.has("KeyD")) vx += 1;
+      if (vx || vy) {
+        const len = Math.hypot(vx, vy);
+        vx /= len;
+        vy /= len;
+        p.angle = Math.atan2(vy, vx);
+        moveCircle(p, vx * p.speed * dt, vy * p.speed * dt);
+      }
+      if (keys.has("Space")) firePlayer();
+    }
+
+    function moveCircle(entity, dx, dy) {
+      const oldX = entity.x;
+      const oldY = entity.y;
+      entity.x = clamp(entity.x + dx, entity.r + 12, W - entity.r - 12);
+      if (hitsAnyBlock(entity)) entity.x = oldX;
+      entity.y = clamp(entity.y + dy, entity.r + 12, H - entity.r - 12);
+      if (hitsAnyBlock(entity)) entity.y = oldY;
+    }
+
+    function hitsAnyBlock(circle) {
+      return state.obstacles.some(block => circleRect(circle, block));
+    }
+
+    function circleRect(circle, rect) {
+      const nx = clamp(circle.x, rect.x, rect.x + rect.w);
+      const ny = clamp(circle.y, rect.y, rect.y + rect.h);
+      return Math.hypot(circle.x - nx, circle.y - ny) < circle.r;
+    }
+
+    function firePlayer() {
+      const p = state.player;
+      if (p.cooldown > 0) return;
+      p.cooldown = p.overclock > 0 ? 0.12 : 0.28;
+      const speed = 520;
+      state.bullets.push({
+        x: p.x + Math.cos(p.angle) * 27,
+        y: p.y + Math.sin(p.angle) * 27,
+        vx: Math.cos(p.angle) * speed,
+        vy: Math.sin(p.angle) * speed,
+        life: 1.55,
+        r: 5,
+        power: 1
+      });
+      playShot(false);
+      spark(p.x + Math.cos(p.angle) * 32, p.y + Math.sin(p.angle) * 32, "#ccff00", 7);
+    }
+
+    function updateEnemies(dt) {
+      const p = state.player;
+      state.enemies.forEach(enemy => {
+        enemy.cooldown = Math.max(0, enemy.cooldown - dt);
+        const toP = Math.atan2(p.y - enemy.y, p.x - enemy.x);
+        enemy.angle = toP;
+        const d = dist(enemy, p);
+        let speed = enemy.speed;
+        let moveAngle = toP;
+        if (enemy.type === "hunter") {
+          moveAngle = toP + Math.sin(performance.now() / 420 + enemy.x) * 0.55;
+        } else if (enemy.type === "heavy" && d < 250) {
+          speed *= 0.28;
+        } else if (d < 210) {
+          moveAngle = toP + Math.PI * 0.62 * enemy.strafe;
+          speed *= 0.78;
+        }
+        moveCircle(enemy, Math.cos(moveAngle) * speed * dt, Math.sin(moveAngle) * speed * dt);
+        if (enemy.cooldown <= 0 && d < 520 && hasLooseLine(enemy, p)) {
+          fireEnemy(enemy);
+        }
+        if (d < enemy.r + p.r && p.invuln <= 0) {
+          damagePlayer(16);
+          enemy.x -= Math.cos(toP) * 24;
+          enemy.y -= Math.sin(toP) * 24;
+          spark(p.x, p.y, "#ff3355", 16);
+        }
+      });
+    }
+
+    function hasLooseLine(a, b) {
+      for (const block of state.obstacles) {
+        if (lineHitsRect(a.x, a.y, b.x, b.y, block)) return false;
+      }
+      return true;
+    }
+
+    function lineHitsRect(x1, y1, x2, y2, rect) {
+      const steps = 20;
+      for (let i = 1; i < steps; i++) {
+        const t = i / steps;
+        const x = x1 + (x2 - x1) * t;
+        const y = y1 + (y2 - y1) * t;
+        if (x > rect.x && x < rect.x + rect.w && y > rect.y && y < rect.y + rect.h) return true;
+      }
+      return false;
+    }
+
+    function fireEnemy(enemy) {
+      enemy.cooldown = enemy.type === "heavy" ? 1.55 : enemy.type === "hunter" ? 0.88 : 1.18;
+      const speed = enemy.type === "heavy" ? 410 : 360 + state.wave * 12;
+      state.enemyBullets.push({
+        x: enemy.x + Math.cos(enemy.angle) * 26,
+        y: enemy.y + Math.sin(enemy.angle) * 26,
+        vx: Math.cos(enemy.angle) * speed,
+        vy: Math.sin(enemy.angle) * speed,
+        life: 2.1,
+        r: enemy.type === "heavy" ? 6 : 5,
+        power: enemy.type === "heavy" ? 18 : 12
+      });
+      playShot(true);
+      spark(enemy.x + Math.cos(enemy.angle) * 28, enemy.y + Math.sin(enemy.angle) * 28, "#ff3355", 5);
+    }
+
+    function updateBullets(dt, bullets, friendly) {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.life -= dt;
+        let remove = b.life <= 0 || b.x < 4 || b.x > W - 4 || b.y < 4 || b.y > H - 4;
+        if (!remove) {
+          for (const block of state.obstacles) {
+            if (b.x > block.x && b.x < block.x + block.w && b.y > block.y && b.y < block.y + block.h) {
+              block.hp -= friendly ? 1 : 0.55;
+              spark(b.x, b.y, friendly ? "#ccff00" : "#ff3355", 12);
+              remove = true;
+              if (block.hp <= 0) {
+                state.score += 15;
+                maybeDrop(block.x + block.w / 2, block.y + block.h / 2, 0.34);
+                playExplosion(false);
+              }
+              break;
+            }
+          }
+        }
+        if (!remove && friendly) {
+          for (let e = state.enemies.length - 1; e >= 0; e--) {
+            const enemy = state.enemies[e];
+            if (Math.hypot(b.x - enemy.x, b.y - enemy.y) < enemy.r + b.r) {
+              enemy.hp -= b.power;
+              spark(b.x, b.y, "#ccff00", 18);
+              remove = true;
+              if (enemy.hp <= 0) destroyEnemy(e, enemy);
+              break;
+            }
+          }
+        }
+        if (!remove && !friendly) {
+          const p = state.player;
+          if (Math.hypot(b.x - p.x, b.y - p.y) < p.r + b.r && p.invuln <= 0) {
+            damagePlayer(b.power);
+            spark(b.x, b.y, "#ff3355", 18);
+            remove = true;
+          }
+        }
+        if (remove) bullets.splice(i, 1);
+      }
+      state.obstacles = state.obstacles.filter(block => block.hp > 0);
+    }
+
+    function destroyEnemy(index, enemy) {
+      state.enemies.splice(index, 1);
+      const value = enemy.type === "heavy" ? 180 : enemy.type === "hunter" ? 150 : 110;
+      state.score += Math.floor(value * state.combo);
+      state.combo = Math.min(4, state.combo + 0.18);
+      maybeDrop(enemy.x, enemy.y, enemy.type === "heavy" ? 0.85 : 0.42);
+      playExplosion(enemy.type === "heavy");
+      burst(enemy.x, enemy.y, enemy.type === "heavy" ? "#ffd84d" : "#ccff00");
+      setLog(`Target removed. Combo x${state.combo.toFixed(1)}.`);
+    }
+
+    function maybeDrop(x, y, chance) {
+      if (Math.random() > chance) return;
+      const kind = Math.random() > 0.45 ? "repair" : "overclock";
+      state.pickups.push({ x, y, r: 13, kind, life: 9 });
+    }
+
+    function updatePickups(dt) {
+      const p = state.player;
+      for (let i = state.pickups.length - 1; i >= 0; i--) {
+        const item = state.pickups[i];
+        item.life -= dt;
+        if (Math.hypot(item.x - p.x, item.y - p.y) < item.r + p.r) {
+          if (item.kind === "repair") {
+            p.armor = Math.min(100, p.armor + 24);
+            setLog("Repair cell absorbed. Armor restored.");
+          } else {
+            p.overclock = 4;
+            setLog("Overclock cell loaded. Rapid firing window online.");
+          }
+          playPickup();
+          spark(item.x, item.y, item.kind === "repair" ? "#19f7ff" : "#ffd84d", 18);
+          state.pickups.splice(i, 1);
+        } else if (item.life <= 0) {
+          state.pickups.splice(i, 1);
+        }
+      }
+    }
+
+    function damagePlayer(amount) {
+      const p = state.player;
+      p.armor -= amount;
+      p.invuln = 0.42;
+      state.combo = 1;
+      playHit();
+      setLog(`Armor breach: -${amount}.`);
+      if (p.armor <= 0) endGame(false);
+    }
+
+    function checkWave(dt) {
+      if (state.enemies.length > 0) return;
+      if (state.nextWaveAt === 0) {
+        state.nextWaveAt = 2.2;
+        state.score += state.wave * 220;
+        setLog(`Wave ${state.wave} cleared. Next signal forming.`);
+      }
+      state.nextWaveAt -= dt;
+      if (state.nextWaveAt <= 0) {
+        state.wave += 1;
+        if (state.wave > 7) {
+          endGame(true);
+          return;
+        }
+        state.obstacles.push(...createReinforcements());
+        spawnWave();
+        setLog(`Wave ${state.wave} online. Enemy logic upgraded.`);
+      }
+    }
+
+    function createReinforcements() {
+      const y = rand(210, 500);
+      return [
+        { x: rand(275, 330), y, w: 38, h: 92, hp: 3, maxHp: 3 },
+        { x: rand(620, 675), y: H - y - 92, w: 38, h: 92, hp: 3, maxHp: 3 }
+      ];
+    }
+
+    function endGame(win) {
+      state.over = true;
+      state.running = false;
+      endTitle.textContent = win ? "GRID LIBERATED" : "SIGNAL LOST";
+      endCopy.textContent = win
+        ? `Final score ${state.score}. You cleared every hostile wave.`
+        : `Final score ${state.score}. Wave ${state.wave} held the line.`;
+      endScreen.classList.remove("hidden");
+      updateHud();
+    }
+
+    function spark(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        const a = rand(0, Math.PI * 2);
+        const s = rand(40, 180);
+        state.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.2, 0.55), color, size: rand(2, 5) });
+      }
+    }
+
+    function burst(x, y, color) {
+      spark(x, y, color, 35);
+      state.particles.push({ x, y, vx: 0, vy: 0, life: 0.38, color, size: 38, ring: true });
+    }
+
+    function updateParticles(dt) {
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+        if (p.life <= 0) state.particles.splice(i, 1);
+      }
+    }
+
+    function setLog(text) {
+      hud.log.textContent = `> ${text}`;
+    }
+
+    function updateHud() {
+      if (!state) return;
+      hud.score.textContent = state.score;
+      hud.wave.textContent = state.wave;
+      hud.armor.textContent = Math.max(0, Math.ceil(state.player.armor));
+      hud.enemies.textContent = state.enemies.length;
+      hud.ammo.textContent = state.player.cooldown <= 0 ? "READY" : "LOAD";
+      hud.armor.className = state.player.armor <= 30 ? "danger" : "";
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      drawGrid();
+      state.obstacles.forEach(drawBlock);
+      state.pickups.forEach(drawPickup);
+      state.bullets.forEach(b => drawBullet(b, "#ccff00"));
+      state.enemyBullets.forEach(b => drawBullet(b, "#ff3355"));
+      state.enemies.forEach(drawEnemy);
+      drawTank(state.player, "#ccff00", true);
+      state.particles.forEach(drawParticle);
+      drawScanline();
+      if (state.paused) drawPaused();
+    }
+
+    function drawGrid() {
+      ctx.fillStyle = "#050505";
+      ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "rgba(204,255,0,0.11)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= W; x += 48) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= H; y += 48) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = "#ccff00";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(9, 9, W - 18, H - 18);
+    }
+
+    function drawBlock(block) {
+      const alpha = 0.25 + block.hp / block.maxHp * 0.55;
+      ctx.fillStyle = `rgba(204,255,0,${alpha})`;
+      ctx.strokeStyle = "#ccff00";
+      ctx.lineWidth = 2;
+      ctx.fillRect(block.x, block.y, block.w, block.h);
+      ctx.strokeRect(block.x, block.y, block.w, block.h);
+      ctx.fillStyle = "#000";
+      for (let x = block.x + 10; x < block.x + block.w - 8; x += 18) {
+        ctx.fillRect(x, block.y + 5, 5, block.h - 10);
+      }
+    }
+
+    function drawTank(tank, color, player) {
+      ctx.save();
+      ctx.translate(tank.x, tank.y);
+      ctx.rotate(tank.angle);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = player && tank.invuln > 0 ? 18 : 8;
+      ctx.fillStyle = "#000";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.fillRect(-21, -15, 42, 30);
+      ctx.strokeRect(-21, -15, 42, 30);
+      ctx.fillStyle = color;
+      ctx.fillRect(2, -5, 29, 10);
+      ctx.fillRect(-14, -19, 8, 5);
+      ctx.fillRect(-14, 14, 8, 5);
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.fillStyle = "#000";
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+      if (player && tank.invuln > 0) {
+        ctx.strokeStyle = "rgba(25,247,255,0.65)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(tank.x, tank.y, 34 + Math.sin(performance.now() / 80) * 3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    function drawEnemy(enemy) {
+      const color = enemy.type === "heavy" ? "#ffd84d" : enemy.type === "hunter" ? "#ff3355" : "#19f7ff";
+      drawTank(enemy, color, false);
+      ctx.fillStyle = color;
+      ctx.fillRect(enemy.x - 16, enemy.y - enemy.r - 13, 32 * (enemy.hp / enemy.maxHp), 4);
+    }
+
+    function drawBullet(b, color) {
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    function drawPickup(item) {
+      const color = item.kind === "repair" ? "#19f7ff" : "#ffd84d";
+      ctx.strokeStyle = color;
+      ctx.fillStyle = "rgba(0,0,0,0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(item.x, item.y, item.r + Math.sin(performance.now() / 130) * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.font = "18px VT323, monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(item.kind === "repair" ? "+" : "*", item.x, item.y + 1);
+    }
+
+    function drawParticle(p) {
+      ctx.globalAlpha = clamp(p.life * 2.2, 0, 1);
+      ctx.strokeStyle = p.color;
+      ctx.fillStyle = p.color;
+      if (p.ring) {
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * (1 - p.life), 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawScanline() {
+      ctx.fillStyle = "rgba(204,255,0,0.08)";
+      ctx.fillRect(scan - 220, 0, 80, H);
+      ctx.fillStyle = "rgba(0,0,0,0.14)";
+      for (let y = 0; y < H; y += 6) ctx.fillRect(0, y, W, 2);
+    }
+
+    function drawPaused() {
+      ctx.fillStyle = "rgba(0,0,0,0.64)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#ccff00";
+      ctx.font = "86px VT323, monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("PAUSED", W / 2, H / 2);
+    }
+
+    document.getElementById("start-btn").addEventListener("click", startGame);
+    document.getElementById("restart-btn").addEventListener("click", startGame);
+    window.addEventListener("keydown", event => {
+      if (moveCodes.includes(event.code)) {
+        event.preventDefault();
+        keys.add(event.code);
+      }
+      if (event.code === "KeyP" && state && state.running) {
+        state.paused = !state.paused;
+        setLog(state.paused ? "Tactical scan paused." : "Signal resumed.");
+      }
+      if (event.code === "KeyR" && state && state.over) startGame();
+    });
+    window.addEventListener("keyup", event => {
+      keys.delete(event.code);
+    });
+
+    state = freshState();
+    updateHud();
+    draw();
+  </script>
+</body>
+</html>
