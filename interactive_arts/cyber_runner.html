@@ -2,375 +2,998 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>p5.js Game Prototype (Complete)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBER RUNNER: GLOW CAVERN | ONE ZEN</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --neon: #ccff00;
+      --bg: #000;
+      --cyan: #49f6ff;
+      --pink: #ff3f8f;
+      --violet: #8d6bff;
+      --gold: #ffe66b;
+    }
+    html, body { min-height: 100%; background: #000; }
     body {
-      margin: 0;
+      color: var(--neon);
+      font-family: "Space Mono", monospace;
+      text-transform: uppercase;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 30% 15%, rgba(73, 246, 255, 0.10), transparent 34%),
+        radial-gradient(circle at 75% 85%, rgba(255, 63, 143, 0.10), transparent 32%),
+        #000;
+    }
+    .top-nav {
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
       align-items: center;
-      height: 100vh;
-      background-color: #1a1a1a;
-      color: white;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      overflow: hidden;
-    }
-    #game-wrapper {
-      position: relative;
-      box-shadow: 0 0 20px rgba(0,255,200,0.2);
-    }
-    /* UI Overlays */
-    .overlay {
-      position: absolute;
+      padding: 20px 4vw;
+      border-bottom: 2px dashed var(--neon);
+      background: #000;
+      position: sticky;
       top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.85);
+      z-index: 20;
+    }
+    .nav-logo {
+      font-family: "VT323", monospace;
+      color: var(--neon);
+      text-decoration: none;
+      font-size: 2rem;
+    }
+    .nav-menu { display: flex; gap: 20px; flex-wrap: wrap; }
+    .nav-menu a {
+      color: var(--neon);
+      text-decoration: none;
+      padding: 5px 15px;
+      border: 1px solid transparent;
+      transition: 0.2s;
+    }
+    .nav-menu a:hover,
+    .nav-menu a.active {
+      background: var(--neon);
+      color: var(--bg);
+      border-color: var(--neon);
+    }
+    .nav-menu a::before { content: "< "; }
+    .nav-menu a::after { content: " >"; }
+    .shell {
+      min-height: calc(100vh - 76px);
+      display: grid;
+      grid-template-columns: minmax(260px, 340px) minmax(320px, 1fr);
+      gap: 28px;
+      padding: 28px 4vw 36px;
+    }
+    .panel, .game-frame {
+      position: relative;
+      border: 1px solid var(--neon);
+      background: rgba(0, 0, 0, 0.84);
+    }
+    .panel::before, .game-frame::before {
+      content: "+";
+      position: absolute;
+      top: -11px;
+      left: -8px;
+      background: #000;
+      padding: 0 5px;
+    }
+    .panel::after, .game-frame::after {
+      content: "+";
+      position: absolute;
+      right: -8px;
+      bottom: -11px;
+      background: #000;
+      padding: 0 5px;
+    }
+    .panel {
+      padding: 26px;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      z-index: 10;
-    }
-    .hidden {
-      display: none !important;
+      gap: 22px;
     }
     h1 {
-      color: #00FFC8;
-      margin-bottom: 20px;
-      letter-spacing: 2px;
+      font-family: "VT323", monospace;
+      font-size: clamp(3.4rem, 7vw, 6.2rem);
+      line-height: 0.86;
+      font-weight: normal;
+      letter-spacing: 0;
     }
-    h2 {
-      color: #FFD700;
+    .copy {
+      border-left: 4px solid var(--neon);
+      padding-left: 16px;
+      line-height: 1.6;
+      font-size: 0.9rem;
+      color: rgba(204, 255, 0, 0.85);
     }
-    input[type="text"] {
-      padding: 10px;
-      font-size: 16px;
-      border: 2px solid #00FFC8;
-      background: #222;
-      color: white;
-      outline: none;
-      border-radius: 5px;
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .legend div {
+      border: 1px dashed rgba(204, 255, 0, 0.7);
+      padding: 12px;
+      min-height: 72px;
+    }
+    .legend span {
+      display: block;
+      color: rgba(204, 255, 0, 0.62);
+      font-size: 0.7rem;
+      margin-bottom: 7px;
+    }
+    .legend strong {
+      display: block;
+      font-family: "VT323", monospace;
+      font-weight: normal;
+      font-size: 1.9rem;
+    }
+    .keys {
+      display: grid;
+      gap: 10px;
+      border-top: 1px dashed rgba(204, 255, 0, 0.65);
+      padding-top: 20px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+    .key {
+      display: inline-block;
+      min-width: 34px;
+      padding: 2px 7px;
+      margin-right: 5px;
+      border: 1px solid var(--neon);
       text-align: center;
-      margin-bottom: 20px;
+      color: #000;
+      background: var(--neon);
+    }
+    .return-link {
+      color: var(--neon);
+      text-decoration: none;
+      border: 1px dashed var(--neon);
+      padding: 10px 12px;
+      text-align: center;
+      transition: 0.2s;
+    }
+    .return-link:hover { background: var(--neon); color: #000; }
+    .game-frame {
+      min-height: 680px;
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      font-size: 0.76rem;
+    }
+    .hud div {
+      border: 1px dashed rgba(204, 255, 0, 0.65);
+      padding: 8px 10px;
+      min-height: 46px;
+    }
+    .hud span {
+      display: block;
+      color: rgba(204, 255, 0, 0.62);
+      margin-bottom: 4px;
+    }
+    .hud strong { color: var(--neon); }
+    .canvas-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--neon);
+      overflow: hidden;
+      min-height: 0;
+      background: #020207;
+    }
+    canvas {
+      display: block;
+      width: min(100%, 960px);
+      aspect-ratio: 32 / 21;
+      max-height: 68vh;
+      image-rendering: pixelated;
+      outline: none;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(3px);
+      text-align: center;
+      z-index: 8;
+    }
+    .overlay.hidden { display: none; }
+    .overlay-card {
+      width: min(620px, 94%);
+      border: 2px solid var(--neon);
+      background: rgba(0, 0, 0, 0.92);
+      padding: 28px;
+      box-shadow: 0 0 0 8px rgba(204, 255, 0, 0.08);
+    }
+    .overlay h2 {
+      font-family: "VT323", monospace;
+      font-size: clamp(3rem, 8vw, 5.2rem);
+      font-weight: normal;
+      margin-bottom: 12px;
+    }
+    .overlay p {
+      line-height: 1.65;
+      font-size: 0.88rem;
+      margin: 10px 0 20px;
+    }
+    input {
+      width: min(320px, 100%);
+      margin: 12px auto 16px;
+      display: block;
+      background: #030306;
+      border: 1px solid var(--neon);
+      color: var(--neon);
+      padding: 12px 14px;
+      font: inherit;
+      text-align: center;
+      text-transform: uppercase;
+      outline: none;
     }
     button {
-      background: transparent;
-      color: #00FFC8;
-      border: 2px solid #00FFC8;
-      padding: 10px 30px;
-      font-size: 18px;
+      appearance: none;
+      border: 1px solid var(--neon);
+      background: #000;
+      color: var(--neon);
+      padding: 12px 18px;
+      font-family: "Space Mono", monospace;
+      text-transform: uppercase;
       cursor: pointer;
-      border-radius: 5px;
-      margin: 10px;
-      transition: all 0.2s;
+      transition: 0.2s;
+      margin: 6px;
     }
-    button:hover {
-      background: #00FFC8;
+    button:hover,
+    button:focus-visible {
+      background: var(--neon);
       color: #000;
+      outline: none;
     }
-    .btn-danger {
-      color: #FF3366;
-      border-color: #FF3366;
+    .danger { color: var(--pink); border-color: var(--pink); }
+    .danger:hover { background: var(--pink); color: #000; }
+    .leaderboard {
+      margin: 16px auto;
+      border: 1px dashed rgba(204, 255, 0, 0.72);
+      padding: 12px 18px;
+      max-width: 340px;
+      text-align: left;
+      line-height: 1.8;
     }
-    .btn-danger:hover {
-      background: #FF3366;
-      color: white;
+    .log {
+      min-height: 36px;
+      border-top: 1px dashed rgba(204, 255, 0, 0.5);
+      padding-top: 10px;
+      font-size: 0.8rem;
+      color: rgba(204, 255, 0, 0.82);
+    }
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      .game-frame { min-height: 610px; }
+    }
+    @media (max-width: 720px) {
+      .top-nav { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .shell { padding: 20px; }
+      .hud { grid-template-columns: repeat(2, 1fr); }
+      .game-frame { padding: 12px; min-height: 560px; }
     }
   </style>
 </head>
 <body>
+  <nav class="top-nav">
+    <a href="../index.html" class="nav-logo">ONE_ZEN_</a>
+    <div class="nav-menu">
+      <a href="../generative.html">CODE ART</a>
+      <a href="../digital.html">DIGITAL ART</a>
+      <a href="../playground.html" class="active">PLAYGROUND</a>
+    </div>
+  </nav>
 
-  <div id="game-wrapper">
-    <!-- p5 Canvas will go here -->
-    <div id="game-container"></div>
+  <main class="shell">
+    <aside class="panel">
+      <h1>CYBER<br>RUNNER<br>GLOW</h1>
+      <p class="copy">A compact cavern runner with dense pixel shadows, glowing creatures, echo pulses, and procedural audio. This is an original web game inspired by atmospheric pixel-cave moods, without copied art or music.</p>
+      <div class="legend">
+        <div><span>Goal</span><strong>OPEN GATE</strong></div>
+        <div><span>Style</span><strong>PIXEL GLOW</strong></div>
+        <div><span>Hazards</span><strong>SPORES</strong></div>
+        <div><span>Engine</span><strong>P5.JS</strong></div>
+      </div>
+      <div class="keys">
+        <div><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> Move</div>
+        <div><span class="key">ARROWS</span> Alternate movement</div>
+        <div><span class="key">SPACE</span> Echo pulse, clears nearby spores</div>
+        <div><span class="key">SHIFT</span> Short dash</div>
+        <div><span class="key">ESC</span> Pause</div>
+      </div>
+      <a class="return-link" href="../playground.html">[ RETURN TO PLAYGROUND ]</a>
+    </aside>
 
-    <!-- Start Screen -->
-    <div id="start-screen" class="overlay">
-      <h1>CYBER RUNNER</h1>
+    <section class="game-frame">
+      <div class="hud">
+        <div><span>Runner</span><strong id="hud-name">PLAYER</strong></div>
+        <div><span>Depth</span><strong id="hud-level">1</strong></div>
+        <div><span>Glow</span><strong id="hud-glow">100</strong></div>
+        <div><span>Motes</span><strong id="hud-motes">0/0</strong></div>
+        <div><span>Echo</span><strong id="hud-echo">READY</strong></div>
+      </div>
 
-      <div id="leaderboard" style="margin-bottom: 20px; background: rgba(0,0,0,0.7); border: 1px dashed #00FFC8; padding: 15px 30px; border-radius: 8px;">
-        <h3 style="color: #FFD700; margin-bottom: 10px; font-size: 1.2rem; letter-spacing: 1px;">HALL OF FAME</h3>
-        <div id="leaderboard-list" style="font-size: 1.1rem; line-height: 1.8;">
-          <!-- Populated by JS -->
+      <div class="canvas-wrap">
+        <div id="game-container"></div>
+
+        <div id="start-screen" class="overlay">
+          <div class="overlay-card">
+            <h2>GLOW CAVERN</h2>
+            <p>Collect all light motes to open the gate. Avoid drifting spores, use echo pulse when trapped, and dash through narrow cave lanes.</p>
+            <div class="leaderboard">
+              <div style="color: var(--gold); margin-bottom: 6px;">HALL OF DEPTHS</div>
+              <div id="leaderboard-list"></div>
+            </div>
+            <input type="text" id="player-name" placeholder="Enter runner name" maxlength="12" autocomplete="off">
+            <button id="btn-start">Start Run</button>
+          </div>
+        </div>
+
+        <div id="pause-screen" class="overlay hidden">
+          <div class="overlay-card">
+            <h2>PAUSED</h2>
+            <p>The cavern keeps humming under the screen.</p>
+            <button id="btn-continue">Continue</button>
+            <button id="btn-quit" class="danger">Quit</button>
+          </div>
+        </div>
+
+        <div id="game-over-screen" class="overlay hidden">
+          <div class="overlay-card">
+            <h2 id="end-title">SIGNAL LOST</h2>
+            <p id="final-stats"></p>
+            <button id="btn-restart">Run Again</button>
+          </div>
         </div>
       </div>
 
-      <input type="text" id="player-name" placeholder="Enter your name" autocomplete="off" />
-      <button id="btn-start">Start Game</button>
-    </div>
-
-    <!-- Pause Screen -->
-    <div id="pause-screen" class="overlay hidden">
-      <h1>GAME PAUSED</h1>
-      <button id="btn-continue">Continue</button>
-      <button id="btn-quit" class="btn-danger">Quit Game</button>
-    </div>
-
-    <!-- Game Over Screen -->
-    <div id="game-over-screen" class="overlay hidden">
-      <h1 style="color: #FF3366;">GAME OVER</h1>
-      <h2 id="final-stats"></h2>
-      <button id="btn-restart">Play Again</button>
-    </div>
-  </div>
+      <div class="log" id="status-log">> Click start. Music and effects begin after your first interaction.</div>
+    </section>
+  </main>
 
   <script>
-    // Game States: START, PLAYING, PAUSED, GAMEOVER
-    let gameState = 'START'; 
-    let playerName = "Player";
+    const CANVAS_W = 640;
+    const CANVAS_H = 420;
+    const TILE = 20;
+    const keys = new Set();
+    const ui = {
+      start: document.getElementById("start-screen"),
+      pause: document.getElementById("pause-screen"),
+      over: document.getElementById("game-over-screen"),
+      nameInput: document.getElementById("player-name"),
+      leaderboard: document.getElementById("leaderboard-list"),
+      finalStats: document.getElementById("final-stats"),
+      endTitle: document.getElementById("end-title"),
+      log: document.getElementById("status-log"),
+      hudName: document.getElementById("hud-name"),
+      hudLevel: document.getElementById("hud-level"),
+      hudGlow: document.getElementById("hud-glow"),
+      hudMotes: document.getElementById("hud-motes"),
+      hudEcho: document.getElementById("hud-echo")
+    };
+
+    let gameState = "START";
+    let playerName = "PLAYER";
     let topScores = [];
-
-    let player = { x: 50, y: 200, vx: 0, vy: 0, size: 30 };
-    let goal = { x: 550, y: 200, size: 40 };
-    let obstacles = [];
-    
-    let score = 100; // Start with 100 points/lives
+    let player;
+    let gate;
+    let walls = [];
+    let spores = [];
+    let motes = [];
+    let particles = [];
+    let caveStars = [];
     let level = 1;
-    
-    let hitFlash = 0;
-    let invulnTimer = 0;
-
-    // --- DOM Elements ---
-    const uiStart = document.getElementById('start-screen');
-    const uiPause = document.getElementById('pause-screen');
-    const uiGameOver = document.getElementById('game-over-screen');
-    const inputName = document.getElementById('player-name');
-    const statDisplay = document.getElementById('final-stats');
-    const leaderboardList = document.getElementById('leaderboard-list');
-
-    // Load leaderboard on script start
-    loadLeaderboard();
+    let glow = 100;
+    let collected = 0;
+    let cameraShake = 0;
+    let pulseCooldown = 0;
+    let dashCooldown = 0;
+    let audioCtx;
+    let masterGain;
+    let musicGain;
+    let musicTimer;
+    let musicStep = 0;
 
     function loadLeaderboard() {
-      let saved = localStorage.getItem('cyberRunnerLeaderboard');
-      if (saved) {
-        topScores = JSON.parse(saved);
-      } else {
-        topScores = [
-          { name: "ZEN", level: 10 },
-          { name: "NEO", level: 8 },
-          { name: "TRINITY", level: 5 }
-        ];
-      }
+      const saved = localStorage.getItem("cyberRunnerGlowLeaderboard");
+      topScores = saved ? JSON.parse(saved) : [
+        { name: "ZEN", level: 7 },
+        { name: "MOTH", level: 5 },
+        { name: "ECHO", level: 3 }
+      ];
       renderLeaderboard();
     }
 
-    function saveToLeaderboard(name, level) {
-      topScores.push({ name, level });
+    function saveToLeaderboard(name, reachedLevel) {
+      topScores.push({ name, level: reachedLevel });
       topScores.sort((a, b) => b.level - a.level);
-      topScores = topScores.slice(0, 3);
-      localStorage.setItem('cyberRunnerLeaderboard', JSON.stringify(topScores));
+      topScores = topScores.slice(0, 5);
+      localStorage.setItem("cyberRunnerGlowLeaderboard", JSON.stringify(topScores));
       renderLeaderboard();
     }
 
     function renderLeaderboard() {
-      leaderboardList.innerHTML = '';
+      ui.leaderboard.innerHTML = "";
       topScores.forEach((entry, index) => {
-        let color = index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32';
-        leaderboardList.innerHTML += `<div style="color: ${color};">#${index + 1} ${entry.name.padEnd(10, '\u00A0')} Lv.${entry.level}</div>`;
+        const color = index === 0 ? "#ffe66b" : index === 1 ? "#49f6ff" : "#ccff00";
+        ui.leaderboard.innerHTML += `<div style="color:${color};">#${index + 1} ${entry.name.padEnd(12, "\u00A0")} DEPTH.${entry.level}</div>`;
       });
     }
 
-    // --- Button Listeners ---
-    document.getElementById('btn-start').onclick = () => {
-      let name = inputName.value.trim();
-      if (name) playerName = name;
-      startGame();
-    };
-
-    document.getElementById('btn-continue').onclick = () => {
-      gameState = 'PLAYING';
-      uiPause.classList.add('hidden');
-    };
-
-    document.getElementById('btn-quit').onclick = () => {
-      gameState = 'START';
-      uiPause.classList.add('hidden');
-      uiStart.classList.remove('hidden');
-    };
-
-    document.getElementById('btn-restart').onclick = () => {
-      startGame();
-    };
-
-    function startGame() {
-      score = 100;
-      level = 1;
-      player.x = 50;
-      player.y = height / 2;
-      player.vx = 0;
-      player.vy = 0;
-      hitFlash = 0;
-      invulnTimer = 0;
-      resetLevel();
-      
-      gameState = 'PLAYING';
-      uiStart.classList.add('hidden');
-      uiGameOver.classList.add('hidden');
+    function ensureAudio() {
+      if (audioCtx) {
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        return;
+      }
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.25;
+      masterGain.connect(audioCtx.destination);
+      musicGain = audioCtx.createGain();
+      musicGain.gain.value = 0.11;
+      musicGain.connect(masterGain);
     }
 
-    function triggerGameOver() {
-      gameState = 'GAMEOVER';
-      statDisplay.innerText = `${playerName} reached Level ${level}`;
-      saveToLeaderboard(playerName, level);
-      uiGameOver.classList.remove('hidden');
+    function tone(freq, duration, type, gainValue, destination = masterGain, detune = 0) {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      osc.detune.setValueAtTime(detune, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(gainValue, now + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      osc.connect(gain);
+      gain.connect(destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.04);
     }
 
-    // --- p5.js Setup & Loop ---
+    function noiseBurst(duration, gainValue, filterFreq = 1200) {
+      if (!audioCtx) return;
+      const size = Math.floor(audioCtx.sampleRate * duration);
+      const buffer = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
+      const source = audioCtx.createBufferSource();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+      filter.type = "bandpass";
+      filter.frequency.value = filterFreq;
+      filter.Q.value = 0.9;
+      gain.gain.setValueAtTime(gainValue, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+      source.buffer = buffer;
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+      source.start();
+    }
+
+    function playCollect() {
+      ensureAudio();
+      tone(523.25, 0.07, "triangle", 0.08);
+      setTimeout(() => tone(783.99, 0.11, "triangle", 0.07), 65);
+    }
+
+    function playHit() {
+      ensureAudio();
+      tone(82, 0.22, "sawtooth", 0.12);
+      noiseBurst(0.11, 0.08, 500);
+    }
+
+    function playGate() {
+      ensureAudio();
+      [220, 330, 440, 660].forEach((f, i) => setTimeout(() => tone(f, 0.16, "sine", 0.075), i * 70));
+    }
+
+    function playPulse() {
+      ensureAudio();
+      tone(160, 0.24, "sine", 0.11);
+      tone(320, 0.18, "triangle", 0.07, masterGain, -12);
+      noiseBurst(0.09, 0.045, 1600);
+    }
+
+    function playDash() {
+      ensureAudio();
+      tone(260, 0.08, "square", 0.055);
+      noiseBurst(0.04, 0.035, 2200);
+    }
+
+    function startMusic() {
+      ensureAudio();
+      if (musicTimer) return;
+      const bass = [55, 55, 73.42, 55, 82.41, 73.42, 49, 55];
+      const sparkle = [220, 0, 261.63, 0, 329.63, 0, 392, 0, 329.63, 261.63, 0, 196, 0, 246.94, 0, 0];
+      musicTimer = setInterval(() => {
+        if (gameState !== "PLAYING") return;
+        const b = bass[musicStep % bass.length];
+        const s = sparkle[musicStep % sparkle.length];
+        tone(b, 0.22, "sine", 0.035, musicGain);
+        if (musicStep % 4 === 0) tone(b * 2, 0.12, "triangle", 0.018, musicGain);
+        if (s) tone(s, 0.09, "square", 0.014, musicGain, musicStep % 2 ? 8 : -8);
+        musicStep++;
+      }, 185);
+    }
+
     function setup() {
-      let canvas = createCanvas(600, 400);
-      canvas.parent('game-container');
+      const canvas = createCanvas(CANVAS_W, CANVAS_H);
+      canvas.parent("game-container");
+      pixelDensity(1);
+      noSmooth();
+      loadLeaderboard();
+      buildCaveStars();
+      resetRun();
+      updateHud();
     }
 
-    function resetLevel() {
-      obstacles = [];
-      let maxSpeed = 1 + (level * 0.5); 
-      let obsCount = Math.min(5 + Math.floor(level / 2), 15);
-
-      for (let i = 0; i < obsCount; i++) {
-        let vx = random(-maxSpeed, maxSpeed);
-        let vy = random(-maxSpeed, maxSpeed);
-        if (abs(vx) < 0.5) vx = vx < 0 ? -0.5 : 0.5;
-        if (abs(vy) < 0.5) vy = vy < 0 ? -0.5 : 0.5;
-
-        obstacles.push({
-          x: random(150, 500),
-          y: random(50, 350),
-          size: random(40, 80),
-          vx: vx,
-          vy: vy,
-          trail: [] // 预留存放历史坐标的数组
+    function buildCaveStars() {
+      caveStars = [];
+      for (let i = 0; i < 150; i++) {
+        caveStars.push({
+          x: random(width),
+          y: random(height),
+          s: random([1, 1, 1, 2]),
+          c: random(["#173333", "#1f254a", "#25350f", "#351629"])
         });
       }
     }
 
-    function keyPressed() {
-      // ESC key to toggle pause
-      if (keyCode === ESCAPE) {
-        if (gameState === 'PLAYING') {
-          gameState = 'PAUSED';
-          uiPause.classList.remove('hidden');
-        } else if (gameState === 'PAUSED') {
-          gameState = 'PLAYING';
-          uiPause.classList.add('hidden');
+    function resetRun() {
+      player = { x: 54, y: height / 2, vx: 0, vy: 0, r: 9, invuln: 0, dash: 0 };
+      gate = { x: width - 56, y: height / 2, r: 18, open: false };
+      walls = [];
+      spores = [];
+      motes = [];
+      particles = [];
+      glow = 100;
+      collected = 0;
+      pulseCooldown = 0;
+      dashCooldown = 0;
+      buildLevel();
+    }
+
+    function buildLevel() {
+      walls = [];
+      spores = [];
+      motes = [];
+      collected = 0;
+      gate.open = false;
+      const wallCount = min(9 + level * 2, 24);
+      for (let i = 0; i < wallCount; i++) {
+        const vertical = random() > 0.45;
+        const w = vertical ? random([16, 20, 24]) : random(50, 110);
+        const h = vertical ? random(46, 116) : random([16, 20, 24]);
+        const wall = {
+          x: random(110, width - 190),
+          y: random(38, height - 72),
+          w,
+          h,
+          hue: random(["#24371a", "#122f35", "#281c3d", "#302d18"])
+        };
+        if (!circleRect({ x: player.x, y: player.y, r: 42 }, wall) && !circleRect({ x: gate.x, y: gate.y, r: 60 }, wall)) {
+          walls.push(wall);
         }
       }
+      const moteCount = min(3 + floor(level / 2), 8);
+      for (let i = 0; i < moteCount; i++) {
+        motes.push(findFreeSpot(130, width - 130));
+      }
+      const sporeCount = min(4 + level, 18);
+      for (let i = 0; i < sporeCount; i++) {
+        const p = findFreeSpot(140, width - 90);
+        const speed = random(0.7, 1.5 + level * 0.13);
+        spores.push({
+          x: p.x,
+          y: p.y,
+          r: random(8, 16),
+          vx: cos(random(TWO_PI)) * speed,
+          vy: sin(random(TWO_PI)) * speed,
+          phase: random(TWO_PI),
+          trail: []
+        });
+      }
+      setLog(`Depth ${level}. Gather ${motes.length} motes to wake the gate.`);
+    }
+
+    function findFreeSpot(minX, maxX) {
+      for (let i = 0; i < 200; i++) {
+        const p = { x: random(minX, maxX), y: random(48, height - 48), r: 15 };
+        if (!walls.some(w => circleRect(p, w)) && dist(p.x, p.y, player.x, player.y) > 80 && dist(p.x, p.y, gate.x, gate.y) > 55) {
+          return { x: p.x, y: p.y, r: 8 };
+        }
+      }
+      return { x: random(minX, maxX), y: random(50, height - 50), r: 8 };
+    }
+
+    function startGame() {
+      playerName = ui.nameInput.value.trim().slice(0, 12).toUpperCase() || "PLAYER";
+      level = 1;
+      gameState = "PLAYING";
+      ui.start.classList.add("hidden");
+      ui.over.classList.add("hidden");
+      ui.pause.classList.add("hidden");
+      resetRun();
+      startMusic();
+      updateHud();
+    }
+
+    function triggerGameOver() {
+      gameState = "GAMEOVER";
+      saveToLeaderboard(playerName, level);
+      ui.endTitle.textContent = "LIGHT LOST";
+      ui.finalStats.textContent = `${playerName} reached depth ${level}. The spores swallowed the path.`;
+      ui.over.classList.remove("hidden");
+      setLog("Run terminated. Try a tighter dash line.");
+      playHit();
+    }
+
+    function nextLevel() {
+      level++;
+      glow = min(100, glow + 24);
+      player.x = 54;
+      player.y = height / 2;
+      player.vx = 0;
+      player.vy = 0;
+      player.invuln = 45;
+      buildLevel();
+      playGate();
+      updateHud();
     }
 
     function draw() {
-      // 1. UPDATE LOGIC (Only if playing)
-      if (gameState === 'PLAYING') {
-        if (hitFlash > 0) hitFlash -= 10;
-        if (invulnTimer > 0) invulnTimer--;
+      const dt = min(deltaTime / 16.67, 2);
+      if (gameState === "PLAYING") updateGame(dt);
+      renderGame();
+    }
 
-        player.vx *= 0.85;
-        player.vy *= 0.85;
+    function updateGame(dt) {
+      pulseCooldown = max(0, pulseCooldown - dt);
+      dashCooldown = max(0, dashCooldown - dt);
+      player.invuln = max(0, player.invuln - dt);
+      player.dash = max(0, player.dash - dt);
+      glow = max(0, glow - 0.018 * dt - level * 0.002 * dt);
+      if (glow <= 0) triggerGameOver();
 
-        let speed = 1.5;
-        if (keyIsDown(UP_ARROW) || keyIsDown(87)) player.vy -= speed;
-        if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) player.vy += speed;
-        if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) player.vx -= speed;
-        if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) player.vx += speed;
+      const accel = player.dash > 0 ? 1.4 : 0.78;
+      if (keys.has("KeyW") || keys.has("ArrowUp")) player.vy -= accel * dt;
+      if (keys.has("KeyS") || keys.has("ArrowDown")) player.vy += accel * dt;
+      if (keys.has("KeyA") || keys.has("ArrowLeft")) player.vx -= accel * dt;
+      if (keys.has("KeyD") || keys.has("ArrowRight")) player.vx += accel * dt;
 
-        player.x += player.vx;
-        player.y += player.vy;
+      player.vx *= 0.87;
+      player.vy *= 0.87;
+      const maxSpeed = player.dash > 0 ? 7.6 : 4.2;
+      const mag = Math.hypot(player.vx, player.vy);
+      if (mag > maxSpeed) {
+        player.vx = player.vx / mag * maxSpeed;
+        player.vy = player.vy / mag * maxSpeed;
+      }
+      movePlayer(player.vx * dt, player.vy * dt);
 
-        player.x = constrain(player.x, player.size/2, width - player.size/2);
-        player.y = constrain(player.y, player.size/2, height - player.size/2);
-
-        for (let obs of obstacles) {
-          // 记录粒子拖尾
-          obs.trail.push({x: obs.x, y: obs.y});
-          if (obs.trail.length > 10) obs.trail.shift(); // 最多留10个残影
-
-          obs.x += obs.vx;
-          obs.y += obs.vy;
-
-          if (obs.x < obs.size/2 || obs.x > width - obs.size/2) obs.vx *= -1;
-          if (obs.y < obs.size/2 || obs.y > height - obs.size/2) obs.vy *= -1;
-
-          let d = dist(player.x, player.y, obs.x, obs.y);
-          if (d < (player.size/2 + obs.size/2)) {
-            if (invulnTimer === 0) {
-              score -= 20; // Harder penalty to make game over reachable
-              hitFlash = 100;
-              invulnTimer = 30;
-              
-              if (score <= 0) {
-                score = 0;
-                triggerGameOver();
-              }
-            }
-            let angle = atan2(player.y - obs.y, player.x - obs.x);
-            player.vx = cos(angle) * 8;
-            player.vy = sin(angle) * 8;
+      spores.forEach(spore => {
+        spore.phase += 0.04 * dt;
+        spore.trail.push({ x: spore.x, y: spore.y });
+        if (spore.trail.length > 10) spore.trail.shift();
+        spore.x += spore.vx * dt + cos(spore.phase) * 0.18;
+        spore.y += spore.vy * dt + sin(spore.phase * 1.3) * 0.18;
+        if (spore.x < spore.r + 8 || spore.x > width - spore.r - 8) spore.vx *= -1;
+        if (spore.y < spore.r + 8 || spore.y > height - spore.r - 8) spore.vy *= -1;
+        walls.forEach(w => {
+          if (circleRect(spore, w)) {
+            spore.vx *= -1;
+            spore.vy *= -1;
+            spore.x += spore.vx * 2;
+            spore.y += spore.vy * 2;
           }
+        });
+        if (dist(spore.x, spore.y, player.x, player.y) < spore.r + player.r && player.invuln <= 0) {
+          glow -= 18;
+          player.invuln = 42;
+          cameraShake = 9;
+          burst(player.x, player.y, "#ff3f8f", 18);
+          playHit();
+          setLog("Spore contact. Glow leaking.");
+          const a = atan2(player.y - spore.y, player.x - spore.x);
+          player.vx = cos(a) * 8;
+          player.vy = sin(a) * 8;
+          if (glow <= 0) triggerGameOver();
         }
+      });
 
-        if (dist(player.x, player.y, goal.x, goal.y) < (player.size/2 + goal.size/2)) {
-          score += 50;
-          level++;
-          player.x = 50;
-          player.y = height / 2;
-          player.vx = 0;
-          player.vy = 0;
-          resetLevel();
+      for (let i = motes.length - 1; i >= 0; i--) {
+        const m = motes[i];
+        if (dist(m.x, m.y, player.x, player.y) < m.r + player.r + 2) {
+          motes.splice(i, 1);
+          collected++;
+          glow = min(100, glow + 12);
+          burst(m.x, m.y, "#ffe66b", 18);
+          playCollect();
+          setLog(`Light mote captured. ${collected} secured.`);
         }
       }
-
-      // 2. RENDER LOGIC (Always runs so background stays visible during pause/gameover)
-      if (hitFlash > 0 && gameState === 'PLAYING') {
-        background(150, 0, 0);
-      } else {
-        background(30);
+      if (!gate.open && motes.length === 0) {
+        gate.open = true;
+        setLog("Gate awake. Run to the right-side bloom.");
+        playGate();
+      }
+      if (gate.open && dist(gate.x, gate.y, player.x, player.y) < gate.r + player.r + 4) {
+        nextLevel();
       }
 
-      // Draw Goal
-      fill(255, 215, 0);
-      noStroke();
-      circle(goal.x, goal.y, goal.size);
+      updateParticles(dt);
+      updateHud();
+    }
 
-      // Draw Obstacles with Trails
-      for (let obs of obstacles) {
-        // 画出拖尾
-        if (obs.trail) {
-          for (let i = 0; i < obs.trail.length; i++) {
-            let pos = obs.trail[i];
-            let alpha = map(i, 0, obs.trail.length, 0, 150); // 越早的坐标越透明
-            let trailSize = map(i, 0, obs.trail.length, obs.size * 0.3, obs.size * 0.9); // 越早的越小
-            fill(255, 51, 102, alpha);
-            circle(pos.x, pos.y, trailSize);
-          }
+    function movePlayer(dx, dy) {
+      const oldX = player.x;
+      const oldY = player.y;
+      player.x = constrain(player.x + dx, player.r + 6, width - player.r - 6);
+      if (walls.some(w => circleRect(player, w))) player.x = oldX;
+      player.y = constrain(player.y + dy, player.r + 6, height - player.r - 6);
+      if (walls.some(w => circleRect(player, w))) player.y = oldY;
+    }
+
+    function circleRect(c, r) {
+      const nx = constrain(c.x, r.x, r.x + r.w);
+      const ny = constrain(c.y, r.y, r.y + r.h);
+      return dist(c.x, c.y, nx, ny) < c.r;
+    }
+
+    function echoPulse() {
+      if (gameState !== "PLAYING" || pulseCooldown > 0) return;
+      pulseCooldown = 95;
+      cameraShake = 5;
+      playPulse();
+      burst(player.x, player.y, "#49f6ff", 36);
+      for (let i = spores.length - 1; i >= 0; i--) {
+        const spore = spores[i];
+        const d = dist(player.x, player.y, spore.x, spore.y);
+        if (d < 86) {
+          spores.splice(i, 1);
+          glow = min(100, glow + 4);
+        } else if (d < 160) {
+          const a = atan2(spore.y - player.y, spore.x - player.x);
+          spore.vx += cos(a) * 2.8;
+          spore.vy += sin(a) * 2.8;
         }
-        // 画出本体
-        fill(255, 51, 102);
-        circle(obs.x, obs.y, obs.size);
       }
+      setLog("Echo pulse released.");
+    }
 
-      // Draw Player
-      if (invulnTimer > 0 && frameCount % 10 < 5) {
-        fill(0, 255, 200, 100);
-      } else {
-        fill(0, 255, 200);
-      }
-      circle(player.x, player.y, player.size);
+    function dash() {
+      if (gameState !== "PLAYING" || dashCooldown > 0) return;
+      const mag = Math.hypot(player.vx, player.vy);
+      const a = mag > 0.2 ? atan2(player.vy, player.vx) : 0;
+      player.vx += cos(a) * 8;
+      player.vy += sin(a) * 8;
+      player.dash = 10;
+      dashCooldown = 70;
+      burst(player.x, player.y, "#ccff00", 10);
+      playDash();
+    }
 
-      // UI Text overlay on Canvas
-      fill(255);
-      textAlign(LEFT, TOP);
-      textSize(18);
-      text(`${playerName} | Level: ${level} | Score: ${score}`, 10, 10);
-      
-      if (gameState === 'PLAYING') {
-        textSize(12);
-        fill(150);
-        text('WASD: Move | ESC: Pause', 10, 35);
+    function burst(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        const a = random(TWO_PI);
+        const s = random(0.8, 4.6);
+        particles.push({ x, y, vx: cos(a) * s, vy: sin(a) * s, life: random(18, 42), color, size: random(1, 4) });
       }
     }
+
+    function updateParticles(dt) {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function renderGame() {
+      push();
+      if (cameraShake > 0) {
+        translate(random(-cameraShake, cameraShake), random(-cameraShake, cameraShake));
+        cameraShake *= 0.82;
+      }
+      drawCave();
+      drawGate();
+      motes.forEach(drawMote);
+      spores.forEach(drawSpore);
+      particles.forEach(drawParticle);
+      drawPlayer();
+      drawVignette();
+      pop();
+      drawOverlayText();
+    }
+
+    function drawCave() {
+      background(3, 4, 10);
+      noStroke();
+      caveStars.forEach(s => {
+        fill(s.c);
+        rect(s.x, s.y, s.s, s.s);
+      });
+      for (let x = 0; x < width; x += TILE) {
+        for (let y = 0; y < height; y += TILE) {
+          if ((x / TILE + y / TILE + level) % 7 === 0) {
+            fill(8, 15, 20, 120);
+            rect(x, y, TILE, TILE);
+          }
+        }
+      }
+      walls.forEach(w => {
+        fill(w.hue);
+        rect(w.x, w.y, w.w, w.h);
+        fill(0, 0, 0, 70);
+        for (let x = w.x + 4; x < w.x + w.w; x += 8) rect(x, w.y + 2, 3, w.h - 4);
+        stroke(204, 255, 0, 90);
+        noFill();
+        rect(w.x, w.y, w.w, w.h);
+        noStroke();
+      });
+    }
+
+    function drawGate() {
+      const pulse = sin(frameCount * 0.08) * 4;
+      noFill();
+      stroke(gate.open ? "#ffe66b" : "#253d35");
+      strokeWeight(3);
+      ellipse(gate.x, gate.y, gate.r * 2 + pulse, gate.r * 2 + 22 + pulse);
+      stroke(gate.open ? "rgba(255,230,107,0.32)" : "rgba(73,246,255,0.12)");
+      ellipse(gate.x, gate.y, gate.r * 4 + pulse * 2, gate.r * 5 + pulse * 2);
+      noStroke();
+      fill(gate.open ? "rgba(255,230,107,0.2)" : "rgba(73,246,255,0.08)");
+      ellipse(gate.x, gate.y, gate.r * 2.6, gate.r * 3.5);
+    }
+
+    function drawMote(m) {
+      const pulse = sin(frameCount * 0.12 + m.x) * 2;
+      fill(255, 230, 107, 40);
+      circle(m.x, m.y, 34 + pulse * 2);
+      fill("#ffe66b");
+      rect(m.x - 3, m.y - 3, 6, 6);
+      fill(255, 255, 255, 180);
+      rect(m.x - 1, m.y - 8, 2, 16);
+      rect(m.x - 8, m.y - 1, 16, 2);
+    }
+
+    function drawSpore(spore) {
+      spore.trail.forEach((t, i) => {
+        fill(255, 63, 143, map(i, 0, spore.trail.length, 8, 55));
+        circle(t.x, t.y, map(i, 0, spore.trail.length, spore.r * 0.4, spore.r * 1.4));
+      });
+      fill(255, 63, 143, 45);
+      circle(spore.x, spore.y, spore.r * 3);
+      fill("#ff3f8f");
+      circle(spore.x, spore.y, spore.r * 2);
+      fill("#05050a");
+      circle(spore.x - spore.r * 0.25, spore.y - spore.r * 0.15, spore.r * 0.45);
+      circle(spore.x + spore.r * 0.28, spore.y - spore.r * 0.1, spore.r * 0.34);
+    }
+
+    function drawPlayer() {
+      const blink = player.invuln > 0 && frameCount % 8 < 4;
+      fill(73, 246, 255, blink ? 45 : 80);
+      circle(player.x, player.y, 54 + sin(frameCount * 0.18) * 4);
+      fill("#031014");
+      stroke("#49f6ff");
+      strokeWeight(2);
+      rect(player.x - 8, player.y - 10, 16, 19);
+      noStroke();
+      fill("#ccff00");
+      rect(player.x - 4, player.y - 14, 8, 5);
+      fill("#49f6ff");
+      rect(player.x - 11, player.y + 8, 22, 4);
+      fill(255, 255, 255, 180);
+      rect(player.x + 5, player.y - 5, 3, 3);
+    }
+
+    function drawParticle(p) {
+      const alpha = constrain(p.life * 6, 0, 255);
+      const c = color(p.color);
+      c.setAlpha(alpha);
+      fill(c);
+      rect(p.x, p.y, p.size, p.size);
+    }
+
+    function drawVignette() {
+      noFill();
+      for (let i = 0; i < 13; i++) {
+        stroke(0, 0, 0, i * 13);
+        rect(i * 6, i * 5, width - i * 12, height - i * 10);
+      }
+      noStroke();
+      fill(0, 0, 0, 36);
+      for (let y = 0; y < height; y += 4) rect(0, y, width, 1);
+    }
+
+    function drawOverlayText() {
+      fill(204, 255, 0, 220);
+      textFont("monospace");
+      textSize(12);
+      textAlign(LEFT, TOP);
+      text(`${playerName} // DEPTH ${level} // GLOW ${ceil(max(0, glow))}`, 12, 10);
+      textAlign(RIGHT, TOP);
+      text(`${collected}/${collected + motes.length} MOTES`, width - 12, 10);
+      if (gameState === "PLAYING") {
+        fill(204, 255, 0, 120);
+        textAlign(LEFT, BOTTOM);
+        text("WASD/ARROWS MOVE  SPACE ECHO  SHIFT DASH", 12, height - 10);
+      }
+    }
+
+    function updateHud() {
+      ui.hudName.textContent = playerName;
+      ui.hudLevel.textContent = level;
+      ui.hudGlow.textContent = ceil(max(0, glow));
+      ui.hudMotes.textContent = `${collected}/${collected + motes.length}`;
+      ui.hudEcho.textContent = pulseCooldown <= 0 ? "READY" : "LOAD";
+      ui.hudGlow.style.color = glow < 30 ? "#ff3f8f" : "";
+    }
+
+    function setLog(text) {
+      ui.log.textContent = `> ${text}`;
+    }
+
+    function keyPressed() {
+      if (keyCode === ESCAPE) {
+        if (gameState === "PLAYING") {
+          gameState = "PAUSED";
+          ui.pause.classList.remove("hidden");
+          setLog("Paused inside the cavern hum.");
+        } else if (gameState === "PAUSED") {
+          gameState = "PLAYING";
+          ui.pause.classList.add("hidden");
+          setLog("Run resumed.");
+        }
+      }
+      if (key === " ") return false;
+    }
+
+    window.addEventListener("keydown", event => {
+      if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "ShiftLeft", "ShiftRight"].includes(event.code)) {
+        event.preventDefault();
+        keys.add(event.code);
+      }
+      if (event.code === "Space") echoPulse();
+      if (event.code === "ShiftLeft" || event.code === "ShiftRight") dash();
+    });
+
+    window.addEventListener("keyup", event => {
+      keys.delete(event.code);
+    });
+
+    document.getElementById("btn-start").onclick = startGame;
+    document.getElementById("btn-continue").onclick = () => {
+      gameState = "PLAYING";
+      ui.pause.classList.add("hidden");
+      setLog("Run resumed.");
+    };
+    document.getElementById("btn-quit").onclick = () => {
+      gameState = "START";
+      ui.pause.classList.add("hidden");
+      ui.start.classList.remove("hidden");
+      setLog("Run cancelled. Choose a new depth.");
+    };
+    document.getElementById("btn-restart").onclick = startGame;
   </script>
 <a href="../playground.html" style="position:fixed;bottom:20px;right:20px;color:#ccff00;text-decoration:none;font-family:monospace;font-size:12px;border:1px solid #ccff00;padding:5px 10px;background:#000;z-index:9999;opacity:0.7;transition:opacity 0.3s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">[ RETURN ]</a>
 </body>
