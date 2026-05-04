@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Prism Tide Garden | ONE ZEN</title>
+  <style>
+    :root {
+      --ink: #08111f;
+      --panel: rgba(9, 19, 36, 0.72);
+      --mint: #9dffd9;
+      --pink: #ff78d8;
+      --gold: #ffe66d;
+      --cyan: #69d8ff;
+      --danger: #ff4d6d;
+      --text: #edf8ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; overflow: hidden; background: radial-gradient(circle at 50% 10%, #19365f 0%, #08111f 45%, #02050c 100%); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; touch-action: none; }
+    canvas { display: block; width: 100vw; height: 100vh; touch-action: none; cursor: none; }
+    .hud { position: fixed; inset: 18px 18px auto 18px; display: grid; grid-template-columns: 1fr auto; gap: 14px; pointer-events: none; z-index: 2; }
+    .title-card, .stats, .help, .end-card { border: 1px solid rgba(157,255,217,.28); background: linear-gradient(145deg, rgba(9,19,36,.82), rgba(22,40,74,.58)); box-shadow: 0 18px 45px rgba(0,0,0,.32), inset 0 0 24px rgba(105,216,255,.06); backdrop-filter: blur(14px); border-radius: 22px; }
+    .title-card { padding: 15px 17px; max-width: 540px; }
+    h1 { margin: 0; letter-spacing: .04em; font-size: clamp(1.45rem, 4vw, 2.65rem); line-height: .95; text-transform: uppercase; }
+    .kicker { margin: 0 0 6px; color: var(--mint); font-size: .72rem; letter-spacing: .22em; text-transform: uppercase; }
+    .subtitle { margin: 8px 0 0; color: rgba(237,248,255,.74); font-size: .9rem; line-height: 1.35; }
+    .stats { padding: 13px 16px; min-width: 178px; align-self: start; display: grid; gap: 8px; font-variant-numeric: tabular-nums; }
+    .stat { display: flex; justify-content: space-between; gap: 20px; color: rgba(237,248,255,.75); font-size: .86rem; }
+    .stat strong { color: white; }
+    .bar { height: 8px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.12); }
+    .bar span { display:block; width: 100%; height: 100%; background: linear-gradient(90deg, var(--pink), var(--gold), var(--mint)); transform-origin: left center; }
+    .help { position: fixed; left: 18px; bottom: 18px; max-width: 520px; padding: 12px 15px; color: rgba(237,248,255,.78); font-size: .86rem; line-height: 1.45; pointer-events: none; z-index: 2; }
+    .controls { position: fixed; right: 18px; bottom: 18px; display: flex; gap: 10px; z-index: 3; }
+    button { pointer-events: auto; border: 1px solid rgba(157,255,217,.45); border-radius: 999px; padding: 12px 15px; color: var(--text); background: rgba(9,19,36,.78); box-shadow: 0 10px 30px rgba(0,0,0,.28); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    button:active { transform: scale(.96); background: rgba(157,255,217,.18); }
+    .end-card { position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%) scale(.96); width: min(92vw, 430px); padding: 26px; text-align: center; opacity: 0; pointer-events: none; transition: .25s ease; z-index: 4; }
+    .end-card.show { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+    .end-card h2 { margin: 0 0 10px; font-size: 2rem; }
+    .end-card p { color: rgba(237,248,255,.78); }
+    @media (max-width: 720px) {
+      .hud { inset: 10px 10px auto 10px; grid-template-columns: 1fr; }
+      .title-card { padding: 12px 13px; }
+      .stats { grid-template-columns: repeat(3, 1fr); min-width: 0; padding: 10px 12px; }
+      .stat { display: block; font-size: .75rem; }
+      .bar { grid-column: 1 / -1; }
+      .help { left: 10px; right: 10px; bottom: 76px; font-size: .78rem; }
+      .controls { right: 10px; left: 10px; bottom: 10px; justify-content: space-between; }
+      button { padding: 12px 13px; font-size: .72rem; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Prism Tide Garden game canvas"></canvas>
+  <div class="hud">
+    <section class="title-card">
+      <p class="kicker">Daily Mini Game · 2026-05-05</p>
+      <h1>Prism Tide Garden</h1>
+      <p class="subtitle">Shepherd drifting color seeds with your gravity prism. Match seeds to glowing gates, skim them near reefs for combo sparks, and avoid eclipse thorns.</p>
+    </section>
+    <section class="stats">
+      <div class="stat"><span>Score</span><strong id="score">0</strong></div>
+      <div class="stat"><span>Bloom</span><strong id="bloom">0/18</strong></div>
+      <div class="stat"><span>Time</span><strong id="time">75</strong></div>
+      <div class="bar"><span id="timeBar"></span></div>
+    </section>
+  </div>
+  <div class="help"><strong>Touch:</strong> drag anywhere to move the prism lure. Release to pulse seeds outward. <strong>Desktop:</strong> mouse drag or WASD/arrow keys. Deliver matching colors to gates for blooms; wrong gates cost time.</div>
+  <div class="controls"><button id="soundBtn">Sound Off</button><button id="restartBtn">Restart</button><a href="../../playground.html"><button>Back</button></a></div>
+  <section class="end-card" id="endCard"><h2 id="endTitle">Garden Complete</h2><p id="endText"></p><button id="againBtn">Play Again</button></section>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const bloomEl = document.getElementById('bloom');
+  const timeEl = document.getElementById('time');
+  const timeBar = document.getElementById('timeBar');
+  const endCard = document.getElementById('endCard');
+  const endTitle = document.getElementById('endTitle');
+  const endText = document.getElementById('endText');
+  const soundBtn = document.getElementById('soundBtn');
+  const colors = [
+    { name: 'rose', hex: '#ff78d8' },
+    { name: 'sun', hex: '#ffe66d' },
+    { name: 'mint', hex: '#9dffd9' },
+  ];
+  let W, H, DPR, seeds, gates, reefs, thorns, ripples, sparks, prism, keys, pointer, score, blooms, timeLeft, last, running, audioOn, audioCtx;
+  const targetBlooms = 18;
+  const maxTime = 75;
+
+  function resize() {
+    DPR = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    canvas.width = Math.floor(W * DPR); canvas.height = Math.floor(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    layoutGates();
+  }
+
+  function layoutGates() {
+    gates = [
+      { x: W * .16, y: H * .55, r: Math.max(42, Math.min(W,H)*.065), color: colors[0], pulse: 0 },
+      { x: W * .50, y: H * .80, r: Math.max(42, Math.min(W,H)*.065), color: colors[1], pulse: 0 },
+      { x: W * .84, y: H * .55, r: Math.max(42, Math.min(W,H)*.065), color: colors[2], pulse: 0 },
+    ];
+  }
+
+  function reset() {
+    layoutGates();
+    seeds = []; reefs = []; thorns = []; ripples = []; sparks = []; keys = {}; pointer = { down: false, x: W/2, y: H*.48 };
+    prism = { x: W/2, y: H*.44, tx: W/2, ty: H*.44, r: 30, pulse: 0 };
+    score = 0; blooms = 0; timeLeft = maxTime; last = performance.now(); running = true;
+    endCard.classList.remove('show');
+    for (let i = 0; i < 16; i++) spawnSeed(true);
+    for (let i = 0; i < 5; i++) reefs.push({ x: rand(W*.18,W*.82), y: rand(H*.28,H*.72), r: rand(22,42), spin: rand(0,Math.PI*2) });
+    for (let i = 0; i < 4; i++) thorns.push({ x: rand(W*.12,W*.88), y: rand(H*.25,H*.70), r: rand(26,38), a: rand(0,6.28) });
+    updateHud();
+  }
+
+  function spawnSeed(edge=false) {
+    const c = colors[Math.floor(Math.random()*colors.length)];
+    const angle = rand(0, Math.PI*2), radius = edge ? rand(Math.min(W,H)*.16, Math.min(W,H)*.42) : Math.min(W,H)*.46;
+    seeds.push({ x: W/2 + Math.cos(angle)*radius, y: H*.52 + Math.sin(angle)*radius*.7, vx: rand(-28,28), vy: rand(-28,28), r: rand(8,13), color: c, hot: 0, trail: [] });
+  }
+
+  function rand(a,b){ return a + Math.random()*(b-a); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  function update(dt) {
+    if (!running) return;
+    timeLeft -= dt;
+    if (timeLeft <= 0) return finish(false);
+    if (keys.ArrowLeft || keys.a) prism.tx -= 360*dt;
+    if (keys.ArrowRight || keys.d) prism.tx += 360*dt;
+    if (keys.ArrowUp || keys.w) prism.ty -= 360*dt;
+    if (keys.ArrowDown || keys.s) prism.ty += 360*dt;
+    prism.tx = clamp(prism.tx, 25, W-25); prism.ty = clamp(prism.ty, 120, H-25);
+    prism.x += (prism.tx - prism.x) * Math.min(1, dt*12);
+    prism.y += (prism.ty - prism.y) * Math.min(1, dt*12);
+    prism.pulse = Math.max(0, prism.pulse - dt*2.4);
+
+    gates.forEach(g => g.pulse = Math.max(0, g.pulse - dt*3));
+    thorns.forEach(t => t.a += dt*.55);
+    reefs.forEach(r => r.spin += dt*.9);
+
+    seeds.forEach(s => {
+      s.trail.push({x:s.x,y:s.y}); if (s.trail.length > 12) s.trail.shift();
+      const dx = prism.x - s.x, dy = prism.y - s.y, d2 = dx*dx + dy*dy, d = Math.sqrt(d2) || 1;
+      const pull = pointer.down ? 90000/(d2+12000) : 47000/(d2+16000);
+      s.vx += dx/d * pull * dt; s.vy += dy/d * pull * dt;
+      reefs.forEach(r => {
+        const rx = s.x-r.x, ry = s.y-r.y, rd = Math.hypot(rx,ry);
+        if (rd < r.r + 58) { const swirl = (1-rd/(r.r+58))*160; s.vx += -ry/(rd||1)*swirl*dt; s.vy += rx/(rd||1)*swirl*dt; s.hot = Math.min(1, s.hot + dt*1.4); }
+      });
+      thorns.forEach(t => {
+        const td = Math.hypot(s.x-t.x, s.y-t.y);
+        if (td < t.r + s.r) { burst(s.x,s.y,'#ff4d6d',16); s.x = W/2 + rand(-80,80); s.y = H*.5 + rand(-80,80); s.vx = rand(-80,80); s.vy = rand(-80,80); timeLeft = Math.max(0, timeLeft-2.5); score = Math.max(0, score-25); buzz(70,.04,'sawtooth'); }
+      });
+      s.x += s.vx*dt; s.y += s.vy*dt; s.vx *= .992; s.vy *= .992; s.hot = Math.max(0, s.hot-dt*.25);
+      if (s.x < 8 || s.x > W-8) s.vx *= -0.86;
+      if (s.y < 116 || s.y > H-8) s.vy *= -0.86;
+      s.x = clamp(s.x, 8, W-8); s.y = clamp(s.y, 116, H-8);
+    });
+
+    for (let i = seeds.length-1; i >= 0; i--) {
+      const s = seeds[i];
+      for (const g of gates) {
+        const gd = Math.hypot(s.x-g.x, s.y-g.y);
+        if (gd < g.r + s.r) {
+          if (g.color.name === s.color.name) {
+            blooms++; score += 100 + Math.round(s.hot*75); g.pulse = 1; burst(s.x,s.y,s.color.hex,26); ripples.push({x:g.x,y:g.y,r:g.r,a:1,c:s.color.hex}); buzz(440 + blooms*8,.055,'triangle'); seeds.splice(i,1); spawnSeed();
+            if (blooms >= targetBlooms) finish(true);
+          } else { s.vx += (s.x-g.x)/(gd||1)*260; s.vy += (s.y-g.y)/(gd||1)*260; timeLeft = Math.max(0, timeLeft-1); g.pulse = .55; burst(s.x,s.y,'#ffffff',8); }
+          break;
+        }
+      }
+    }
+    sparks.forEach(p => { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 24*dt; p.life -= dt; });
+    sparks = sparks.filter(p => p.life > 0);
+    ripples.forEach(r => { r.r += 120*dt; r.a -= dt*1.7; });
+    ripples = ripples.filter(r => r.a > 0);
+    updateHud();
+  }
+
+  function burst(x,y,c,n) { for (let i=0;i<n;i++){ const a=rand(0,6.28), sp=rand(40,210); sparks.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rand(.25,.75),c,r:rand(1.5,4.5)}); } }
+  function finish(win) { running = false; endTitle.textContent = win ? 'Garden in Bloom' : 'The Tide Faded'; endText.textContent = `Score ${score} · Blooms ${blooms}/${targetBlooms}. ${win ? 'You tuned the color current beautifully.' : 'Try tighter arcs and release pulses near the gates.'}`; endCard.classList.add('show'); }
+  function updateHud(){ scoreEl.textContent = score; bloomEl.textContent = `${blooms}/${targetBlooms}`; timeEl.textContent = Math.max(0, Math.ceil(timeLeft)); timeBar.style.transform = `scaleX(${clamp(timeLeft/maxTime,0,1)})`; }
+
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    const bg = ctx.createRadialGradient(W*.5,H*.45,20,W*.5,H*.48,Math.max(W,H)*.7); bg.addColorStop(0,'rgba(38,82,132,.38)'); bg.addColorStop(.48,'rgba(8,17,31,.5)'); bg.addColorStop(1,'rgba(2,5,12,1)'); ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.globalAlpha=.18; ctx.strokeStyle='#69d8ff'; ctx.lineWidth=1; for(let x=-50;x<W+50;x+=42){ ctx.beginPath(); ctx.moveTo(x,110); ctx.lineTo(x+130,H); ctx.stroke(); } for(let y=130;y<H;y+=42){ ctx.beginPath(); ctx.moveTo(0,y); ctx.quadraticCurveTo(W*.5,y+Math.sin(y*.02)*30,W,y); ctx.stroke(); } ctx.restore();
+    gates.forEach(drawGate); reefs.forEach(drawReef); thorns.forEach(drawThorn); ripples.forEach(drawRipple); seeds.forEach(drawSeed); drawPrism(); sparks.forEach(drawSpark);
+    requestAnimationFrame(loop);
+  }
+  function drawGate(g){ ctx.save(); ctx.translate(g.x,g.y); const glow = ctx.createRadialGradient(0,0,6,0,0,g.r*1.8); glow.addColorStop(0,g.color.hex+'88'); glow.addColorStop(.45,g.color.hex+'22'); glow.addColorStop(1,'transparent'); ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(0,0,g.r*1.8,0,6.28); ctx.fill(); ctx.strokeStyle=g.color.hex; ctx.lineWidth=3+g.pulse*6; ctx.setLineDash([10,8]); ctx.rotate(performance.now()*.0003); ctx.beginPath(); ctx.arc(0,0,g.r+g.pulse*12,0,6.28); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='rgba(255,255,255,.82)'; ctx.font='700 11px monospace'; ctx.textAlign='center'; ctx.fillText(g.color.name.toUpperCase(),0,4); ctx.restore(); }
+  function drawReef(r){ ctx.save(); ctx.translate(r.x,r.y); ctx.rotate(r.spin); ctx.strokeStyle='rgba(157,255,217,.45)'; ctx.fillStyle='rgba(157,255,217,.08)'; ctx.lineWidth=2; for(let i=0;i<3;i++){ ctx.rotate(2.09); ctx.beginPath(); ctx.ellipse(r.r*.55,0,r.r*.95,r.r*.24,0,0,6.28); ctx.fill(); ctx.stroke(); } ctx.restore(); }
+  function drawThorn(t){ ctx.save(); ctx.translate(t.x,t.y); ctx.rotate(t.a); ctx.shadowColor='#ff4d6d'; ctx.shadowBlur=18; ctx.strokeStyle='#ff4d6d'; ctx.fillStyle='rgba(255,77,109,.12)'; ctx.lineWidth=2; ctx.beginPath(); for(let i=0;i<10;i++){ const a=i/10*6.28, rr=i%2?t.r*.45:t.r; ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
+  function drawRipple(r){ ctx.save(); ctx.globalAlpha=Math.max(0,r.a); ctx.strokeStyle=r.c; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,6.28); ctx.stroke(); ctx.restore(); }
+  function drawSeed(s){ ctx.save(); s.trail.forEach((p,i)=>{ ctx.globalAlpha=i/s.trail.length*.22; ctx.fillStyle=s.color.hex; ctx.beginPath(); ctx.arc(p.x,p.y,s.r*(i/s.trail.length),0,6.28); ctx.fill(); }); ctx.globalAlpha=1; ctx.shadowColor=s.color.hex; ctx.shadowBlur=20+s.hot*18; ctx.fillStyle=s.color.hex; ctx.beginPath(); ctx.arc(s.x,s.y,s.r+s.hot*3,0,6.28); ctx.fill(); ctx.fillStyle='rgba(255,255,255,.72)'; ctx.beginPath(); ctx.arc(s.x-s.r*.25,s.y-s.r*.25,s.r*.28,0,6.28); ctx.fill(); ctx.restore(); }
+  function drawPrism(){ ctx.save(); ctx.translate(prism.x,prism.y); ctx.rotate(performance.now()*.0012); ctx.shadowColor='#ffffff'; ctx.shadowBlur=26+prism.pulse*28; const grad=ctx.createLinearGradient(-34,-34,34,34); grad.addColorStop(0,'#ff78d8'); grad.addColorStop(.5,'#ffe66d'); grad.addColorStop(1,'#9dffd9'); ctx.strokeStyle=grad; ctx.lineWidth=4; ctx.fillStyle='rgba(255,255,255,.08)'; ctx.beginPath(); for(let i=0;i<6;i++){ const a=i/6*6.28; ctx.lineTo(Math.cos(a)*(prism.r+prism.pulse*16), Math.sin(a)*(prism.r+prism.pulse*16)); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
+  function drawSpark(p){ ctx.save(); ctx.globalAlpha=Math.max(0,p.life*1.8); ctx.fillStyle=p.c; ctx.shadowColor=p.c; ctx.shadowBlur=12; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.28); ctx.fill(); ctx.restore(); }
+
+  function loop(now){ const dt=Math.min(.033, ((now||performance.now())-last)/1000); last=now||performance.now(); update(dt); drawFrameOnly(); requestAnimationFrame(loop); }
+  function drawFrameOnly(){ /* replaced by draw body below to avoid nested raf */ }
+  const oldDraw = draw;
+  drawFrameOnly = function(){
+    ctx.clearRect(0,0,W,H);
+    const bg = ctx.createRadialGradient(W*.5,H*.45,20,W*.5,H*.48,Math.max(W,H)*.7); bg.addColorStop(0,'rgba(38,82,132,.38)'); bg.addColorStop(.48,'rgba(8,17,31,.5)'); bg.addColorStop(1,'rgba(2,5,12,1)'); ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.globalAlpha=.18; ctx.strokeStyle='#69d8ff'; ctx.lineWidth=1; for(let x=-50;x<W+50;x+=42){ ctx.beginPath(); ctx.moveTo(x,110); ctx.lineTo(x+130,H); ctx.stroke(); } for(let y=130;y<H;y+=42){ ctx.beginPath(); ctx.moveTo(0,y); ctx.quadraticCurveTo(W*.5,y+Math.sin(y*.02)*30,W,y); ctx.stroke(); } ctx.restore();
+    gates.forEach(drawGate); reefs.forEach(drawReef); thorns.forEach(drawThorn); ripples.forEach(drawRipple); seeds.forEach(drawSeed); drawPrism(); sparks.forEach(drawSpark);
+  };
+
+  function pulseRelease(){ prism.pulse = 1; seeds.forEach(s => { const dx=s.x-prism.x, dy=s.y-prism.y, d=Math.hypot(dx,dy); if(d<170){ const f=(1-d/170)*320; s.vx += dx/(d||1)*f; s.vy += dy/(d||1)*f; s.hot=Math.min(1,s.hot+.35); }}); burst(prism.x,prism.y,'#ffffff',18); buzz(220,.04,'sine'); }
+  function setPointer(e){ const p=e.touches?e.touches[0]:e; prism.tx=clamp(p.clientX,25,W-25); prism.ty=clamp(p.clientY,116,H-25); pointer.x=prism.tx; pointer.y=prism.ty; }
+  canvas.addEventListener('pointerdown', e => { pointer.down=true; canvas.setPointerCapture(e.pointerId); setPointer(e); });
+  canvas.addEventListener('pointermove', e => { if(pointer.down) setPointer(e); });
+  canvas.addEventListener('pointerup', e => { pointer.down=false; pulseRelease(); });
+  canvas.addEventListener('pointercancel', () => pointer.down=false);
+  addEventListener('keydown', e => { keys[e.key]=true; if(e.key===' '){ e.preventDefault(); pulseRelease(); } });
+  addEventListener('keyup', e => keys[e.key]=false);
+  document.getElementById('restartBtn').onclick = reset; document.getElementById('againBtn').onclick = reset;
+  soundBtn.onclick = () => { audioOn = !audioOn; soundBtn.textContent = audioOn ? 'Sound On' : 'Sound Off'; if(audioOn && !audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); };
+  function buzz(freq,dur,type){ if(!audioOn) return; if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.value=.035; g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur); o.connect(g).connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+dur); }
+  addEventListener('resize', resize); resize(); reset(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
