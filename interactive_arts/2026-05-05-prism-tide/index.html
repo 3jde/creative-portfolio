@@ -18,6 +18,7 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; overflow: hidden; background: radial-gradient(circle at 50% 10%, #19365f 0%, #08111f 45%, #02050c 100%); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; touch-action: none; }
     canvas { display: block; width: 100vw; height: 100vh; touch-action: none; cursor: none; }
+    body.game-ended canvas, body.pointer-ui canvas { cursor: auto; }
     .hud { position: fixed; inset: 18px 18px auto 18px; display: grid; grid-template-columns: 1fr auto; gap: 14px; pointer-events: none; z-index: 2; }
     .title-card, .stats, .help, .end-card { border: 1px solid rgba(157,255,217,.28); background: linear-gradient(145deg, rgba(9,19,36,.82), rgba(22,40,74,.58)); box-shadow: 0 18px 45px rgba(0,0,0,.32), inset 0 0 24px rgba(105,216,255,.06); backdrop-filter: blur(14px); border-radius: 22px; }
     .title-card { padding: 15px 17px; max-width: 540px; }
@@ -31,12 +32,14 @@
     .bar span { display:block; width: 100%; height: 100%; background: linear-gradient(90deg, var(--pink), var(--gold), var(--mint)); transform-origin: left center; }
     .help { position: fixed; left: 18px; bottom: 18px; max-width: 520px; padding: 12px 15px; color: rgba(237,248,255,.78); font-size: .86rem; line-height: 1.45; pointer-events: none; z-index: 2; }
     .controls { position: fixed; right: 18px; bottom: 18px; display: flex; gap: 10px; z-index: 3; }
-    button { pointer-events: auto; border: 1px solid rgba(157,255,217,.45); border-radius: 999px; padding: 12px 15px; color: var(--text); background: rgba(9,19,36,.78); box-shadow: 0 10px 30px rgba(0,0,0,.28); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    button { pointer-events: auto; border: 1px solid rgba(157,255,217,.45); border-radius: 999px; padding: 12px 15px; color: var(--text); background: rgba(9,19,36,.78); box-shadow: 0 10px 30px rgba(0,0,0,.28); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
     button:active { transform: scale(.96); background: rgba(157,255,217,.18); }
     .end-card { position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%) scale(.96); width: min(92vw, 430px); padding: 26px; text-align: center; opacity: 0; pointer-events: none; transition: .25s ease; z-index: 4; }
     .end-card.show { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
     .end-card h2 { margin: 0 0 10px; font-size: 2rem; }
     .end-card p { color: rgba(237,248,255,.78); }
+    .end-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .end-actions a { text-decoration: none; }
     @media (max-width: 720px) {
       .hud { inset: 10px 10px auto 10px; grid-template-columns: 1fr; }
       .title-card { padding: 12px 13px; }
@@ -66,7 +69,7 @@
   </div>
   <div class="help"><strong>Touch:</strong> drag anywhere to move the prism lure. Release to pulse seeds outward. <strong>Desktop:</strong> mouse drag or WASD/arrow keys. Deliver matching colors to gates for blooms; wrong gates cost time.</div>
   <div class="controls"><button id="soundBtn">Sound Off</button><button id="restartBtn">Restart</button><a href="../../playground.html"><button>Back</button></a></div>
-  <section class="end-card" id="endCard"><h2 id="endTitle">Garden Complete</h2><p id="endText"></p><button id="againBtn">Play Again</button></section>
+  <section class="end-card" id="endCard"><h2 id="endTitle">Garden Complete</h2><p id="endText"></p><div class="end-actions"><button id="againBtn">Continue</button><a href="../../playground.html"><button id="exitBtn">Exit Game</button></a></div></section>
 
 <script>
 (() => {
@@ -85,7 +88,7 @@
     { name: 'sun', hex: '#ffe66d' },
     { name: 'mint', hex: '#9dffd9' },
   ];
-  let W, H, DPR, seeds, gates, reefs, thorns, ripples, sparks, prism, keys, pointer, score, blooms, timeLeft, last, running, audioOn, audioCtx;
+  let W, H, DPR, seeds, gates, reefs, thorns, ripples, sparks, prism, keys, pointer, score, blooms, timeLeft, last, running, audioOn, audioCtx, masterGain, sfxGain, musicGain, musicTimer, musicStep;
   const targetBlooms = 18;
   const maxTime = 75;
 
@@ -111,6 +114,7 @@
     prism = { x: W/2, y: H*.44, tx: W/2, ty: H*.44, r: 30, pulse: 0 };
     score = 0; blooms = 0; timeLeft = maxTime; last = performance.now(); running = true;
     endCard.classList.remove('show');
+    document.body.classList.remove('game-ended');
     for (let i = 0; i < 16; i++) spawnSeed(true);
     for (let i = 0; i < 5; i++) reefs.push({ x: rand(W*.18,W*.82), y: rand(H*.28,H*.72), r: rand(22,42), spin: rand(0,Math.PI*2) });
     for (let i = 0; i < 4; i++) thorns.push({ x: rand(W*.12,W*.88), y: rand(H*.25,H*.70), r: rand(26,38), a: rand(0,6.28) });
@@ -170,7 +174,7 @@
           if (g.color.name === s.color.name) {
             blooms++; score += 100 + Math.round(s.hot*75); g.pulse = 1; burst(s.x,s.y,s.color.hex,26); ripples.push({x:g.x,y:g.y,r:g.r,a:1,c:s.color.hex}); buzz(440 + blooms*8,.055,'triangle'); seeds.splice(i,1); spawnSeed();
             if (blooms >= targetBlooms) finish(true);
-          } else { s.vx += (s.x-g.x)/(gd||1)*260; s.vy += (s.y-g.y)/(gd||1)*260; timeLeft = Math.max(0, timeLeft-1); g.pulse = .55; burst(s.x,s.y,'#ffffff',8); }
+          } else { s.vx += (s.x-g.x)/(gd||1)*260; s.vy += (s.y-g.y)/(gd||1)*260; timeLeft = Math.max(0, timeLeft-1); g.pulse = .55; burst(s.x,s.y,'#ffffff',8); soundCue('wrong'); }
           break;
         }
       }
@@ -183,7 +187,14 @@
   }
 
   function burst(x,y,c,n) { for (let i=0;i<n;i++){ const a=rand(0,6.28), sp=rand(40,210); sparks.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rand(.25,.75),c,r:rand(1.5,4.5)}); } }
-  function finish(win) { running = false; endTitle.textContent = win ? 'Garden in Bloom' : 'The Tide Faded'; endText.textContent = `Score ${score} · Blooms ${blooms}/${targetBlooms}. ${win ? 'You tuned the color current beautifully.' : 'Try tighter arcs and release pulses near the gates.'}`; endCard.classList.add('show'); }
+  function finish(win) {
+    running = false;
+    document.body.classList.add('game-ended');
+    endTitle.textContent = win ? 'Garden in Bloom' : 'The Tide Faded';
+    endText.textContent = `Score ${score} · Blooms ${blooms}/${targetBlooms}. ${win ? 'You tuned the color current beautifully.' : 'Try tighter arcs and release pulses near the gates.'}`;
+    endCard.classList.add('show');
+    soundCue(win ? 'win' : 'lose');
+  }
   function updateHud(){ scoreEl.textContent = score; bloomEl.textContent = `${blooms}/${targetBlooms}`; timeEl.textContent = Math.max(0, Math.ceil(timeLeft)); timeBar.style.transform = `scaleX(${clamp(timeLeft/maxTime,0,1)})`; }
 
   function draw() {
@@ -213,15 +224,56 @@
 
   function pulseRelease(){ prism.pulse = 1; seeds.forEach(s => { const dx=s.x-prism.x, dy=s.y-prism.y, d=Math.hypot(dx,dy); if(d<170){ const f=(1-d/170)*320; s.vx += dx/(d||1)*f; s.vy += dy/(d||1)*f; s.hot=Math.min(1,s.hot+.35); }}); burst(prism.x,prism.y,'#ffffff',18); buzz(220,.04,'sine'); }
   function setPointer(e){ const p=e.touches?e.touches[0]:e; prism.tx=clamp(p.clientX,25,W-25); prism.ty=clamp(p.clientY,116,H-25); pointer.x=prism.tx; pointer.y=prism.ty; }
-  canvas.addEventListener('pointerdown', e => { pointer.down=true; canvas.setPointerCapture(e.pointerId); setPointer(e); });
+  canvas.addEventListener('pointerdown', e => { if(!running) return; pointer.down=true; document.body.classList.remove('pointer-ui'); canvas.setPointerCapture(e.pointerId); setPointer(e); soundCue('touch'); });
   canvas.addEventListener('pointermove', e => { if(pointer.down) setPointer(e); });
-  canvas.addEventListener('pointerup', e => { pointer.down=false; pulseRelease(); });
+  canvas.addEventListener('pointerup', e => { if(!running) return; pointer.down=false; pulseRelease(); });
   canvas.addEventListener('pointercancel', () => pointer.down=false);
   addEventListener('keydown', e => { keys[e.key]=true; if(e.key===' '){ e.preventDefault(); pulseRelease(); } });
   addEventListener('keyup', e => keys[e.key]=false);
-  document.getElementById('restartBtn').onclick = reset; document.getElementById('againBtn').onclick = reset;
-  soundBtn.onclick = () => { audioOn = !audioOn; soundBtn.textContent = audioOn ? 'Sound On' : 'Sound Off'; if(audioOn && !audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); };
-  function buzz(freq,dur,type){ if(!audioOn) return; if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.value=.035; g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur); o.connect(g).connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+dur); }
+  document.getElementById('restartBtn').onclick = () => { soundCue('click'); reset(); }; document.getElementById('againBtn').onclick = () => { soundCue('click'); reset(); };
+  document.querySelectorAll('button, a').forEach(el => { el.addEventListener('pointerenter', () => document.body.classList.add('pointer-ui')); el.addEventListener('pointerleave', () => document.body.classList.remove('pointer-ui')); });
+  soundBtn.onclick = async () => {
+    audioOn = !audioOn;
+    soundBtn.textContent = audioOn ? 'Sound On' : 'Sound Off';
+    if (audioOn) { await initAudio(); startMusic(); soundCue('click'); }
+    else stopMusic();
+  };
+  async function initAudio(){
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      masterGain = audioCtx.createGain(); masterGain.gain.value = .72; masterGain.connect(audioCtx.destination);
+      sfxGain = audioCtx.createGain(); sfxGain.gain.value = .9; sfxGain.connect(masterGain);
+      musicGain = audioCtx.createGain(); musicGain.gain.value = .12; musicGain.connect(masterGain);
+      musicStep = 0;
+    }
+    if(audioCtx.state === 'suspended') await audioCtx.resume();
+  }
+  function buzz(freq,dur,type='sine',vol=.035){ if(!audioOn) return; initAudio(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(vol,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur); o.connect(g).connect(sfxGain || audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+dur); }
+  function soundCue(kind){
+    if(!audioOn) return;
+    if(kind==='touch') buzz(330,.035,'sine',.018);
+    if(kind==='click') buzz(520,.045,'triangle',.026);
+    if(kind==='wrong') { buzz(110,.07,'sawtooth',.035); setTimeout(()=>buzz(82,.05,'sawtooth',.022),45); }
+    if(kind==='win') [523,659,784,1046].forEach((f,i)=>setTimeout(()=>buzz(f,.16,'triangle',.04),i*90));
+    if(kind==='lose') [196,147,110].forEach((f,i)=>setTimeout(()=>buzz(f,.18,'sine',.038),i*110));
+  }
+  function startMusic(){
+    if(!audioOn || musicTimer) return;
+    const scale = [196, 246.94, 293.66, 329.63, 392, 493.88, 587.33, 659.25];
+    const playNote = () => {
+      if(!audioOn || !audioCtx) return;
+      const now = audioCtx.currentTime, base = scale[musicStep % scale.length];
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
+      o.type = 'sine'; o.frequency.setValueAtTime(base, now);
+      f.type = 'lowpass'; f.frequency.value = 900;
+      g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(.09, now+.05); g.gain.exponentialRampToValueAtTime(.0001, now+1.15);
+      o.connect(f).connect(g).connect(musicGain || audioCtx.destination); o.start(now); o.stop(now+1.2);
+      if(musicStep % 4 === 0){ const d=audioCtx.createOscillator(), dg=audioCtx.createGain(); d.type='triangle'; d.frequency.value=base/2; dg.gain.setValueAtTime(.0001,now); dg.gain.exponentialRampToValueAtTime(.045,now+.2); dg.gain.exponentialRampToValueAtTime(.0001,now+2.8); d.connect(dg).connect(musicGain || audioCtx.destination); d.start(now); d.stop(now+3); }
+      musicStep++;
+    };
+    playNote(); musicTimer = setInterval(playNote, 620);
+  }
+  function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer = null; } }
   addEventListener('resize', resize); resize(); reset(); requestAnimationFrame(loop);
 })();
 </script>
