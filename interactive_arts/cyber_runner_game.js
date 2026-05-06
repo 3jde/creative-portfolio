@@ -59,6 +59,22 @@ let camX = 0;
 let gameTime = 0;
 let messageTimer = 0;
 let bridgePlatform;
+let audioCtx;
+let masterGain;
+let musicGain;
+let sfxGain;
+let musicTimer;
+let musicStep = 0;
+
+const MUSIC_STEP_MS = 60000 / 132 / 4;
+const bassPattern = [45, null, 45, 45, 40, null, 43, null, 45, null, 52, null, 43, 47, 45, null];
+const leadPattern = [69, 72, 76, null, 72, 79, null, 76, 69, null, 76, 81, null, 79, 76, 72];
+const chordPattern = [
+  [57, 64, 69],
+  [55, 62, 67],
+  [52, 59, 64],
+  [59, 66, 71]
+];
 
 function setup() {
   const canvas = createCanvas(VIEW_W, VIEW_H);
@@ -82,6 +98,190 @@ function draw() {
   pressed.clear();
   touchTap.jump = false;
   touchTap.dash = false;
+}
+
+function ensureAudio() {
+  if (!window.AudioContext && !window.webkitAudioContext) return false;
+
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const compressor = audioCtx.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.knee.value = 18;
+    compressor.ratio.value = 6;
+    compressor.attack.value = 0.006;
+    compressor.release.value = 0.14;
+
+    masterGain = audioCtx.createGain();
+    musicGain = audioCtx.createGain();
+    sfxGain = audioCtx.createGain();
+    masterGain.gain.value = 0.42;
+    musicGain.gain.value = 0.16;
+    sfxGain.gain.value = 0.42;
+
+    musicGain.connect(masterGain);
+    sfxGain.connect(masterGain);
+    masterGain.connect(compressor);
+    compressor.connect(audioCtx.destination);
+  }
+
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+  return true;
+}
+
+function midiToFreq(note) {
+  return 440 * Math.pow(2, (note - 69) / 12);
+}
+
+function synth(freq, duration, type, gainValue, destination, options = {}) {
+  if (!ensureAudio()) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const amp = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  const target = destination || sfxGain;
+
+  osc.type = type || "square";
+  osc.frequency.setValueAtTime(freq, now);
+  if (options.slideTo) {
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, options.slideTo), now + duration * 0.92);
+  }
+  if (options.detune) {
+    osc.detune.setValueAtTime(options.detune, now);
+  }
+
+  filter.type = options.filterType || "lowpass";
+  filter.frequency.setValueAtTime(options.filter || 4200, now);
+  filter.Q.value = options.q || 0.8;
+
+  amp.gain.setValueAtTime(0.0001, now);
+  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gainValue), now + (options.attack || 0.012));
+  amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  osc.connect(filter);
+  filter.connect(amp);
+  amp.connect(target);
+  osc.start(now);
+  osc.stop(now + duration + 0.04);
+}
+
+function noiseBurst(duration, gainValue, destination, options = {}) {
+  if (!ensureAudio()) return;
+  const sampleCount = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
+  const buffer = audioCtx.createBuffer(1, sampleCount, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < sampleCount; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / sampleCount, options.decay || 1.1);
+  }
+
+  const source = audioCtx.createBufferSource();
+  const filter = audioCtx.createBiquadFilter();
+  const amp = audioCtx.createGain();
+  const now = audioCtx.currentTime;
+
+  filter.type = options.filterType || "bandpass";
+  filter.frequency.value = options.filter || 1700;
+  filter.Q.value = options.q || 1.2;
+  amp.gain.setValueAtTime(gainValue, now);
+  amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  source.buffer = buffer;
+  source.connect(filter);
+  filter.connect(amp);
+  amp.connect(destination || sfxGain);
+  source.start(now);
+}
+
+function startMusic(restart = false) {
+  if (!ensureAudio()) return;
+  if (restart) {
+    musicStep = 0;
+  }
+  if (!musicTimer) {
+    musicTimer = setInterval(playMusicStep, MUSIC_STEP_MS);
+  }
+}
+
+function playMusicStep() {
+  if (!audioCtx || state !== "playing") return;
+  const step = musicStep % 32;
+  const patternStep = step % 16;
+  const bassNote = bassPattern[patternStep];
+  const leadNote = leadPattern[patternStep];
+
+  if (bassNote !== null) {
+    synth(midiToFreq(bassNote), 0.18, "square", 0.072, musicGain, { filter: 620, q: 2.4 });
+    synth(midiToFreq(bassNote - 12), 0.14, "sine", 0.04, musicGain, { filter: 260 });
+  }
+
+  if (leadNote !== null && step % 2 === 0) {
+    synth(midiToFreq(leadNote), 0.105, "square", 0.032, musicGain, { filter: 3000, q: 1.6, detune: step % 4 === 0 ? -6 : 6 });
+    synth(midiToFreq(leadNote + 12), 0.055, "triangle", 0.015, musicGain, { filter: 5200 });
+  }
+
+  if (patternStep === 0) {
+    const chord = chordPattern[Math.floor(step / 16) % chordPattern.length];
+    chord.forEach((note, index) => {
+      synth(midiToFreq(note), 1.05, "sawtooth", 0.018, musicGain, { filter: 850 + index * 180, attack: 0.05, detune: index * 4 - 4 });
+    });
+  }
+
+  if (patternStep === 0 || patternStep === 8) {
+    synth(62, 0.22, "sine", 0.12, musicGain, { slideTo: 38, filter: 180 });
+  }
+  if (patternStep === 4 || patternStep === 12) {
+    noiseBurst(0.09, 0.035, musicGain, { filter: 900, q: 0.8 });
+    synth(150, 0.08, "triangle", 0.032, musicGain, { slideTo: 95, filter: 420 });
+  }
+  if (patternStep % 2 === 1) {
+    noiseBurst(0.035, 0.018, musicGain, { filter: 6200, q: 2.8, decay: 2 });
+  }
+
+  musicStep++;
+}
+
+function playSfx(name) {
+  if (!ensureAudio()) return;
+
+  if (name === "start") {
+    [64, 69, 76].forEach((note, i) => setTimeout(() => synth(midiToFreq(note), 0.11, "square", 0.055, sfxGain, { filter: 2600 }), i * 55));
+  } else if (name === "jump") {
+    synth(300, 0.14, "square", 0.055, sfxGain, { slideTo: 650, filter: 2600 });
+  } else if (name === "dash") {
+    synth(520, 0.08, "sawtooth", 0.06, sfxGain, { slideTo: 220, filter: 1800 });
+    noiseBurst(0.06, 0.04, sfxGain, { filter: 3600, q: 2.2 });
+  } else if (name === "coin") {
+    synth(880, 0.055, "triangle", 0.045, sfxGain, { filter: 5000 });
+    setTimeout(() => synth(1320, 0.07, "triangle", 0.034, sfxGain, { filter: 5600 }), 45);
+  } else if (name === "shard") {
+    [76, 81, 88].forEach((note, i) => setTimeout(() => synth(midiToFreq(note), 0.12, "triangle", 0.045, sfxGain, { filter: 6200 }), i * 42));
+  } else if (name === "key") {
+    [67, 71, 74, 79].forEach((note, i) => setTimeout(() => synth(midiToFreq(note), 0.16, "square", 0.052, sfxGain, { filter: 3600 }), i * 62));
+  } else if (name === "spring") {
+    synth(260, 0.22, "square", 0.065, sfxGain, { slideTo: 980, filter: 3400 });
+  } else if (name === "switch") {
+    [52, 64, 76].forEach((note, i) => setTimeout(() => synth(midiToFreq(note), 0.1, "square", 0.048, sfxGain, { filter: 2800 }), i * 75));
+  } else if (name === "checkpoint") {
+    [60, 67, 72].forEach((note, i) => setTimeout(() => synth(midiToFreq(note), 0.2, "triangle", 0.04, sfxGain, { filter: 4500 }), i * 58));
+  } else if (name === "break") {
+    synth(112, 0.18, "sawtooth", 0.07, sfxGain, { slideTo: 62, filter: 700 });
+    noiseBurst(0.17, 0.07, sfxGain, { filter: 1200, q: 0.7 });
+  } else if (name === "crumble") {
+    noiseBurst(0.14, 0.052, sfxGain, { filter: 980, q: 0.9 });
+  } else if (name === "stomp") {
+    synth(180, 0.08, "square", 0.06, sfxGain, { slideTo: 90, filter: 650 });
+    setTimeout(() => synth(980, 0.075, "triangle", 0.04, sfxGain, { filter: 5000 }), 35);
+  } else if (name === "hit") {
+    synth(130, 0.25, "sawtooth", 0.075, sfxGain, { slideTo: 58, filter: 720 });
+    noiseBurst(0.09, 0.05, sfxGain, { filter: 540, q: 0.7 });
+  } else if (name === "gameover") {
+    [45, 42, 38].forEach((note, i) => setTimeout(() => synth(midiToFreq(note), 0.22, "sawtooth", 0.055, sfxGain, { filter: 900 }), i * 95));
+  } else if (name === "win") {
+    [60, 64, 67, 72, 79, 84].forEach((note, i) => setTimeout(() => synth(midiToFreq(note), 0.18, i % 2 ? "triangle" : "square", 0.052, sfxGain, { filter: 5200 }), i * 72));
+  }
 }
 
 function resetGame() {
@@ -119,6 +319,8 @@ function resetGame() {
 
 function startRun() {
   resetGame();
+  startMusic(true);
+  playSfx("start");
   state = "playing";
   ui.start.classList.add("hidden");
   ui.pause.classList.add("hidden");
@@ -321,6 +523,7 @@ function updatePlatforms(dt) {
           platform.active = false;
           platform.crumbleTimer = 0;
           platform.respawnTimer = 170;
+          playSfx("crumble");
           burst(platform.x + platform.w / 2, platform.y + platform.h / 2, "#ff3bbd", 18);
         }
       } else if (!platform.active) {
@@ -381,6 +584,7 @@ function updatePlayerInput(dt) {
     player.coyote = 0;
     player.jumpBuffer = 0;
     burst(player.x + player.w / 2, player.y + player.h, "#29f4ff", 12);
+    playSfx("jump");
     setLog("Jump arc locked. Land on bright platform edges.");
   }
 
@@ -394,6 +598,7 @@ function updatePlayerInput(dt) {
     player.vx = player.facing * 15.5;
     player.vy *= 0.32;
     burst(player.x + player.w / 2, player.y + player.h / 2, "#46ffb1", 18);
+    playSfx("dash");
     setLog("Dash online. Cracked walls can be broken during dash.");
   }
 }
@@ -476,6 +681,7 @@ function breakWall(wall) {
   wall.broken = true;
   wall.active = false;
   burst(wall.x + wall.w / 2, wall.y + wall.h / 2, "#ffd447", 34);
+  playSfx("break");
   setLog("Cracked wall broken. Secret route exposed.");
 }
 
@@ -495,6 +701,7 @@ function updateEnemies(dt) {
         player.vy = -11.8;
         player.coins += 20;
         burst(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2, "#ffd447", 24);
+        playSfx("stomp");
         setLog("Bot stomped. Coins routed to wallet.");
       } else {
         hurt(1, player.x < enemy.x ? -8 : 8, -7, "Bot collision. Stomp from above to defeat.");
@@ -521,6 +728,7 @@ function collectCoins() {
       coin.taken = true;
       player.coins += 1;
       burst(coin.x, coin.y, "#ffd447", 12);
+      playSfx("coin");
       if (player.coins % 10 === 0) {
         setLog("Coin chain rising. Keep the route clean.");
       }
@@ -535,6 +743,7 @@ function collectShards() {
       shard.taken = true;
       player.shards += 1;
       burst(shard.x, shard.y, "#b96aff", 20);
+      playSfx("shard");
       setLog(shard.secret ? "Hidden shard recovered from the cracked wall." : "Rift shard recovered.");
     }
   });
@@ -546,6 +755,7 @@ function collectKey() {
     keyItem.taken = true;
     player.hasKey = true;
     burst(keyItem.x + keyItem.w / 2, keyItem.y + keyItem.h / 2, "#ffd447", 28);
+    playSfx("key");
     setLog("Sector key acquired. The final neon gate will answer.");
   }
 }
@@ -560,6 +770,7 @@ function checkSprings() {
       player.onGround = false;
       player.groundPlatform = null;
       burst(spring.x + spring.w / 2, spring.y, "#46ffb1", 20);
+      playSfx("spring");
       setLog("Spring boost. Hold right for a long neon arc.");
     }
   });
@@ -608,6 +819,7 @@ function checkSwitches() {
         bridgePlatform.active = true;
       }
       burst(item.x + item.w / 2, item.y + 12, "#46ffb1", 24);
+      playSfx("switch");
       setLog("Switch linked. Bridge materialized and laser grid cooled.");
     }
   });
@@ -622,6 +834,7 @@ function checkCheckpoints() {
       point.active = true;
       player.checkpoint = { x: point.x - 10, y: point.y - player.h + 10 };
       burst(point.x + point.w / 2, point.y + 10, "#29f4ff", 26);
+      playSfx("checkpoint");
       setLog("Checkpoint synced.");
     }
   });
@@ -646,6 +859,7 @@ function hurt(amount, knockX, knockY, message) {
   player.vx = knockX;
   player.vy = knockY;
   burst(player.x + player.w / 2, player.y + player.h / 2, "#ff3b5c", 26);
+  playSfx("hit");
   setLog(message);
 
   if (player.health <= 0) {
@@ -657,6 +871,7 @@ function loseAndRespawn(message) {
   if (state !== "playing") return;
   player.health -= 1;
   burst(player.x + player.w / 2, VIEW_H - 20, "#ff3b5c", 22);
+  playSfx("hit");
   if (player.health <= 0) {
     endRun(false);
     return;
@@ -678,6 +893,7 @@ function finishRun() {
   ui.endCopy.textContent = `You cleared Sector 7 with ${player.coins} coins and ${player.shards}/6 rift shards.`;
   ui.end.classList.remove("hidden");
   burst(gate.x + gate.w / 2, gate.y + gate.h / 2, "#ffd447", 80);
+  playSfx("win");
   setLog("Gate breached. Sector 7 is clear.", 999);
 }
 
@@ -689,6 +905,7 @@ function endRun(won) {
     ? `You cleared Sector 7 with ${player.coins} coins and ${player.shards}/6 rift shards.`
     : `The runner lost signal with ${player.coins} coins and ${player.shards}/6 rift shards recovered.`;
   ui.end.classList.remove("hidden");
+  playSfx(won ? "win" : "gameover");
 }
 
 function updateCamera(dt) {

@@ -20,7 +20,7 @@ let records = {};
 let playerName = "";
 
 // Native HTML5 Audio objects (no p5.sound required)
-let bgm, hitSound, winSound;
+let hitSound, winSound;
 
 function setup() {
     let canvas = createCanvas(800, 800, WEBGL);
@@ -36,10 +36,8 @@ function setup() {
         records = {};
     }
 
-    // Initialize HTML5 Audio Elements safely
+    // Initialize game effect audio safely.
     try {
-        bgm = new Audio('assets/bgm.mp3');
-        bgm.loop = true;
         hitSound = new Audio('assets/hit.wav');
         winSound = new Audio('assets/win.wav');
     } catch(e) {}
@@ -70,11 +68,6 @@ function startGame() {
     level = 1;
     initLevel();
 
-    // Safely attempt to play BGM (browsers require user interaction first, which click provides)
-    // if (bgm) {
-    //     bgm.currentTime = 0;
-    //     bgm.play().catch(e => console.log("BGM play blocked or missing file."));
-    // }
 }
 
 function restartGame() {
