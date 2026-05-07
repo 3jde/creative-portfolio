@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Comet Loom | Daily Mini Game 2026-05-07</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060713;
+      --panel: rgba(10, 15, 38, 0.72);
+      --lime: #ccff00;
+      --cyan: #35f6ff;
+      --pink: #ff4fd8;
+      --gold: #ffd15a;
+      --violet: #9b7bff;
+      --danger: #ff3864;
+      --ink: #02030a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: #ecfff9; font-family: 'Space Mono', monospace; overflow-x: hidden; }
+    body {
+      background:
+        radial-gradient(circle at 20% 15%, rgba(53,246,255,.26), transparent 28vw),
+        radial-gradient(circle at 82% 12%, rgba(255,79,216,.23), transparent 24vw),
+        radial-gradient(circle at 50% 100%, rgba(204,255,0,.16), transparent 28vw),
+        linear-gradient(160deg, #02030a 0%, #080c22 48%, #13031f 100%);
+    }
+    .top-nav {
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+      padding: 16px clamp(14px, 4vw, 42px); border-bottom: 1px dashed rgba(204,255,0,.55);
+      background: rgba(0,0,0,.48); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 20;
+    }
+    .nav-logo { font-family: 'VT323', monospace; font-size: 2rem; color: var(--lime); text-decoration: none; text-shadow: 0 0 14px rgba(204,255,0,.55); }
+    .nav-menu { display: flex; gap: 12px; flex-wrap: wrap; }
+    .nav-menu a { color: var(--lime); text-decoration: none; border: 1px solid rgba(204,255,0,.45); padding: 6px 10px; font-size: .78rem; background: rgba(0,0,0,.25); }
+    .nav-menu a:hover { background: var(--lime); color: #02030a; }
+    main { width: min(1180px, 100%); margin: 0 auto; padding: clamp(14px, 3vw, 34px); }
+    .hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; align-items: stretch; margin-bottom: 16px; }
+    .title-card, .hud-card, .panel {
+      border: 1px solid rgba(53,246,255,.45); background: var(--panel); box-shadow: 0 0 0 1px rgba(255,255,255,.04) inset, 0 16px 50px rgba(0,0,0,.35);
+      border-radius: 24px; overflow: hidden; position: relative;
+    }
+    .title-card { padding: clamp(18px, 3vw, 32px); }
+    .title-card::after, .game-wrap::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .35;
+      background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(circle at 50% 45%, black, transparent 75%);
+    }
+    .kicker { color: var(--cyan); letter-spacing: .18em; font-size: .72rem; margin: 0 0 8px; }
+    h1 { font-family: 'VT323', monospace; font-weight: 400; font-size: clamp(3.8rem, 10vw, 8rem); line-height: .78; margin: 0 0 14px; color: #fff; text-shadow: 0 0 16px rgba(53,246,255,.75), 0 0 42px rgba(255,79,216,.3); }
+    .title-card p { max-width: 740px; line-height: 1.55; color: rgba(236,255,249,.82); margin: 0; }
+    .hud-card { padding: 16px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .metric { border: 1px dashed rgba(255,255,255,.18); border-radius: 18px; padding: 12px; background: rgba(0,0,0,.18); }
+    .metric span { display: block; color: rgba(236,255,249,.62); font-size: .68rem; letter-spacing: .12em; }
+    .metric strong { font-family: 'VT323', monospace; font-size: 2.15rem; font-weight: 400; color: var(--lime); text-shadow: 0 0 12px rgba(204,255,0,.35); }
+    .game-wrap { position: relative; border: 1px solid rgba(204,255,0,.5); border-radius: 28px; overflow: hidden; min-height: 620px; background: #03050e; touch-action: none; box-shadow: 0 24px 80px rgba(0,0,0,.45); }
+    canvas { width: 100%; height: min(70vh, 720px); min-height: 520px; display: block; touch-action: none; cursor: crosshair; }
+    .overlay { position: absolute; inset: 0; display: grid; place-items: center; z-index: 8; padding: 18px; background: radial-gradient(circle, rgba(6,7,19,.58), rgba(0,0,0,.82)); backdrop-filter: blur(7px); }
+    .overlay.hidden { display: none; }
+    .modal { max-width: 580px; border: 1px solid rgba(204,255,0,.65); border-radius: 24px; padding: clamp(20px, 4vw, 34px); background: rgba(2,3,10,.9); text-align: center; box-shadow: 0 0 50px rgba(53,246,255,.22); }
+    .modal h2 { font-family: 'VT323', monospace; font-weight: 400; font-size: clamp(3rem, 8vw, 5.2rem); margin: 0 0 8px; color: var(--lime); }
+    .modal p { color: rgba(236,255,249,.82); line-height: 1.55; }
+    button { font: 700 .85rem 'Space Mono', monospace; color: #031012; background: var(--lime); border: 0; border-radius: 999px; padding: 12px 18px; margin: 5px; cursor: pointer; box-shadow: 0 0 0 3px rgba(204,255,0,.18), 0 10px 28px rgba(204,255,0,.16); transition: transform .12s, filter .12s; }
+    button:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    button.secondary { background: transparent; color: var(--cyan); border: 1px solid var(--cyan); box-shadow: none; }
+    .bottom-row { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; margin-top: 16px; }
+    .panel { padding: 18px; }
+    .panel h2 { font-family: 'VT323', monospace; font-weight: 400; color: var(--gold); font-size: 2.3rem; margin: 0 0 10px; }
+    .panel p, .panel li { color: rgba(236,255,249,.78); line-height: 1.55; font-size: .9rem; }
+    .panel ul { padding-left: 20px; margin: 0; }
+    .control-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .pill { border: 1px solid rgba(255,255,255,.2); border-radius: 999px; padding: 8px 10px; color: rgba(236,255,249,.82); background: rgba(255,255,255,.05); font-size: .78rem; }
+    .toast { position: absolute; left: 16px; bottom: 16px; right: 16px; z-index: 6; display: flex; justify-content: space-between; gap: 12px; pointer-events: none; }
+    .toast div { border: 1px solid rgba(53,246,255,.42); border-radius: 999px; padding: 8px 12px; background: rgba(2,3,10,.62); color: rgba(236,255,249,.75); font-size: .75rem; backdrop-filter: blur(6px); }
+    @media (max-width: 820px) {
+      .hero, .bottom-row { grid-template-columns: 1fr; }
+      .top-nav { align-items: flex-start; flex-direction: column; }
+      .hud-card { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+      .metric { padding: 8px; border-radius: 14px; }
+      .metric strong { font-size: 1.55rem; }
+      .metric span { font-size: .56rem; }
+      canvas { height: 68vh; min-height: 480px; }
+      .game-wrap { min-height: 480px; border-radius: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <a class="nav-logo" href="../../index.html">ONE_ZEN_</a>
+    <div class="nav-menu">
+      <a href="../../generative.html">CODE ART</a>
+      <a href="../../digital.html">DIGITAL ART</a>
+      <a href="../../playground.html">PLAYGROUND</a>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero" aria-label="Comet Loom introduction">
+      <div class="title-card">
+        <p class="kicker">DAILY MINI GAME // 2026-05-07</p>
+        <h1>COMET<br>LOOM</h1>
+        <p>Draw one luminous ribbon to ricochet falling comet seeds into matching moon wells. Your line is temporary, your ink is limited, and the sky gets louder every wave.</p>
+      </div>
+      <div class="hud-card" aria-live="polite">
+        <div class="metric"><span>SCORE</span><strong id="score">0</strong></div>
+        <div class="metric"><span>STREAK</span><strong id="streak">0</strong></div>
+        <div class="metric"><span>WAVE</span><strong id="wave">1</strong></div>
+        <div class="metric"><span>INTEGRITY</span><strong id="lives">5</strong></div>
+      </div>
+    </section>
+
+    <section class="game-wrap" aria-label="Playable Comet Loom canvas">
+      <canvas id="game" width="1000" height="650"></canvas>
+      <div class="toast">
+        <div>TOUCH: press + drag to weave a bounce ribbon</div>
+        <div id="stateText">Catch 28 matching comets</div>
+      </div>
+      <div id="start" class="overlay">
+        <div class="modal">
+          <p class="kicker">TOUCH-FIRST ARCADE PUZZLE</p>
+          <h2>COMET LOOM</h2>
+          <p>Drag across the playfield to draw a glowing thread. Comets bounce from it; guide cyan, pink, and gold seeds into the same-colored wells. Black eclipse stones must be deflected away.</p>
+          <button id="startBtn" type="button">START WEAVING</button>
+          <button id="soundBtn" class="secondary" type="button">SOUND: OFF</button>
+        </div>
+      </div>
+      <div id="end" class="overlay hidden">
+        <div class="modal">
+          <p class="kicker" id="endKicker">SKY REPORT</p>
+          <h2 id="endTitle">THREAD CUT</h2>
+          <p id="endCopy"></p>
+          <button id="restartBtn" type="button">PLAY AGAIN</button>
+          <a href="../../playground.html"><button class="secondary" type="button">BACK TO PLAYGROUND</button></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="bottom-row">
+      <div class="panel">
+        <h2>HOW TO PLAY</h2>
+        <ul>
+          <li><b>Touch / mouse:</b> press and drag to create one neon ribbon. Release to let it fade.</li>
+          <li>Colored comets score only in the matching moon well at the bottom.</li>
+          <li>Wrong wells, missed comets, and eclipse stones damage integrity.</li>
+          <li>Chain correct catches for streak sparks and bonus points.</li>
+        </ul>
+        <div class="control-pills">
+          <span class="pill">Tap + drag anywhere</span><span class="pill">R = restart</span><span class="pill">M = sound toggle</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>DESIGN NOTES</h2>
+        <p>The game turns simple mobile drawing into a precision-speed tradeoff: broad swipes are safe but wasteful, short angled ribbons are risky but satisfying. Visual feedback favors readable color lanes, impact blooms, and a breathing neon garden mood.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const ui = {
+      score: document.getElementById('score'), streak: document.getElementById('streak'), wave: document.getElementById('wave'), lives: document.getElementById('lives'),
+      start: document.getElementById('start'), end: document.getElementById('end'), state: document.getElementById('stateText'), endTitle: document.getElementById('endTitle'), endCopy: document.getElementById('endCopy'), endKicker: document.getElementById('endKicker'), sound: document.getElementById('soundBtn')
+    };
+    const colors = [
+      { name: 'cyan', hex: '#35f6ff' },
+      { name: 'pink', hex: '#ff4fd8' },
+      { name: 'gold', hex: '#ffd15a' }
+    ];
+    let W = 1000, H = 650, DPR = 1;
+    let motes = [], sparks = [], stars = [], ribbon = null, pointer = { down: false, x: 0, y: 0, sx: 0, sy: 0 };
+    let score = 0, streak = 0, lives = 5, wave = 1, caught = 0, target = 28, spawnT = 0, shake = 0, running = false, ended = false, soundOn = false, audioCtx = null, last = performance.now();
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = Math.max(320, Math.floor(rect.width));
+      H = Math.max(460, Math.floor(rect.height));
+      canvas.width = Math.floor(W * DPR); canvas.height = Math.floor(H * DPR);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      buildStars();
+    }
+    function buildStars() { stars = Array.from({ length: Math.floor(W * H / 7500) }, () => ({ x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.6+.2, a: Math.random()*.7+.15, p: Math.random()*9 })); }
+    window.addEventListener('resize', resize); resize();
+
+    function reset() {
+      motes = []; sparks = []; ribbon = null; score = 0; streak = 0; lives = 5; wave = 1; caught = 0; spawnT = 0; shake = 0; ended = false; running = true; last = performance.now();
+      ui.end.classList.add('hidden'); ui.start.classList.add('hidden'); updateUI();
+    }
+    function updateUI() { ui.score.textContent = score; ui.streak.textContent = streak; ui.wave.textContent = wave; ui.lives.textContent = lives; ui.state.textContent = `${caught}/${target} comet seeds woven`; }
+    function tone(freq, dur=.06, type='sine', gain=.04) {
+      if (!soundOn) return;
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type; o.frequency.value = freq; g.gain.value = gain;
+      o.connect(g); g.connect(audioCtx.destination); o.start();
+      g.gain.exponentialRampToValueAtTime(.0001, audioCtx.currentTime + dur); o.stop(audioCtx.currentTime + dur);
+    }
+    function spawn() {
+      const eclipse = Math.random() < Math.min(.12 + wave*.015, .24);
+      const c = colors[Math.floor(Math.random()*colors.length)];
+      motes.push({
+        x: 40 + Math.random()*(W-80), y: -25, r: eclipse ? 15 : 13, vx: (Math.random()-.5)*(48+wave*8), vy: 78 + wave*15 + Math.random()*40,
+        color: eclipse ? '#10131f' : c.hex, type: eclipse ? 'eclipse' : c.name, spin: Math.random()*6.28, hit: 0
+      });
+    }
+    function wells() {
+      const pad = W < 620 ? 16 : 34, gap = W < 620 ? 8 : 18;
+      const ww = (W - pad*2 - gap*2) / 3;
+      return colors.map((c,i) => ({ x: pad + i*(ww+gap), y: H-72, w: ww, h: 54, color: c.hex, type: c.name }));
+    }
+    function addSparks(x,y,color,n=12,power=1) { for (let i=0;i<n;i++) sparks.push({ x,y, vx:(Math.random()-.5)*190*power, vy:(Math.random()-.5)*170*power, life:.35+Math.random()*.35, max:.7, color, r: Math.random()*3+1 }); }
+    function lineCollision(m, l) {
+      if (!l || l.life <= 0) return false;
+      const ax=l.x1, ay=l.y1, bx=l.x2, by=l.y2, px=m.x, py=m.y;
+      const dx=bx-ax, dy=by-ay, len2=dx*dx+dy*dy || 1;
+      const t=Math.max(0, Math.min(1, ((px-ax)*dx+(py-ay)*dy)/len2));
+      const cx=ax+t*dx, cy=ay+t*dy, dist=Math.hypot(px-cx, py-cy);
+      if (dist > m.r + 8 || m.hit > 0) return false;
+      let nx = -dy / Math.sqrt(len2), ny = dx / Math.sqrt(len2);
+      if (m.vx*nx + m.vy*ny > 0) { nx *= -1; ny *= -1; }
+      const dot = m.vx*nx + m.vy*ny;
+      m.vx = (m.vx - 2*dot*nx) * 1.04;
+      m.vy = (m.vy - 2*dot*ny) * 1.04 - 18;
+      m.hit = .12; l.life = Math.max(l.life - .08, .18); shake = Math.min(8, shake+2); addSparks(cx, cy, l.color, 10, .7); tone(380 + streak*18, .045, 'triangle', .035); return true;
+    }
+    function damage(reason) { lives--; streak = 0; shake = 12; addSparks(W/2, H-48, '#ff3864', 20, 1.1); tone(95, .12, 'sawtooth', .035); if (lives <= 0) finish(false, reason); updateUI(); }
+    function finish(win, reason='') {
+      running = false; ended = true; ui.end.classList.remove('hidden');
+      ui.endKicker.textContent = win ? 'CONSTELLATION COMPLETE' : 'SKY REPORT';
+      ui.endTitle.textContent = win ? 'LOOM SEALED' : 'THREAD CUT';
+      ui.endCopy.textContent = win ? `You caught ${caught} comet seeds with a score of ${score}. The moon wells are singing.` : `${reason || 'The eclipse broke through.'} Final score: ${score}, woven seeds: ${caught}/${target}.`;
+    }
+    function update(dt) {
+      if (!running) return;
+      spawnT -= dt; if (spawnT <= 0) { spawn(); spawnT = Math.max(.34, .92 - wave*.055); }
+      if (ribbon) { ribbon.life -= dt * (pointer.down ? .12 : .75); if (ribbon.life <= 0) ribbon = null; }
+      const ws = wells();
+      for (let i=motes.length-1;i>=0;i--) {
+        const m = motes[i]; m.hit = Math.max(0, m.hit-dt); m.spin += dt*4; m.vy += 20*dt; m.x += m.vx*dt; m.y += m.vy*dt;
+        if (m.x < m.r) { m.x=m.r; m.vx=Math.abs(m.vx)*.86; } if (m.x > W-m.r) { m.x=W-m.r; m.vx=-Math.abs(m.vx)*.86; }
+        lineCollision(m, ribbon);
+        let removed = false;
+        for (const w of ws) if (m.y + m.r > w.y && m.x > w.x && m.x < w.x+w.w) {
+          removed = true; motes.splice(i,1);
+          if (m.type === 'eclipse') damage('An eclipse stone fell into a moon well.');
+          else if (m.type === w.type) { streak++; caught++; score += 100 + streak*15 + wave*20; addSparks(m.x,m.y,w.color,18,1); tone(520 + Math.min(streak,12)*28, .07, 'sine', .045); if (caught % 7 === 0) wave++; if (caught >= target) finish(true); updateUI(); }
+          else damage('A comet landed in the wrong color well.');
+          break;
+        }
+        if (!removed && m.y > H + 32) { motes.splice(i,1); if (m.type !== 'eclipse') damage('Too many comet seeds slipped past the loom.'); }
+      }
+      for (let i=sparks.length-1;i>=0;i--) { const s=sparks[i]; s.life-=dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.vy+=160*dt; s.vx*=.99; if (s.life<=0) sparks.splice(i,1); }
+      shake = Math.max(0, shake - dt*22);
+    }
+    function draw() {
+      ctx.save(); ctx.clearRect(0,0,W,H);
+      if (shake) ctx.translate((Math.random()-.5)*shake, (Math.random()-.5)*shake);
+      const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#070b21'); g.addColorStop(.52,'#11103a'); g.addColorStop(1,'#07020d'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      for (const st of stars) { ctx.globalAlpha = st.a * (.65 + .35*Math.sin(performance.now()/700 + st.p)); ctx.fillStyle='#dfffff'; ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1;
+      const ws=wells();
+      for (const w of ws) {
+        const glow=ctx.createRadialGradient(w.x+w.w/2,w.y+20,10,w.x+w.w/2,w.y+20,w.w*.7); glow.addColorStop(0,w.color+'88'); glow.addColorStop(1,'transparent'); ctx.fillStyle=glow; ctx.fillRect(w.x-w.w*.25,w.y-46,w.w*1.5,120);
+        ctx.strokeStyle=w.color; ctx.lineWidth=2; ctx.setLineDash([10,8]); ctx.strokeRect(w.x,w.y,w.w,w.h); ctx.setLineDash([]);
+        ctx.fillStyle='rgba(255,255,255,.08)'; ctx.fillRect(w.x,w.y,w.w,w.h);
+        ctx.font='18px VT323, monospace'; ctx.textAlign='center'; ctx.fillStyle=w.color; ctx.fillText(w.type.toUpperCase(), w.x+w.w/2, w.y+34);
+      }
+      if (ribbon) {
+        ctx.save(); ctx.globalAlpha=Math.max(.12,ribbon.life); ctx.lineCap='round'; ctx.shadowBlur=24; ctx.shadowColor=ribbon.color; ctx.strokeStyle=ribbon.color; ctx.lineWidth=16; ctx.beginPath(); ctx.moveTo(ribbon.x1,ribbon.y1); ctx.lineTo(ribbon.x2,ribbon.y2); ctx.stroke(); ctx.shadowBlur=0; ctx.strokeStyle='#ffffff'; ctx.lineWidth=3; ctx.stroke(); ctx.restore();
+      }
+      for (const m of motes) {
+        ctx.save(); ctx.translate(m.x,m.y); ctx.rotate(m.spin); ctx.shadowBlur=18; ctx.shadowColor=m.color; ctx.fillStyle=m.color;
+        if (m.type==='eclipse') { ctx.fillStyle='#070812'; ctx.strokeStyle='#ff3864'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,m.r,0,7); ctx.fill(); ctx.stroke(); ctx.fillStyle='#ff3864'; ctx.fillRect(-7,-1,14,2); ctx.fillRect(-1,-7,2,14); }
+        else { ctx.beginPath(); for (let i=0;i<6;i++) { const a=i*Math.PI/3; const rr=i%2?m.r*.58:m.r; ctx.lineTo(Math.cos(a)*rr, Math.sin(a)*rr); } ctx.closePath(); ctx.fill(); ctx.fillStyle='#fff'; ctx.globalAlpha=.8; ctx.beginPath(); ctx.arc(-3,-3,3,0,7); ctx.fill(); }
+        ctx.restore();
+      }
+      for (const s of sparks) { ctx.globalAlpha=Math.max(0,s.life/s.max); ctx.fillStyle=s.color; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill(); }
+      ctx.globalAlpha=1; ctx.restore();
+      requestAnimationFrame(loop);
+    }
+    function loop(now=performance.now()) { const dt=Math.min(.033,(now-last)/1000); last=now; update(dt); draw(); }
+    function pos(e) { const r=canvas.getBoundingClientRect(); return { x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height) }; }
+    canvas.addEventListener('pointerdown', e => { e.preventDefault(); canvas.setPointerCapture(e.pointerId); const p=pos(e); pointer={down:true,x:p.x,y:p.y,sx:p.x,sy:p.y}; ribbon={x1:p.x,y1:p.y,x2:p.x+1,y2:p.y+1,life:1,color:'#ccff00'}; });
+    canvas.addEventListener('pointermove', e => { if (!pointer.down) return; e.preventDefault(); const p=pos(e); pointer.x=p.x; pointer.y=p.y; const len=Math.hypot(p.x-pointer.sx,p.y-pointer.sy); const hue = len > 180 ? '#35f6ff' : len > 80 ? '#ff4fd8' : '#ccff00'; ribbon={x1:pointer.sx,y1:pointer.sy,x2:p.x,y2:p.y,life:1,color:hue}; });
+    canvas.addEventListener('pointerup', e => { pointer.down=false; if (ribbon) ribbon.life=.72; });
+    canvas.addEventListener('pointercancel', () => { pointer.down=false; if (ribbon) ribbon.life=.55; });
+    document.getElementById('startBtn').addEventListener('click', reset);
+    document.getElementById('restartBtn').addEventListener('click', reset);
+    ui.sound.addEventListener('click', () => { soundOn=!soundOn; ui.sound.textContent = `SOUND: ${soundOn ? 'ON' : 'OFF'}`; tone(440,.05); });
+    window.addEventListener('keydown', e => { if (e.key.toLowerCase()==='r') reset(); if (e.key.toLowerCase()==='m') ui.sound.click(); });
+    loop();
+  </script>
+</body>
+</html>
