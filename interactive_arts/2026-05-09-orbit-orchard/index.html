@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Orbit Orchard | Daily Mini Game 2026-05-09</title>
+  <link rel="icon" href="data:," />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #071018;
+      --paper: #f7ffd7;
+      --neon: #ccff00;
+      --pink: #ff4fd8;
+      --cyan: #55e7ff;
+      --amber: #ffd166;
+      --danger: #ff3366;
+    }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--ink); }
+    body {
+      font-family: 'Space Mono', monospace;
+      color: var(--paper);
+      touch-action: none;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255,79,216,.24), transparent 28%),
+        radial-gradient(circle at 80% 20%, rgba(85,231,255,.2), transparent 30%),
+        linear-gradient(180deg, #09071c 0%, #071018 58%, #021b19 100%);
+    }
+    #game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+    .scanlines { pointer-events: none; position: fixed; inset: 0; mix-blend-mode: overlay; opacity: .16;
+      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px 4px); }
+    .hud {
+      position: fixed; inset: 18px 18px auto 18px; display: grid; grid-template-columns: 1fr auto; gap: 14px;
+      align-items: start; z-index: 2; pointer-events: none;
+    }
+    .panel {
+      border: 1px solid rgba(204,255,0,.65); background: rgba(2, 12, 18, .72); backdrop-filter: blur(10px);
+      box-shadow: 0 0 28px rgba(204,255,0,.13), inset 0 0 22px rgba(85,231,255,.07); padding: 14px 16px;
+    }
+    h1 { font-family: 'VT323', monospace; font-size: clamp(2.25rem, 7vw, 4.5rem); line-height: .82; color: var(--neon); text-shadow: 0 0 18px rgba(204,255,0,.5); }
+    .sub { margin-top: 8px; max-width: 780px; font-size: clamp(.72rem, 2.4vw, .95rem); line-height: 1.45; color: rgba(247,255,215,.84); text-transform: uppercase; }
+    .stats { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; min-width: 230px; }
+    .chip { min-width: 92px; border: 1px dashed rgba(247,255,215,.5); padding: 8px 10px; text-align: center; background: rgba(0,0,0,.42); }
+    .chip b { display: block; color: var(--neon); font-size: 1.1rem; }
+    .controls {
+      position: fixed; left: 18px; right: 18px; bottom: 18px; z-index: 3; display: flex; gap: 12px; justify-content: space-between; align-items: end; pointer-events: none;
+    }
+    button {
+      pointer-events: auto; border: 1px solid var(--neon); color: var(--neon); background: rgba(0,0,0,.68);
+      font-family: 'Space Mono', monospace; padding: 12px 14px; text-transform: uppercase; letter-spacing: .04em; border-radius: 999px;
+      box-shadow: 0 0 16px rgba(204,255,0,.18); touch-action: manipulation;
+    }
+    button:active { transform: translateY(2px) scale(.98); background: var(--neon); color: var(--ink); }
+    .mode { min-width: 142px; }
+    .hint {
+      pointer-events: none; max-width: 520px; text-align: right; font-size: .78rem; line-height: 1.45; color: rgba(247,255,215,.78);
+      padding: 10px 12px; background: rgba(0,0,0,.36); border: 1px solid rgba(247,255,215,.18);
+    }
+    .toast {
+      position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(.94); opacity: 0; pointer-events: none; z-index: 4;
+      padding: 18px 22px; border: 2px solid var(--neon); color: var(--neon); background: rgba(0,0,0,.82); text-align: center;
+      font-family: 'VT323', monospace; font-size: clamp(2rem, 9vw, 5rem); text-shadow: 0 0 18px rgba(204,255,0,.55); transition: .28s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    @media (max-width: 720px) {
+      .hud { grid-template-columns: 1fr; inset: 10px; gap: 8px; }
+      .panel { padding: 11px 12px; }
+      .stats { justify-content: flex-start; min-width: 0; }
+      .chip { min-width: 76px; padding: 6px 7px; font-size: .7rem; }
+      .controls { left: 10px; right: 10px; bottom: 10px; align-items: stretch; }
+      .hint { display: none; }
+      button { padding: 13px 12px; font-size: .78rem; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Orbit Orchard game canvas"></canvas>
+  <div class="scanlines"></div>
+
+  <section class="hud">
+    <div class="panel">
+      <h1>ORBIT ORCHARD</h1>
+      <p class="sub">Drag the gravity seed to bend fireflies into matching neon flowers. Tap PULSE to flip pull / push, chain clean blooms, and keep eclipse moths out of the beds.</p>
+    </div>
+    <div class="stats">
+      <div class="chip">SCORE<b id="score">0</b></div>
+      <div class="chip">BLOOMS<b id="blooms">0/9</b></div>
+      <div class="chip">TIME<b id="time">75</b></div>
+    </div>
+  </section>
+
+  <div class="controls">
+    <div>
+      <button id="mode" class="mode">PULSE: PULL</button>
+      <button id="restart">RESTART</button>
+    </div>
+    <p class="hint">Touch / mouse: drag anywhere to steer the gravity seed. Keyboard: WASD / arrows move, Space flips pulse. Bloom 9 flowers before night closes.</p>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const bloomsEl = document.getElementById('blooms');
+    const timeEl = document.getElementById('time');
+    const modeBtn = document.getElementById('mode');
+    const restartBtn = document.getElementById('restart');
+    const toast = document.getElementById('toast');
+
+    const colors = ['#ccff00', '#55e7ff', '#ff4fd8'];
+    const names = ['LIME', 'CYAN', 'PINK'];
+    let W = 0, H = 0, DPR = 1, last = 0, spawnTimer = 0, shake = 0, flash = 0;
+    let score, blooms, timeLeft, state, attractor, flowers, fireflies, motes, keys, pointerDown, polarity;
+
+    function resize() {
+      DPR = Math.min(devicePixelRatio || 1, 2);
+      W = innerWidth; H = innerHeight;
+      canvas.width = W * DPR; canvas.height = H * DPR;
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      if (flowers) placeFlowers();
+    }
+
+    function reset() {
+      score = 0; blooms = 0; timeLeft = 75; state = 'play'; polarity = 1; pointerDown = false;
+      attractor = { x: W * .5, y: H * .57, tx: W * .5, ty: H * .57, r: 34 };
+      fireflies = []; motes = []; keys = {};
+      placeFlowers();
+      for (let i = 0; i < 55; i++) motes.push({ x: Math.random()*W, y: Math.random()*H, z: Math.random(), a: Math.random()*6.28 });
+      for (let i = 0; i < 7; i++) spawnFirefly(true);
+      updateUI(); showToast('BLOOM 9', 900);
+    }
+
+    function placeFlowers() {
+      const safeTop = Math.min(180, H * .28), safeBottom = Math.max(H - 150, H * .72);
+      flowers = [
+        { x: W*.18, y: safeTop + 20, color: 0, charge: 0, bloom: 0 },
+        { x: W*.50, y: safeTop, color: 1, charge: 0, bloom: 0 },
+        { x: W*.82, y: safeTop + 20, color: 2, charge: 0, bloom: 0 },
+        { x: W*.24, y: safeBottom, color: 2, charge: 0, bloom: 0 },
+        { x: W*.55, y: safeBottom + 8, color: 0, charge: 0, bloom: 0 },
+        { x: W*.80, y: safeBottom - 10, color: 1, charge: 0, bloom: 0 }
+      ];
+    }
+
+    function spawnFirefly(initial=false) {
+      const side = Math.floor(Math.random()*4);
+      let x = side === 0 ? -20 : side === 1 ? W + 20 : Math.random()*W;
+      let y = side === 2 ? -20 : side === 3 ? H + 20 : Math.random()*H;
+      const color = Math.floor(Math.random()*3);
+      const bad = Math.random() < .18 + Math.min(.18, blooms * .012);
+      const a = Math.atan2(H*.5 - y, W*.5 - x) + (Math.random()-.5)*1.4;
+      fireflies.push({ x, y, vx: Math.cos(a)*(initial?35:48), vy: Math.sin(a)*(initial?35:48), color, bad, life: 18, trail: [] });
+    }
+
+    function pulse() {
+      polarity *= -1;
+      flash = .35;
+      modeBtn.textContent = 'PULSE: ' + (polarity > 0 ? 'PULL' : 'PUSH');
+    }
+
+    function update(dt) {
+      if (state !== 'play') return;
+      timeLeft -= dt;
+      if (timeLeft <= 0) end(false);
+      if (blooms >= 9) end(true);
+
+      const speed = 420;
+      if (keys.ArrowLeft || keys.a) attractor.tx -= speed*dt;
+      if (keys.ArrowRight || keys.d) attractor.tx += speed*dt;
+      if (keys.ArrowUp || keys.w) attractor.ty -= speed*dt;
+      if (keys.ArrowDown || keys.s) attractor.ty += speed*dt;
+      attractor.tx = clamp(attractor.tx, 24, W-24); attractor.ty = clamp(attractor.ty, 125, H-38);
+      attractor.x += (attractor.tx - attractor.x) * Math.min(1, dt*10);
+      attractor.y += (attractor.ty - attractor.y) * Math.min(1, dt*10);
+
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) { spawnFirefly(); spawnTimer = Math.max(.42, 1.05 - blooms*.045); }
+
+      fireflies.forEach(f => {
+        f.life -= dt;
+        f.trail.push({ x:f.x, y:f.y }); if (f.trail.length > 10) f.trail.shift();
+        const dx = attractor.x - f.x, dy = attractor.y - f.y;
+        const d2 = Math.max(900, dx*dx + dy*dy);
+        const force = (f.bad ? -1.1 : 1) * polarity * 185000 / d2;
+        f.vx += dx / Math.sqrt(d2) * force * dt;
+        f.vy += dy / Math.sqrt(d2) * force * dt;
+        f.vx *= .995; f.vy *= .995;
+        f.x += f.vx * dt; f.y += f.vy * dt;
+
+        flowers.forEach(fl => {
+          const d = Math.hypot(f.x - fl.x, f.y - fl.y);
+          if (d < 38 && f.life > 0) {
+            if (f.bad) {
+              fl.charge = Math.max(0, fl.charge - 34); f.life = -1; score = Math.max(0, score - 40); shake = .35; burst(f.x, f.y, '#111', 16);
+            } else if (f.color === fl.color) {
+              fl.charge += 34; f.life = -1; score += 80 + Math.floor(timeLeft); burst(f.x, f.y, colors[f.color], 22);
+              if (fl.charge >= 100) { fl.charge = 0; fl.bloom = 1; blooms++; score += 250; shake = .16; burst(fl.x, fl.y, colors[fl.color], 48); }
+            } else {
+              f.vx *= -1.25; f.vy *= -1.25; score = Math.max(0, score - 10); burst(f.x, f.y, '#ffffff', 8);
+            }
+          }
+        });
+      });
+      fireflies = fireflies.filter(f => f.life > 0 && f.x > -90 && f.x < W+90 && f.y > -90 && f.y < H+90).slice(-42);
+      motes.forEach(m => { m.a += dt*(.3+m.z); m.y += dt*(8+m.z*18); if (m.y > H+8) { m.y = -8; m.x = Math.random()*W; } });
+      shake *= Math.pow(.001, dt); flash *= Math.pow(.002, dt);
+      updateUI();
+    }
+
+    function burst(x, y, color, count) {
+      for (let i=0;i<count;i++) {
+        const a = Math.random()*6.283, s = 40+Math.random()*220;
+        motes.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, z: 1.4, a: Math.random()*6.28, life: .45+Math.random()*.45, color });
+      }
+    }
+
+    function draw() {
+      ctx.save();
+      const sx = (Math.random()-.5)*shake*18, sy = (Math.random()-.5)*shake*18;
+      ctx.translate(sx, sy);
+      ctx.clearRect(-30,-30,W+60,H+60);
+      const g = ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0, '#08051b'); g.addColorStop(.62, '#06131c'); g.addColorStop(1, '#03231e');
+      ctx.fillStyle = g; ctx.fillRect(-30,-30,W+60,H+60);
+
+      ctx.globalAlpha = .42; ctx.strokeStyle = '#ccff00'; ctx.lineWidth = 1;
+      for (let x = ((Date.now()/80)%44)-44; x < W; x += 44) { line(x, 0, x+H*.28, H); }
+      for (let y = 120; y < H; y += 44) { line(0, y, W, y + Math.sin(y*.02)*10); }
+      ctx.globalAlpha = 1;
+
+      motes = motes.filter(m => !m.life || m.life > 0);
+      motes.forEach(m => {
+        if (m.life) { m.life -= 1/60; m.x += m.vx/60; m.y += m.vy/60; m.vy += 120/60; }
+        ctx.globalAlpha = m.life ? Math.max(0, m.life) : .18 + m.z*.22;
+        ctx.fillStyle = m.color || (m.z > .6 ? '#55e7ff' : '#ccff00');
+        ctx.beginPath(); ctx.arc(m.x + Math.sin(m.a)*4, m.y, 1.2 + m.z*2.5, 0, 6.283); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      flowers.forEach(drawFlower);
+      fireflies.forEach(drawFirefly);
+      drawAttractor();
+      if (flash > .01) { ctx.globalAlpha = flash*.22; ctx.fillStyle = polarity>0 ? '#ccff00' : '#ff4fd8'; ctx.fillRect(-30,-30,W+60,H+60); ctx.globalAlpha = 1; }
+      ctx.restore();
+    }
+
+    function drawFlower(f) {
+      const c = colors[f.color];
+      ctx.save(); ctx.translate(f.x, f.y);
+      ctx.shadowColor = c; ctx.shadowBlur = 18 + f.bloom*25;
+      for (let i=0;i<8;i++) {
+        ctx.rotate(Math.PI/4);
+        ctx.fillStyle = c + (f.bloom ? 'cc' : '55');
+        ctx.beginPath(); ctx.ellipse(0, -17 - f.bloom*8, 8 + f.bloom*4, 18 + f.bloom*9, 0, 0, 6.283); ctx.fill();
+      }
+      ctx.shadowBlur = 0; ctx.fillStyle = '#071018'; ctx.strokeStyle = c; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0,0,18,0,6.283); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(247,255,215,.5)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0,0,25,-Math.PI/2,-Math.PI/2 + 6.283*(f.charge/100)); ctx.stroke();
+      ctx.fillStyle = c; ctx.font = '10px Space Mono'; ctx.textAlign = 'center'; ctx.fillText(names[f.color], 0, 4);
+      f.bloom *= .96;
+      ctx.restore();
+    }
+
+    function drawFirefly(f) {
+      const c = f.bad ? '#111111' : colors[f.color];
+      ctx.save();
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = f.bad ? 5 : 3; ctx.strokeStyle = c; ctx.shadowColor = c; ctx.shadowBlur = f.bad ? 12 : 18;
+      ctx.beginPath(); f.trail.forEach((p,i) => { if (i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); }); ctx.stroke();
+      ctx.translate(f.x, f.y); ctx.rotate(Math.atan2(f.vy, f.vx));
+      ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(0,0,f.bad?12:9,f.bad?8:6,0,0,6.283); ctx.fill();
+      ctx.fillStyle = f.bad ? '#ff3366' : '#fffbd6'; ctx.globalAlpha = .82; ctx.beginPath(); ctx.arc(5,0,3,0,6.283); ctx.fill();
+      ctx.restore(); ctx.globalAlpha = 1;
+    }
+
+    function drawAttractor() {
+      ctx.save(); ctx.translate(attractor.x, attractor.y);
+      const c = polarity > 0 ? '#ccff00' : '#ff4fd8';
+      ctx.shadowColor = c; ctx.shadowBlur = 26; ctx.strokeStyle = c; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0,0,attractor.r + Math.sin(Date.now()/120)*4,0,6.283); ctx.stroke();
+      ctx.globalAlpha = .22; ctx.beginPath(); ctx.arc(0,0,92,0,6.283); ctx.stroke(); ctx.globalAlpha = 1;
+      for (let i=0;i<3;i++) { ctx.rotate(Date.now()/1200 + i*2.09); ctx.beginPath(); ctx.ellipse(0,0,48,14,0,0,6.283); ctx.stroke(); }
+      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(0,0,8,0,6.283); ctx.fill();
+      ctx.restore();
+    }
+
+    function line(x1,y1,x2,y2) { ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+    function updateUI(){ scoreEl.textContent = score; bloomsEl.textContent = blooms + '/9'; timeEl.textContent = Math.max(0, Math.ceil(timeLeft)); }
+    function showToast(text, ms=1200){ toast.textContent = text; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), ms); }
+    function end(win){ state = 'end'; showToast(win ? 'ORCHARD LIT' : 'NIGHT CLOSED', 2600); }
+
+    function loop(t) { const dt = Math.min(.033, (t-last)/1000 || .016); last = t; update(dt); draw(); requestAnimationFrame(loop); }
+
+    addEventListener('resize', resize);
+    canvas.addEventListener('pointerdown', e => { pointerDown = true; canvas.setPointerCapture(e.pointerId); attractor.tx = e.clientX; attractor.ty = e.clientY; });
+    canvas.addEventListener('pointermove', e => { if (pointerDown) { attractor.tx = e.clientX; attractor.ty = e.clientY; } });
+    canvas.addEventListener('pointerup', e => { pointerDown = false; try { canvas.releasePointerCapture(e.pointerId); } catch(_){} });
+    canvas.addEventListener('pointercancel', () => pointerDown = false);
+    modeBtn.addEventListener('click', pulse);
+    restartBtn.addEventListener('click', reset);
+    addEventListener('keydown', e => { keys[e.key] = true; if (e.code === 'Space') { e.preventDefault(); pulse(); } if (e.key.toLowerCase() === 'r') reset(); });
+    addEventListener('keyup', e => { keys[e.key] = false; });
+
+    resize(); reset(); requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
