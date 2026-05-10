@@ -211,6 +211,33 @@
       backdrop-filter: blur(10px);
     }
 
+    .level-toast {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 6;
+      transform: translate(-50%, -50%) scale(0.96);
+      padding: 14px 18px;
+      border: 1px solid rgba(153, 255, 216, 0.45);
+      border-radius: 999px;
+      color: var(--moon);
+      background: rgba(8, 13, 31, 0.74);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.34), inset 0 0 30px rgba(153, 255, 216, 0.08);
+      font-size: 0.82rem;
+      font-weight: 850;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      backdrop-filter: blur(14px);
+    }
+
+    .level-toast.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -294,7 +321,8 @@
 
     body:not(.is-playing) .touch,
     body:not(.is-playing) .hint,
-    body:not(.is-playing) .top-actions {
+    body:not(.is-playing) .top-actions,
+    body:not(.is-playing) .level-toast {
       opacity: 0;
       pointer-events: none;
     }
@@ -349,7 +377,7 @@
       }
 
       .stats {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         padding: 9px 11px;
       }
 
@@ -399,10 +427,11 @@
     <section class="brand" aria-label="Game title">
       <p class="kicker">Portfolio Prototype // Dream Platformer</p>
       <h1>Dream Ruins Dash</h1>
-      <p>Collect echo shards across floating ruins, spend your single air dash wisely, and open the gate before the dream collapses.</p>
+      <p>Cross five shifting dream ruins, collect echo shards, spend your single air dash wisely, and open each gate before the dream collapses.</p>
     </section>
     <div class="right-hud">
       <section class="stats" aria-label="Run stats">
+        <div class="stat"><span>Level</span><strong id="levelNum">1/5</strong></div>
         <div class="stat"><span>Score</span><strong id="score">0</strong></div>
         <div class="stat"><span>Shards</span><strong id="shards">0/9</strong></div>
         <div class="stat"><span>Time</span><strong id="time">84</strong></div>
@@ -411,6 +440,8 @@
       <div class="dash-chip ready" id="dashChip"><span>Dash</span><strong>Ready</strong></div>
     </div>
   </div>
+
+  <div class="level-toast" id="levelToast">Level 1 // Crescent Archive</div>
 
   <div class="hint">
     <strong>Touch:</strong> hold L/R, tap Jump, tap Dash in midair. <strong>Desktop:</strong> A/D or arrows, Space/W/Up to jump, Shift/K to dash, R to restart.
@@ -437,7 +468,7 @@
     <div class="panel">
       <p class="kicker">A short dream-platforming run</p>
       <h2>Dream Ruins Dash</h2>
-      <p>Leap through suspended ruins, gather nine echo shards, and spend one clean air dash between landings to reach the waking gate.</p>
+      <p>Leap through five suspended ruins, gather echo shards, and spend one clean air dash between landings to reach the final waking gate.</p>
       <div class="actions">
         <button class="primary" id="startBtn" type="button">Start</button>
         <button id="startSoundBtn" type="button">Sound Off</button>
@@ -462,11 +493,13 @@
     (() => {
       const canvas = document.getElementById("game");
       const ctx = canvas.getContext("2d");
+      const levelNumEl = document.getElementById("levelNum");
       const scoreEl = document.getElementById("score");
       const shardsEl = document.getElementById("shards");
       const timeEl = document.getElementById("time");
       const timeBar = document.getElementById("timeBar");
       const dashChip = document.getElementById("dashChip");
+      const levelToast = document.getElementById("levelToast");
       const startOverlay = document.getElementById("startOverlay");
       const endOverlay = document.getElementById("endOverlay");
       const endKicker = document.getElementById("endKicker");
@@ -475,8 +508,7 @@
       const soundBtn = document.getElementById("soundBtn");
       const startSoundBtn = document.getElementById("startSoundBtn");
 
-      const TOTAL_SHARDS = 9;
-      const MAX_TIME = 84;
+      const LEVEL_COUNT = 5;
       const GRAVITY = 1900;
       const MOVE_ACCEL = 2800;
       const MAX_SPEED = 420;
@@ -499,9 +531,12 @@
       let last = performance.now();
       let score = 0;
       let got = 0;
-      let timeLeft = MAX_TIME;
+      let currentLevel = 0;
+      let timeLeft = 84;
+      let levelClock = 0;
       let mode = "menu";
       let startedOnce = false;
+      let transitionTimer = 0;
       let audioOn = false;
       let audioCtx;
       let masterGain;
@@ -525,71 +560,136 @@
         }
       }
 
-      function makePlatform(x, y, w, h, type = "stone") {
-        return { x, y, w, h, type, phase: rand(0, Math.PI * 2) };
+      function makePlatform(x, y, w, h, type = "stone", behavior = null) {
+        return { x, y, baseX: x, baseY: y, prevX: x, prevY: y, vx: 0, vy: 0, w, h, type, behavior, active: true, alpha: 1, warn: 0, phase: rand(0, Math.PI * 2) };
       }
 
-      function buildLevel() {
+      function platformBehavior(tag, levelIndex, order) {
+        if (tag === "moveX") return { kind: "move", axis: "x", amp: 46 + levelIndex * 8, speed: 1.15 + order * 0.04 };
+        if (tag === "moveY") return { kind: "move", axis: "y", amp: 24 + levelIndex * 3, speed: 1.05 + order * 0.035 };
+        if (tag === "conveyorR") return { kind: "conveyor", speed: 105 + levelIndex * 8, dir: 1 };
+        if (tag === "conveyorL") return { kind: "conveyor", speed: 105 + levelIndex * 8, dir: -1 };
+        if (tag === "vanish") return { kind: "vanish", cycle: 2.65 - Math.min(levelIndex, 4) * 0.12, gone: 0.58, offset: order * 0.31 };
+        return null;
+      }
+
+      function levelConfigs(floor) {
+        return [
+          {
+            name: "Crescent Archive",
+            subtitle: "Read the first ruins and learn the clean dash line.",
+            time: 86,
+            width: 4200,
+            palette: { bg0: "#26375f", bg1: "#0b1024", bg2: "#02040b", waveA: "#70d7ff", waveB: "#a98cff", platform: "#f6f0dd", accent: "#99ffd8", shard: "#70d7ff", hazard: "#ff6f9f", moon: "#f6f0dd", moonCut: "#202e5a", gate: "#99ffd8" },
+            platforms: [[-80, 0, 430, "start"], [440, 70, 260], [810, 135, 260], [1190, 85, 280], [1580, 150, 250], [1960, 215, 270], [2370, 150, 260], [2780, 90, 280], [3190, 170, 250], [3600, 120, 360, "gate"]],
+            hazards: [[690, 25, 80, "thorn"], [1450, 24, 92, "thorn"], [2580, 64, 74, "wisp"], [3420, 34, 88, "thorn"]]
+          },
+          {
+            name: "Glass Orchard",
+            subtitle: "Longer gaps, brighter shards, and moving memory wisps.",
+            time: 88,
+            width: 4450,
+            palette: { bg0: "#2b234e", bg1: "#101528", bg2: "#03040c", waveA: "#ff9bd7", waveB: "#ffd978", platform: "#ffc9ee", accent: "#ffd978", shard: "#ff9bd7", hazard: "#ff4f86", moon: "#ffd978", moonCut: "#2b234e", gate: "#ffd978" },
+            platforms: [[-80, 0, 400, "start"], [430, 85, 230], [790, 165, 230, "moveX"], [1190, 100, 220], [1570, 185, 245, "moveY"], [1970, 255, 225], [2360, 175, 240, "moveX"], [2770, 240, 230], [3180, 165, 250, "moveY"], [3630, 250, 220], [4020, 180, 340, "gate"]],
+            hazards: [[690, 34, 70, "wisp"], [1040, 58, 88, "thorn"], [1840, 45, 76, "wisp"], [2610, 78, 92, "thorn"], [3460, 52, 82, "wisp"]]
+          },
+          {
+            name: "Static Cathedral",
+            subtitle: "Narrower landings and a sharper rhythm of spikes.",
+            time: 92,
+            width: 4700,
+            palette: { bg0: "#22335a", bg1: "#101025", bg2: "#02030a", waveA: "#8ff7ff", waveB: "#7d73ff", platform: "#9be9ff", accent: "#a98cff", shard: "#8ff7ff", hazard: "#ff6f9f", moon: "#dfe7ff", moonCut: "#1a2350", gate: "#a98cff" },
+            platforms: [[-80, 0, 390, "start"], [420, 90, 215, "conveyorR"], [760, 170, 215], [1120, 245, 210, "conveyorL"], [1510, 160, 220, "moveX"], [1890, 235, 205], [2280, 310, 215, "conveyorR"], [2670, 225, 210], [3070, 145, 235, "conveyorL"], [3490, 220, 215, "moveY"], [3900, 295, 210], [4300, 230, 320, "gate"]],
+            hazards: [[660, 26, 74, "thorn"], [1360, 88, 74, "wisp"], [1760, 54, 86, "thorn"], [2500, 125, 76, "wisp"], [3310, 70, 92, "thorn"], [4130, 110, 80, "wisp"]]
+          },
+          {
+            name: "Signal Reef",
+            subtitle: "Dense ruins, more air control, and less recovery room.",
+            time: 96,
+            width: 5000,
+            palette: { bg0: "#163b45", bg1: "#071b26", bg2: "#01050a", waveA: "#99ffd8", waveB: "#70d7ff", platform: "#99ffd8", accent: "#ffd978", shard: "#ffd978", hazard: "#ff5d7f", moon: "#99ffd8", moonCut: "#163b45", gate: "#70d7ff" },
+            platforms: [[-80, 0, 380, "start"], [430, 95, 210], [780, 185, 210, "vanish"], [1160, 105, 215, "moveX"], [1540, 195, 205, "vanish"], [1920, 285, 210], [2320, 205, 205, "conveyorR"], [2730, 290, 210, "vanish"], [3140, 210, 205, "moveY"], [3560, 300, 205, "vanish"], [3990, 220, 225, "conveyorL"], [4430, 310, 200], [4800, 250, 340, "gate"]],
+            hazards: [[660, 45, 78, "wisp"], [1020, 40, 82, "thorn"], [1800, 100, 78, "wisp"], [2170, 60, 86, "thorn"], [2980, 92, 84, "thorn"], [3820, 115, 82, "wisp"], [4660, 98, 90, "thorn"]]
+          },
+          {
+            name: "Waking Gate",
+            subtitle: "The final dream line: fast, bright, and unforgiving.",
+            time: 102,
+            width: 5350,
+            palette: { bg0: "#3a2457", bg1: "#0e1228", bg2: "#02030a", waveA: "#ffd978", waveB: "#ff74bb", platform: "#f6f0dd", accent: "#ff74bb", shard: "#f6f0dd", hazard: "#ff4f86", moon: "#ffd978", moonCut: "#3a2457", gate: "#f6f0dd" },
+            platforms: [[-80, 0, 380, "start"], [420, 100, 205, "conveyorR"], [780, 190, 200, "moveX"], [1160, 275, 200, "vanish"], [1540, 195, 205, "conveyorL"], [1930, 285, 195, "moveY"], [2320, 365, 205, "vanish"], [2730, 285, 195, "conveyorR"], [3150, 200, 205, "moveX"], [3560, 290, 195, "vanish"], [3970, 375, 200, "conveyorL"], [4380, 295, 195, "moveY"], [4780, 220, 205, "vanish"], [5150, 300, 330, "gate"]],
+            hazards: [[650, 54, 76, "thorn"], [1020, 120, 72, "wisp"], [1400, 90, 82, "thorn"], [1810, 118, 82, "wisp"], [2190, 170, 82, "thorn"], [2980, 112, 80, "wisp"], [3400, 78, 88, "thorn"], [4210, 170, 78, "wisp"], [4630, 82, 92, "thorn"]]
+          }
+        ];
+      }
+
+      function buildLevel(index) {
         const floor = Math.max(390, H * 0.72);
-        const mid = Math.max(250, H * 0.48);
-        const high = Math.max(170, H * 0.34);
-        const platforms = [
-          makePlatform(-80, floor, 430, 34, "start"),
-          makePlatform(470, floor - 80, 230, 28),
-          makePlatform(860, floor - 170, 250, 28),
-          makePlatform(1260, floor - 88, 260, 28),
-          makePlatform(1660, mid + 20, 230, 28),
-          makePlatform(2040, high + 30, 270, 28),
-          makePlatform(2460, mid - 10, 250, 28),
-          makePlatform(2850, floor - 105, 280, 28),
-          makePlatform(3260, floor - 205, 220, 28),
-          makePlatform(3650, floor - 130, 330, 30, "gate")
-        ];
+        const config = levelConfigs(floor)[index];
+        const platforms = config.platforms.map((p, i) => {
+          const tag = p[3];
+          const type = tag === "gate" || tag === "start" ? tag : "stone";
+          return makePlatform(p[0], Math.max(126, floor - p[1]), p[2], tag === "gate" ? 30 : 28, type, platformBehavior(tag, index, i));
+        });
+        const shards = platforms.slice(1, 10).map((p, i) => ({
+          x: p.x + p.w * (i % 2 ? 0.68 : 0.46),
+          y: p.y - 64 - (i % 3 === 2 ? 16 : 0),
+          r: 13,
+          got: false,
+          phase: i * 0.8
+        }));
 
-        const shards = [
-          { x: 565, y: floor - 144 },
-          { x: 955, y: floor - 236 },
-          { x: 1370, y: floor - 155 },
-          { x: 1755, y: mid - 48 },
-          { x: 2160, y: high - 30 },
-          { x: 2575, y: mid - 78 },
-          { x: 2975, y: floor - 172 },
-          { x: 3365, y: floor - 270 },
-          { x: 3840, y: floor - 202 }
-        ].map((s, i) => ({ ...s, r: 13, got: false, phase: i * 0.8 }));
-
-        const hazards = [
-          { x: 735, y: floor - 30, w: 86, h: 32, type: "thorn", phase: 0 },
-          { x: 1128, y: floor - 48, w: 94, h: 36, type: "thorn", phase: 0.8 },
-          { x: 1935, y: mid + 10, w: 86, h: 34, type: "thorn", phase: 1.4 },
-          { x: 2710, y: floor - 86, w: 74, h: 34, type: "wisp", phase: 2.2 },
-          { x: 3160, y: floor - 120, w: 82, h: 34, type: "thorn", phase: 2.8 }
-        ];
+        const hazards = config.hazards.map((h, i) => ({
+          x: h[0],
+          y: Math.max(126, floor - h[1]),
+          w: h[2],
+          h: h[3] === "wisp" ? 34 : 32,
+          type: h[3],
+          phase: i * 0.74
+        }));
 
         const ruins = [];
-        for (let i = 0; i < 42; i += 1) {
+        for (let i = 0; i < 34 + index * 8; i += 1) {
           ruins.push({
-            x: rand(-200, 4200),
+            x: rand(-200, config.width),
             y: rand(70, Math.max(210, H * 0.6)),
-            w: rand(34, 110),
-            h: rand(46, 180),
+            w: rand(34, 120),
+            h: rand(46, 210),
             depth: rand(0.08, 0.5),
-            tone: Math.random() > 0.55 ? "#70d7ff" : "#a98cff"
+            tone: Math.random() > 0.55 ? config.palette.waveA : config.palette.waveB
           });
         }
 
+        const gatePlatform = platforms[platforms.length - 1];
+        const gate = { x: gatePlatform.x + gatePlatform.w - 116, y: gatePlatform.y - 148, w: 72, h: 142, open: false };
         return {
-          width: 4200,
+          ...config,
+          width: Math.max(config.width, gate.x + gate.w + 220),
           platforms,
           shards,
           hazards,
           ruins,
-          gate: { x: 3905, y: floor - 270, w: 72, h: 142, open: false }
+          shardTarget: shards.length,
+          gate
         };
       }
 
       function reset(startPlaying) {
-        level = buildLevel();
+        currentLevel = 0;
+        score = 0;
+        loadLevel(currentLevel);
+        mode = startPlaying ? "playing" : "menu";
+        document.body.classList.toggle("is-playing", startPlaying);
+        endOverlay.classList.add("hidden");
+        if (startPlaying) {
+          startOverlay.classList.add("hidden");
+          showLevelToast();
+        }
+        updateHud();
+      }
+
+      function loadLevel(index) {
+        level = buildLevel(index);
         player = {
           x: 72,
           y: Math.max(200, H * 0.55),
@@ -613,15 +713,18 @@
         particles = [];
         echoes = [];
         cam = 0;
-        score = 0;
         got = 0;
-        timeLeft = MAX_TIME;
-        mode = startPlaying ? "playing" : "menu";
+        timeLeft = level.time;
+        levelClock = 0;
+        transitionTimer = 1.35;
         last = performance.now();
-        document.body.classList.toggle("is-playing", startPlaying);
-        endOverlay.classList.add("hidden");
-        if (startPlaying) startOverlay.classList.add("hidden");
+        levelToast.textContent = `Level ${index + 1} // ${level.name}`;
         updateHud();
+      }
+
+      function showLevelToast() {
+        levelToast.classList.add("show");
+        window.setTimeout(() => levelToast.classList.remove("show"), 1300);
       }
 
       function startRun() {
@@ -633,24 +736,87 @@
 
       function update(dt) {
         if (mode !== "playing") return;
+        levelClock += dt;
+        transitionTimer = Math.max(0, transitionTimer - dt);
         timeLeft -= dt;
         if (timeLeft <= 0) {
           finish(false, "The dream folded before the gate opened.");
           return;
         }
 
+        updatePlatforms(dt);
         updatePlayer(dt);
         updateCollectibles(dt);
         updateHazards(dt);
         updateParticles(dt);
-        level.gate.open = got >= TOTAL_SHARDS;
+        level.gate.open = got >= level.shardTarget;
         if (level.gate.open && rectsOverlap(player, level.gate)) {
-          score += Math.ceil(timeLeft * 18);
-          finish(true, "You carried every echo shard through the waking gate.");
+          completeLevel();
         }
         cam += (player.x - W * 0.38 - cam) * Math.min(1, dt * 6);
         cam = clamp(cam, 0, Math.max(0, level.width - W));
         updateHud();
+      }
+
+      function completeLevel() {
+        score += Math.ceil(timeLeft * (16 + currentLevel * 2));
+        burst(player.x + player.w / 2, player.y + player.h / 2, level.palette.gate, 44, 340);
+        if (currentLevel >= LEVEL_COUNT - 1) {
+          finish(true, "You carried every echo shard through all five waking gates.");
+          return;
+        }
+        currentLevel += 1;
+        loadLevel(currentLevel);
+        showLevelToast();
+        if (audioOn) {
+          stopMusic();
+          startMusic();
+        }
+        cue("level");
+      }
+
+      function activePlatforms() {
+        return level.platforms.filter(p => p.active !== false);
+      }
+
+      function isStandingOn(platform) {
+        const feet = player.y + player.h;
+        return player.vy >= 0 && feet >= platform.prevY - 8 && feet <= platform.prevY + 14 && player.x + player.w > platform.prevX + 4 && player.x < platform.prevX + platform.w - 4;
+      }
+
+      function updatePlatforms(dt) {
+        for (const p of level.platforms) {
+          p.prevX = p.x;
+          p.prevY = p.y;
+          p.vx = 0;
+          p.vy = 0;
+          p.active = true;
+          p.alpha = 1;
+          p.warn = 0;
+          if (!p.behavior) continue;
+
+          if (p.behavior.kind === "move") {
+            const t = levelClock * p.behavior.speed + p.phase;
+            if (p.behavior.axis === "x") p.x = p.baseX + Math.sin(t) * p.behavior.amp;
+            else p.y = p.baseY + Math.sin(t) * p.behavior.amp;
+          }
+
+          if (p.behavior.kind === "vanish") {
+            const cycle = p.behavior.cycle;
+            const t = (levelClock + p.behavior.offset) % cycle;
+            const fadeStart = cycle - p.behavior.gone - 0.55;
+            p.warn = t > fadeStart ? clamp((t - fadeStart) / 0.55, 0, 1) : 0;
+            p.active = t < cycle - p.behavior.gone;
+            p.alpha = p.active ? 1 - p.warn * 0.42 : 0.14;
+          }
+
+          p.vx = (p.x - p.prevX) / Math.max(dt, 0.001);
+          p.vy = (p.y - p.prevY) / Math.max(dt, 0.001);
+          if (p.behavior.kind === "move" && p.active && isStandingOn(p)) {
+            player.x += p.x - p.prevX;
+            player.y += p.y - p.prevY;
+          }
+        }
       }
 
       function updatePlayer(dt) {
@@ -683,7 +849,7 @@
 
         const oldX = player.x;
         player.x += player.vx * dt;
-        for (const p of level.platforms) {
+        for (const p of activePlatforms()) {
           if (rectsOverlap(player, p)) {
             if (player.vx > 0) player.x = p.x - player.w;
             if (player.vx < 0) player.x = p.x + p.w;
@@ -694,7 +860,7 @@
 
         player.y += player.vy * dt;
         player.onGround = false;
-        for (const p of level.platforms) {
+        for (const p of activePlatforms()) {
           if (rectsOverlap(player, p)) {
             if (player.vy > 0) {
               player.y = p.y - player.h;
@@ -702,9 +868,15 @@
               player.onGround = true;
               player.coyote = COYOTE_MAX;
               player.dashReady = true;
-              player.spawnX = p.x + Math.min(Math.max(28, player.x - p.x), Math.max(28, p.w - 60));
-              player.spawnY = p.y - player.h - 4;
+              if (!p.behavior || p.behavior.kind !== "vanish") {
+                player.spawnX = p.x + Math.min(Math.max(28, player.x - p.x), Math.max(28, p.w - 60));
+                player.spawnY = p.y - player.h - 4;
+              }
               landBurst(player.x + player.w / 2, player.y + player.h);
+              if (p.behavior && p.behavior.kind === "conveyor") {
+                player.x += p.behavior.dir * p.behavior.speed * dt;
+                player.face = p.behavior.dir;
+              }
             } else if (player.vy < 0) {
               player.y = p.y + p.h;
               player.vy = 0;
@@ -756,8 +928,8 @@
             shard.got = true;
             got += 1;
             score += 120 + got * 10;
-            burst(shard.x, bobY, "#70d7ff", 30, 260);
-            particles.push({ x: shard.x, y: bobY, ring: true, r: 8, life: 0.8, color: "#99ffd8" });
+            burst(shard.x, bobY, level.palette.shard, 30, 260);
+            particles.push({ x: shard.x, y: bobY, ring: true, r: 8, life: 0.8, color: level.palette.accent });
             cue("collect");
           }
         }
@@ -786,7 +958,7 @@
         player.vy = 0;
         player.x = player.spawnX;
         player.y = player.spawnY;
-        burst(player.x + player.w / 2, player.y + player.h / 2, "#ff6f9f", 24, 260);
+        burst(player.x + player.w / 2, player.y + player.h / 2, level.palette.hazard, 24, 260);
         cue("hurt");
         if (timeLeft <= 0) finish(false, "The ruins pulled the last seconds from the run.");
       }
@@ -794,10 +966,13 @@
       function finish(win, copy) {
         mode = "ended";
         endKicker.textContent = win ? "Gate Report" : "Dream Report";
-        endTitle.textContent = win ? "Awake" : "Lost Signal";
-        endText.textContent = `Score ${score}. Echo shards ${got}/${TOTAL_SHARDS}. ${copy}`;
+        endTitle.textContent = win ? "Dream Complete" : "Lost Signal";
+        endText.textContent = win
+          ? `Congratulations. Final score ${score}. You cleared all ${LEVEL_COUNT} dream ruins and reached the waking portal.`
+          : `Score ${score}. Level ${currentLevel + 1}/${LEVEL_COUNT}. Echo shards ${got}/${level.shardTarget}. ${copy}`;
         document.body.classList.remove("is-playing");
         endOverlay.classList.remove("hidden");
+        stopMusic();
         cue(win ? "win" : "lose");
       }
 
@@ -818,10 +993,11 @@
       }
 
       function updateHud() {
+        levelNumEl.textContent = `${currentLevel + 1}/${LEVEL_COUNT}`;
         scoreEl.textContent = score;
-        shardsEl.textContent = `${got}/${TOTAL_SHARDS}`;
+        shardsEl.textContent = `${got}/${level ? level.shardTarget : 9}`;
         timeEl.textContent = Math.max(0, Math.ceil(timeLeft));
-        timeBar.style.transform = `scaleX(${clamp(timeLeft / MAX_TIME, 0, 1)})`;
+        timeBar.style.transform = `scaleX(${clamp(timeLeft / (level ? level.time : 84), 0, 1)})`;
         dashChip.classList.toggle("ready", Boolean(player && player.dashReady));
         dashChip.querySelector("strong").textContent = player && player.dashReady ? "Ready" : "Spent";
       }
@@ -867,10 +1043,11 @@
       }
 
       function drawBackground() {
+        const palette = level ? level.palette : { bg0: "#253862", bg1: "#0b1024", bg2: "#02040b", waveA: "#70d7ff", waveB: "#a98cff", moon: "#f6f0dd", moonCut: "#202e5a" };
         const g = ctx.createRadialGradient(W * 0.5, H * 0.2, 20, W * 0.5, H * 0.5, Math.max(W, H) * 0.82);
-        g.addColorStop(0, "#253862");
-        g.addColorStop(0.45, "#0b1024");
-        g.addColorStop(1, "#02040b");
+        g.addColorStop(0, palette.bg0);
+        g.addColorStop(0.45, palette.bg1);
+        g.addColorStop(1, palette.bg2);
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, W, H);
 
@@ -878,7 +1055,7 @@
         ctx.globalAlpha = 0.23;
         for (let i = 0; i < 7; i += 1) {
           const y = H * (0.18 + i * 0.09);
-          ctx.strokeStyle = i % 2 ? "#70d7ff" : "#a98cff";
+          ctx.strokeStyle = i % 2 ? palette.waveA : palette.waveB;
           ctx.lineWidth = 1;
           ctx.beginPath();
           for (let x = -80; x <= W + 80; x += 60) {
@@ -892,14 +1069,14 @@
 
         ctx.save();
         ctx.translate(W * 0.72 - cam * 0.04, H * 0.22);
-        ctx.fillStyle = "rgba(246,240,221,0.9)";
-        ctx.shadowColor = "#f6f0dd";
+        ctx.fillStyle = palette.moon;
+        ctx.shadowColor = palette.moon;
         ctx.shadowBlur = 32;
         ctx.beginPath();
         ctx.arc(0, 0, 42, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.fillStyle = "#202e5a";
+        ctx.fillStyle = palette.moonCut;
         ctx.beginPath();
         ctx.arc(15, -8, 42, 0, Math.PI * 2);
         ctx.fill();
@@ -927,24 +1104,67 @@
 
       function drawPlatforms() {
         for (const p of level.platforms) {
-          const sheen = p.type === "gate" ? "#ffd978" : p.type === "start" ? "#99ffd8" : "#f6f0dd";
+          const sheen = p.type === "gate" ? level.palette.gate : p.type === "start" ? level.palette.accent : level.palette.platform;
           ctx.save();
+          if (p.behavior && p.behavior.kind === "move") {
+            ctx.globalAlpha = 0.28;
+            ctx.strokeStyle = sheen;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([8, 10]);
+            ctx.beginPath();
+            if (p.behavior.axis === "x") {
+              ctx.moveTo(p.baseX - p.behavior.amp, p.baseY + p.h / 2);
+              ctx.lineTo(p.baseX + p.behavior.amp + p.w, p.baseY + p.h / 2);
+            } else {
+              ctx.moveTo(p.baseX + p.w / 2, p.baseY - p.behavior.amp);
+              ctx.lineTo(p.baseX + p.w / 2, p.baseY + p.behavior.amp + p.h);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1;
+          }
+          if (p.behavior && p.behavior.kind === "vanish") {
+            ctx.globalAlpha = p.alpha;
+          }
           ctx.shadowColor = sheen;
-          ctx.shadowBlur = p.type === "gate" ? 18 : 9;
+          ctx.shadowBlur = p.type === "gate" ? 18 : p.behavior && p.behavior.kind === "vanish" && p.warn > 0 ? 24 : 9;
           const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
           grad.addColorStop(0, "rgba(246,240,221,0.36)");
           grad.addColorStop(1, "rgba(112,215,255,0.12)");
           ctx.fillStyle = grad;
-          ctx.strokeStyle = "rgba(246,240,221,0.58)";
+          ctx.strokeStyle = p.behavior && p.behavior.kind === "vanish" && p.warn > 0 ? level.palette.hazard : "rgba(246,240,221,0.58)";
           ctx.lineWidth = 2;
           roundRect(p.x, p.y, p.w, p.h, 10);
           ctx.fill();
           ctx.stroke();
           ctx.shadowBlur = 0;
-          ctx.globalAlpha = 0.42;
+          ctx.globalAlpha = (p.behavior && p.behavior.kind === "vanish" ? p.alpha : 1) * 0.42;
           ctx.fillStyle = sheen;
           for (let x = p.x + 18; x < p.x + p.w - 12; x += 38) {
             ctx.fillRect(x, p.y + 6, 20, 3);
+          }
+          if (p.behavior && p.behavior.kind === "conveyor") {
+            ctx.globalAlpha = 0.9;
+            ctx.fillStyle = level.palette.accent;
+            for (let x = p.x + 20; x < p.x + p.w - 22; x += 34) {
+              ctx.beginPath();
+              if (p.behavior.dir > 0) {
+                ctx.moveTo(x, p.y + p.h / 2 - 6);
+                ctx.lineTo(x + 14, p.y + p.h / 2);
+                ctx.lineTo(x, p.y + p.h / 2 + 6);
+              } else {
+                ctx.moveTo(x + 14, p.y + p.h / 2 - 6);
+                ctx.lineTo(x, p.y + p.h / 2);
+                ctx.lineTo(x + 14, p.y + p.h / 2 + 6);
+              }
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
+          if (p.behavior && p.behavior.kind === "vanish" && p.warn > 0) {
+            ctx.globalAlpha = p.warn;
+            ctx.fillStyle = level.palette.hazard;
+            for (let x = p.x + 12; x < p.x + p.w - 10; x += 22) ctx.fillRect(x, p.y - 5, 10, 3);
           }
           ctx.restore();
         }
@@ -957,9 +1177,9 @@
           ctx.translate(h.x + h.w / 2, y + h.h / 2);
           if (h.type === "wisp") {
             ctx.rotate(h.phase);
-            ctx.strokeStyle = "#ff6f9f";
+            ctx.strokeStyle = level.palette.hazard;
             ctx.fillStyle = "rgba(255,111,159,0.18)";
-            ctx.shadowColor = "#ff6f9f";
+            ctx.shadowColor = level.palette.hazard;
             ctx.shadowBlur = 20;
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -971,10 +1191,10 @@
             ctx.quadraticCurveTo(0, -h.h * 0.9, h.w * 0.32, 0);
             ctx.stroke();
           } else {
-            ctx.shadowColor = "#ff6f9f";
+            ctx.shadowColor = level.palette.hazard;
             ctx.shadowBlur = 18;
             ctx.fillStyle = "rgba(255,111,159,0.28)";
-            ctx.strokeStyle = "#ff6f9f";
+            ctx.strokeStyle = level.palette.hazard;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(-h.w / 2, h.h / 2);
@@ -995,9 +1215,9 @@
         ctx.save();
         ctx.translate(g.x + g.w / 2, g.y + g.h / 2);
         const open = level.gate.open;
-        ctx.shadowColor = open ? "#99ffd8" : "#a98cff";
+        ctx.shadowColor = open ? level.palette.gate : level.palette.waveB;
         ctx.shadowBlur = open ? 34 : 18;
-        ctx.strokeStyle = open ? "#99ffd8" : "rgba(169,140,255,0.7)";
+        ctx.strokeStyle = open ? level.palette.gate : level.palette.waveB;
         ctx.fillStyle = open ? "rgba(153,255,216,0.14)" : "rgba(169,140,255,0.09)";
         ctx.lineWidth = 4;
         ctx.beginPath();
@@ -1005,12 +1225,19 @@
         ctx.fill();
         ctx.stroke();
         ctx.lineWidth = 1.5;
+        ctx.save();
         for (let i = 0; i < 3; i += 1) {
           ctx.rotate(0.64 + i * 0.14);
           ctx.beginPath();
           ctx.ellipse(0, 0, g.w * (0.36 + i * 0.08), g.h * (0.34 + i * 0.07), 0, 0, Math.PI * 2);
           ctx.stroke();
         }
+        ctx.restore();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = open ? level.palette.gate : "rgba(246,240,221,0.68)";
+        ctx.font = "800 11px ui-sans-serif, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(open ? (currentLevel === LEVEL_COUNT - 1 ? "FINAL PORTAL" : "PORTAL") : "LOCKED", 0, -g.h / 2 - 12);
         ctx.restore();
       }
 
@@ -1021,12 +1248,12 @@
           ctx.save();
           ctx.translate(s.x, y);
           ctx.rotate(performance.now() * 0.0018 + s.phase);
-          ctx.shadowColor = "#70d7ff";
+          ctx.shadowColor = level.palette.shard;
           ctx.shadowBlur = 24;
           const grad = ctx.createLinearGradient(-14, -14, 14, 14);
           grad.addColorStop(0, "#f6f0dd");
-          grad.addColorStop(0.45, "#70d7ff");
-          grad.addColorStop(1, "#a98cff");
+          grad.addColorStop(0.45, level.palette.shard);
+          grad.addColorStop(1, level.palette.accent);
           ctx.fillStyle = grad;
           ctx.strokeStyle = "rgba(246,240,221,0.86)";
           ctx.lineWidth = 1.5;
@@ -1174,6 +1401,27 @@
         osc.stop(now + dur + 0.03);
       }
 
+      function noiseBurst(dur = 0.08, vol = 0.03, delay = 0, filterFreq = 900) {
+        if (!audioOn) return;
+        ensureAudio();
+        const now = audioCtx.currentTime + delay;
+        const length = Math.max(1, Math.floor(audioCtx.sampleRate * dur));
+        const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i += 1) data[i] = Math.random() * 2 - 1;
+        const src = audioCtx.createBufferSource();
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+        src.buffer = buffer;
+        filter.type = "bandpass";
+        filter.frequency.value = filterFreq;
+        filter.Q.value = 1.1;
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        src.connect(filter).connect(gain).connect(masterGain);
+        src.start(now);
+      }
+
       function cue(kind) {
         if (!audioOn) return;
         if (kind === "tap") tone(260, 0.025, "sine", 0.012);
@@ -1182,34 +1430,60 @@
         if (kind === "collect") { tone(620, 0.08, "triangle", 0.04); tone(930, 0.12, "sine", 0.026, 0.06); }
         if (kind === "hurt") { tone(90, 0.16, "sawtooth", 0.05); tone(70, 0.18, "sine", 0.034, 0.08); }
         if (kind === "start") tone(330, 0.12, "triangle", 0.03);
+        if (kind === "level") { [330, 495, 660].forEach((f, i) => tone(f, 0.12, "triangle", 0.034, i * 0.08)); noiseBurst(0.1, 0.018, 0.04, 1600); }
         if (kind === "win") [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.16, "triangle", 0.042, i * 0.09));
         if (kind === "lose") [196, 147, 110].forEach((f, i) => tone(f, 0.18, "sine", 0.038, i * 0.1));
       }
 
       function startMusic() {
         if (!audioOn || musicTimer) return;
-        const notes = [196, 246.94, 293.66, 369.99, 392, 493.88, 587.33, 739.99];
+        const scales = [
+          [196, 246.94, 293.66, 369.99, 392, 493.88, 587.33, 739.99],
+          [174.61, 220, 261.63, 329.63, 349.23, 440, 523.25, 659.25],
+          [207.65, 246.94, 311.13, 369.99, 415.3, 493.88, 622.25, 739.99],
+          [164.81, 196, 246.94, 293.66, 329.63, 392, 493.88, 587.33],
+          [220, 261.63, 329.63, 392, 440, 523.25, 659.25, 783.99]
+        ];
         const playNote = () => {
           if (!audioOn || !audioCtx || mode !== "playing") return;
           const now = audioCtx.currentTime;
-          const base = notes[musicStep % notes.length];
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          const filter = audioCtx.createBiquadFilter();
-          osc.type = "sine";
-          osc.frequency.value = base;
-          filter.type = "lowpass";
-          filter.frequency.value = 820;
-          gain.gain.setValueAtTime(0.0001, now);
-          gain.gain.exponentialRampToValueAtTime(0.09, now + 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.15);
-          osc.connect(filter).connect(gain).connect(musicGain);
-          osc.start(now);
-          osc.stop(now + 1.2);
+          const scale = scales[currentLevel] || scales[0];
+          const arp = scale[(musicStep * 3 + currentLevel) % scale.length];
+          const bass = scale[(musicStep >> 2) % 4] / 2;
+          const lead = audioCtx.createOscillator();
+          const leadGain = audioCtx.createGain();
+          const leadFilter = audioCtx.createBiquadFilter();
+          lead.type = currentLevel % 2 ? "triangle" : "sine";
+          lead.frequency.setValueAtTime(arp, now);
+          lead.detune.setValueAtTime((musicStep % 3 - 1) * 5, now);
+          leadFilter.type = "lowpass";
+          leadFilter.frequency.value = 760 + currentLevel * 120;
+          leadGain.gain.setValueAtTime(0.0001, now);
+          leadGain.gain.exponentialRampToValueAtTime(0.055, now + 0.025);
+          leadGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+          lead.connect(leadFilter).connect(leadGain).connect(musicGain);
+          lead.start(now);
+          lead.stop(now + 0.46);
+
+          if (musicStep % 4 === 0) {
+            const sub = audioCtx.createOscillator();
+            const subGain = audioCtx.createGain();
+            sub.type = "sawtooth";
+            sub.frequency.value = bass;
+            subGain.gain.setValueAtTime(0.0001, now);
+            subGain.gain.exponentialRampToValueAtTime(0.07, now + 0.04);
+            subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+            sub.connect(subGain).connect(musicGain);
+            sub.start(now);
+            sub.stop(now + 0.74);
+          }
+
+          if (musicStep % 2 === 0) noiseBurst(0.035, 0.012 + currentLevel * 0.002, 0, 2100);
+          if (musicStep % 8 === 6) noiseBurst(0.08, 0.018, 0, 560);
           musicStep += 1;
         };
         playNote();
-        musicTimer = setInterval(playNote, 620);
+        musicTimer = setInterval(playNote, Math.max(180, 280 - currentLevel * 18));
       }
 
       function stopMusic() {
