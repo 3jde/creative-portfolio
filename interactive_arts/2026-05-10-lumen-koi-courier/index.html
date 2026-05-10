@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Lumen Koi Courier | Daily Mini Game 2026-05-10</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root {
+      --ink: #080715;
+      --deep: #10122b;
+      --paper: #f7edcf;
+      --gold: #ffd166;
+      --mint: #8fffd2;
+      --rose: #ff5d9e;
+      --cyan: #64dcff;
+      --violet: #9b7bff;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at 50% 20%, #263064 0%, var(--ink) 64%); color: var(--paper); font-family: ui-rounded, "Avenir Next", "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+    body { touch-action: none; }
+    .shell { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr auto; }
+    header, footer { position: relative; z-index: 5; padding: max(14px, env(safe-area-inset-top)) clamp(14px, 3vw, 34px) 12px; display: flex; align-items: center; justify-content: space-between; gap: 14px; pointer-events: none; }
+    .brand { pointer-events: auto; }
+    h1 { margin: 0; font-size: clamp(1.35rem, 4.6vw, 3.4rem); letter-spacing: -.04em; line-height: .88; text-transform: uppercase; text-shadow: 0 0 18px rgba(255, 209, 102, .32); }
+    .subtitle { margin-top: 7px; max-width: 650px; color: rgba(247,237,207,.78); font-size: clamp(.78rem, 2vw, .98rem); line-height: 1.35; }
+    .hud { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .chip, button { pointer-events: auto; border: 1px solid rgba(247,237,207,.28); border-radius: 999px; padding: 9px 12px; background: rgba(8,7,21,.46); color: var(--paper); box-shadow: inset 0 0 18px rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.22); backdrop-filter: blur(14px); font-weight: 800; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; }
+    button { cursor: pointer; transition: transform .12s ease, border-color .12s ease, background .12s ease; }
+    button:active { transform: scale(.95); }
+    button:hover { border-color: rgba(255,209,102,.8); background: rgba(255,209,102,.15); }
+    #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+    .message { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; width: min(560px, calc(100vw - 30px)); border: 1px solid rgba(255,209,102,.34); border-radius: 30px; padding: 24px; background: linear-gradient(145deg, rgba(15,17,44,.78), rgba(8,7,21,.58)); box-shadow: 0 30px 90px rgba(0,0,0,.48), inset 0 0 70px rgba(100,220,255,.08); backdrop-filter: blur(18px); text-align: center; pointer-events: auto; }
+    .message h2 { margin: 0 0 10px; font-size: clamp(1.9rem, 8vw, 4rem); line-height: .9; letter-spacing: -.06em; }
+    .message p { margin: 8px auto; max-width: 46ch; color: rgba(247,237,207,.82); line-height: 1.5; }
+    .message .small { color: rgba(247,237,207,.6); font-size: .82rem; }
+    .hidden { opacity: 0; visibility: hidden; transform: translate(-50%, -46%) scale(.96); transition: .25s ease; }
+    footer { align-self: end; padding-top: 0; padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+    .controls { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 12px; }
+    .gesture { max-width: 660px; padding: 10px 13px; border-left: 3px solid var(--mint); background: linear-gradient(90deg, rgba(143,255,210,.13), transparent); color: rgba(247,237,207,.8); font-size: clamp(.74rem, 2.1vw, .92rem); line-height: 1.35; }
+    .pulsePad { width: 82px; height: 82px; border-radius: 50%; display: grid; place-items: center; border: 1px solid rgba(143,255,210,.55); background: radial-gradient(circle, rgba(143,255,210,.26), rgba(100,220,255,.08) 62%, transparent); box-shadow: 0 0 30px rgba(143,255,210,.2); font-weight: 900; pointer-events: auto; user-select: none; touch-action: none; }
+    .pulsePad:active { transform: scale(.92); background: radial-gradient(circle, rgba(255,209,102,.45), rgba(255,93,158,.12) 70%, transparent); }
+    @media (max-width: 720px) { header { align-items: flex-start; flex-direction: column; } .hud { justify-content: flex-start; } .message { top: 48%; padding: 20px; } .pulsePad { width: 76px; height: 76px; } }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Lumen Koi Courier game canvas"></canvas>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <h1>Lumen Koi Courier</h1>
+        <div class="subtitle">Drag to steer a moonlit koi through lantern gates. Tap or press the pulse button to clear ink blooms. Deliver 12 letters before the tide clock empties.</div>
+      </div>
+      <div class="hud" aria-live="polite">
+        <div class="chip">Letters <span id="score">0</span>/12</div>
+        <div class="chip">Combo ×<span id="combo">1</span></div>
+        <div class="chip">Tide <span id="time">75</span>s</div>
+        <button id="soundBtn" type="button">Sound: Off</button>
+        <button id="restartBtn" type="button">Restart</button>
+      </div>
+    </header>
+    <main></main>
+    <footer>
+      <div class="controls">
+        <div class="gesture"><strong>Touch:</strong> hold + drag anywhere to pull a glowing current. <strong>Tap / PULSE</strong> creates a ripple that pushes ink away. Desktop: mouse drag, Space pulse, WASD/Arrows nudge.</div>
+        <div id="pulsePad" class="pulsePad" role="button" aria-label="Pulse ripple control">PULSE</div>
+      </div>
+    </footer>
+  </div>
+  <section id="message" class="message">
+    <h2>Carry the lantern mail</h2>
+    <p>Guide the koi through each golden gate to collect letters. Consecutive clean gates raise your combo; touching ink blooms costs tide time. Pulses are strongest near your fish.</p>
+    <p class="small">Original daily browser mini game · 2026-05-10</p>
+    <button id="startBtn" type="button">Start delivery</button>
+  </section>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const comboEl = document.getElementById('combo');
+  const timeEl = document.getElementById('time');
+  const restartBtn = document.getElementById('restartBtn');
+  const startBtn = document.getElementById('startBtn');
+  const message = document.getElementById('message');
+  const pulsePad = document.getElementById('pulsePad');
+  const soundBtn = document.getElementById('soundBtn');
+
+  let W = 1, H = 1, DPR = 1, running = false, won = false, last = 0, audioOn = false, audioCtx = null;
+  const pointer = { down:false, x:0, y:0, ox:0, oy:0 };
+  const keys = new Set();
+  const koi = { x: 0, y: 0, vx: 0, vy: 0, r: 19, angle: 0, trail: [] };
+  let letters = 0, combo = 1, tide = 75, gate = null, obstacles = [], particles = [], ripples = [], currentFlash = 0;
+  const rand = (a,b) => a + Math.random() * (b-a);
+  const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+  const dist = (a,b,c,d) => Math.hypot(a-c,b-d);
+
+  function resize(){ DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; canvas.width = W*DPR; canvas.height = H*DPR; canvas.style.width = W+'px'; canvas.style.height = H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  addEventListener('resize', resize, {passive:true}); resize();
+
+  function note(freq=440, dur=.08, type='sine', gain=.035){
+    if(!audioOn) return;
+    audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.setValueAtTime(freq,t); o.frequency.exponentialRampToValueAtTime(freq*.72,t+dur);
+    o.type = type; g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+dur);
+  }
+  soundBtn.onclick = () => { audioOn = !audioOn; soundBtn.textContent = 'Sound: ' + (audioOn ? 'On' : 'Off'); note(660,.1,'triangle'); };
+
+  function spawnGate(){
+    const margin = Math.min(W,H)*.16 + 30;
+    gate = { x: rand(margin, W-margin), y: rand(margin+35, H-margin-30), r: rand(44,62), spin: rand(-1,1), phase: rand(0,9) };
+    for(let i=0;i<18;i++) particles.push({x:gate.x,y:gate.y,vx:rand(-60,60),vy:rand(-60,60),life:rand(.4,.9),max:.9,c:'#ffd166',s:rand(1,3)});
+  }
+  function spawnInk(){
+    obstacles = [];
+    const n = clamp(Math.floor((W*H)/90000), 5, 11);
+    for(let i=0;i<n;i++) obstacles.push({x:rand(60,W-60), y:rand(125,H-95), r:rand(22,42), vx:rand(-22,22), vy:rand(-18,18), phase:rand(0,9)});
+  }
+  function reset(){
+    koi.x = W*.5; koi.y = H*.58; koi.vx = koi.vy = 0; koi.trail = [];
+    letters = 0; combo = 1; tide = 75; won = false; running = false; particles = []; ripples = []; spawnGate(); spawnInk(); updateHud(); message.classList.remove('hidden');
+    message.querySelector('h2').textContent = 'Carry the lantern mail';
+    message.querySelector('p').textContent = 'Guide the koi through each golden gate to collect letters. Consecutive clean gates raise your combo; touching ink blooms costs tide time. Pulses are strongest near your fish.';
+    startBtn.textContent = 'Start delivery';
+  }
+  function start(){ running = true; won = false; last = performance.now(); message.classList.add('hidden'); note(523,.08,'triangle'); requestAnimationFrame(loop); }
+  function end(text, detail){ running = false; message.classList.remove('hidden'); message.querySelector('h2').textContent = text; message.querySelector('p').textContent = detail; startBtn.textContent = 'Run again'; }
+  function updateHud(){ scoreEl.textContent = letters; comboEl.textContent = combo; timeEl.textContent = Math.max(0, Math.ceil(tide)); }
+
+  function pulse(){
+    if(!running) return start();
+    ripples.push({x:koi.x,y:koi.y,r:10,life:.52,max:.52}); currentFlash = .16; note(220 + combo*45, .13, 'triangle', .04);
+    obstacles.forEach(o => { const d = Math.max(1, dist(koi.x,koi.y,o.x,o.y)); if(d < 210){ const f = (210-d)/210*230; o.vx += (o.x-koi.x)/d*f; o.vy += (o.y-koi.y)/d*f; }});
+  }
+  pulsePad.addEventListener('pointerdown', e => { e.preventDefault(); pulse(); });
+  startBtn.onclick = start; restartBtn.onclick = reset;
+
+  canvas.addEventListener('pointerdown', e => { pointer.down = true; pointer.x = pointer.ox = e.clientX; pointer.y = pointer.oy = e.clientY; canvas.setPointerCapture(e.pointerId); if(!running) start(); });
+  canvas.addEventListener('pointermove', e => { pointer.x = e.clientX; pointer.y = e.clientY; });
+  canvas.addEventListener('pointerup', e => { pointer.down = false; if(Math.hypot(e.clientX-pointer.ox,e.clientY-pointer.oy)<12) pulse(); });
+  addEventListener('keydown', e => { keys.add(e.key.toLowerCase()); if(e.code === 'Space'){ e.preventDefault(); pulse(); }});
+  addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+
+  function collectGate(){
+    letters++; combo = Math.min(9, combo+1); tide = Math.min(90, tide + 2 + combo*.35); currentFlash = .3; note(560 + combo*38, .11, 'sine', .045);
+    for(let i=0;i<34;i++) particles.push({x:koi.x,y:koi.y,vx:rand(-160,160),vy:rand(-160,160),life:rand(.45,1),max:1,c:i%2?'#ffd166':'#8fffd2',s:rand(1.5,5)});
+    if(letters >= 12){ won = true; end('Moon mail delivered', `Perfect drift! You delivered all 12 letters with a ×${combo} combo and ${Math.ceil(tide)} seconds of tide glow left.`); return; }
+    spawnGate(); if(letters % 3 === 0) obstacles.push({x:rand(60,W-60), y:rand(130,H-100), r:rand(26,44), vx:rand(-26,26), vy:rand(-22,22), phase:rand(0,9)});
+  }
+
+  function update(dt){
+    tide -= dt; currentFlash = Math.max(0, currentFlash - dt);
+    if(tide <= 0) return end('The tide went dark', `You delivered ${letters} letters. Try shorter drags, save pulses for crowded ink, and skim gates from the side.`);
+    let ax = 0, ay = 0;
+    if(pointer.down){ ax += (pointer.x - koi.x) * 1.7; ay += (pointer.y - koi.y) * 1.7; }
+    if(keys.has('arrowleft')||keys.has('a')) ax -= 520; if(keys.has('arrowright')||keys.has('d')) ax += 520; if(keys.has('arrowup')||keys.has('w')) ay -= 520; if(keys.has('arrowdown')||keys.has('s')) ay += 520;
+    koi.vx += ax*dt; koi.vy += ay*dt; koi.vx *= Math.pow(.08, dt); koi.vy *= Math.pow(.08, dt);
+    const speed = Math.hypot(koi.vx,koi.vy); if(speed > 520){ koi.vx = koi.vx/speed*520; koi.vy = koi.vy/speed*520; }
+    koi.x += koi.vx*dt; koi.y += koi.vy*dt;
+    koi.x = clamp(koi.x, koi.r+8, W-koi.r-8); koi.y = clamp(koi.y, 105, H-koi.r-70);
+    koi.angle = Math.atan2(koi.vy, koi.vx || .001);
+    koi.trail.unshift({x:koi.x,y:koi.y,a:koi.angle,life:1}); if(koi.trail.length > 26) koi.trail.pop(); koi.trail.forEach((t,i)=>t.life=1-i/26);
+    if(gate && dist(koi.x,koi.y,gate.x,gate.y) < gate.r*.78) collectGate();
+    obstacles.forEach(o => {
+      o.x += o.vx*dt; o.y += o.vy*dt; o.phase += dt;
+      if(o.x < o.r || o.x > W-o.r) o.vx *= -1; if(o.y < 115 || o.y > H-78) o.vy *= -1;
+      o.vx *= Math.pow(.55,dt); o.vy *= Math.pow(.55,dt);
+      if(dist(koi.x,koi.y,o.x,o.y) < koi.r + o.r*.7){
+        const d = Math.max(1, dist(koi.x,koi.y,o.x,o.y)); koi.vx += (koi.x-o.x)/d*210; koi.vy += (koi.y-o.y)/d*210; tide -= 4.8; combo = 1; currentFlash = .2; note(92,.14,'sawtooth',.03);
+        for(let i=0;i<16;i++) particles.push({x:koi.x,y:koi.y,vx:rand(-130,130),vy:rand(-130,130),life:rand(.25,.65),max:.65,c:'#ff5d9e',s:rand(2,6)});
+      }
+    });
+    ripples.forEach(r=>{ r.life-=dt; r.r += 420*dt; }); ripples = ripples.filter(r=>r.life>0);
+    particles.forEach(p=>{ p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=Math.pow(.18,dt); p.vy*=Math.pow(.18,dt); }); particles = particles.filter(p=>p.life>0);
+    updateHud();
+  }
+
+  function drawKoi(){
+    koi.trail.forEach((t,i)=>{ ctx.save(); ctx.globalAlpha = .1*t.life; ctx.translate(t.x,t.y); ctx.rotate(t.a); ctx.fillStyle = i%2?'#8fffd2':'#ffd166'; ctx.beginPath(); ctx.ellipse(-i*.7,0,30*t.life,11*t.life,0,0,Math.PI*2); ctx.fill(); ctx.restore(); });
+    ctx.save(); ctx.translate(koi.x,koi.y); ctx.rotate(koi.angle); ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 22 + currentFlash*80;
+    const body = ctx.createLinearGradient(-26,-14,28,14); body.addColorStop(0,'#fff6cf'); body.addColorStop(.45,'#ffd166'); body.addColorStop(1,'#ff7aa8');
+    ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(0,0,29,14,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#8fffd2'; ctx.beginPath(); ctx.moveTo(-22,0); ctx.quadraticCurveTo(-46,-22,-42,0); ctx.quadraticCurveTo(-46,22,-22,0); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.beginPath(); ctx.arc(14,-5,3,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const g = ctx.createRadialGradient(W*.5,H*.35,10,W*.5,H*.5,Math.max(W,H)); g.addColorStop(0,'#24376f'); g.addColorStop(.55,'#10122b'); g.addColorStop(1,'#06050f'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.globalAlpha=.22; ctx.strokeStyle='#64dcff'; ctx.lineWidth=1; for(let y=120;y<H;y+=34){ ctx.beginPath(); for(let x=0;x<=W;x+=26){ const yy=y+Math.sin(x*.012+performance.now()*.0009+y*.02)*8; x?ctx.lineTo(x,yy):ctx.moveTo(x,yy); } ctx.stroke(); } ctx.restore();
+    if(pointer.down){ ctx.save(); ctx.globalAlpha=.42; ctx.strokeStyle='#8fffd2'; ctx.lineWidth=3; ctx.setLineDash([8,10]); ctx.beginPath(); ctx.moveTo(koi.x,koi.y); ctx.lineTo(pointer.x,pointer.y); ctx.stroke(); ctx.restore(); }
+    if(gate){ gate.phase += .018; ctx.save(); ctx.translate(gate.x,gate.y); ctx.rotate(gate.phase*gate.spin*.6); ctx.shadowColor='#ffd166'; ctx.shadowBlur=26; ctx.strokeStyle='rgba(255,209,102,.88)'; ctx.lineWidth=6; ctx.beginPath(); ctx.arc(0,0,gate.r,0,Math.PI*2); ctx.stroke(); ctx.lineWidth=1.5; ctx.strokeStyle='rgba(143,255,210,.6)'; for(let i=0;i<8;i++){ ctx.rotate(Math.PI/4); ctx.beginPath(); ctx.moveTo(gate.r-13,0); ctx.lineTo(gate.r+13,0); ctx.stroke(); } ctx.fillStyle='#ffd166'; ctx.font='900 18px ui-rounded, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('LETTER',0,0); ctx.restore(); }
+    obstacles.forEach(o=>{ ctx.save(); ctx.translate(o.x,o.y); ctx.rotate(o.phase*.8); ctx.shadowColor='#ff5d9e'; ctx.shadowBlur=20; const rg=ctx.createRadialGradient(0,0,2,0,0,o.r); rg.addColorStop(0,'rgba(255,93,158,.8)'); rg.addColorStop(.55,'rgba(155,123,255,.5)'); rg.addColorStop(1,'rgba(8,7,21,.05)'); ctx.fillStyle=rg; ctx.beginPath(); for(let i=0;i<16;i++){ const a=i/16*Math.PI*2; const rr=o.r*(.72+.24*Math.sin(o.phase*3+i)); ctx.lineTo(Math.cos(a)*rr, Math.sin(a)*rr); } ctx.closePath(); ctx.fill(); ctx.restore(); });
+    ripples.forEach(r=>{ ctx.save(); ctx.globalAlpha=r.life/r.max; ctx.strokeStyle='#8fffd2'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,Math.PI*2); ctx.stroke(); ctx.restore(); });
+    particles.forEach(p=>{ ctx.save(); ctx.globalAlpha=Math.max(0,p.life/p.max); ctx.fillStyle=p.c; ctx.shadowColor=p.c; ctx.shadowBlur=12; ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2); ctx.fill(); ctx.restore(); });
+    drawKoi();
+    if(currentFlash>0){ ctx.save(); ctx.globalAlpha=currentFlash*.7; ctx.fillStyle='#fff3b0'; ctx.fillRect(0,0,W,H); ctx.restore(); }
+  }
+  function loop(now){ if(!running && !won) { draw(); return; } const dt = Math.min(.033, (now-last)/1000 || .016); last = now; update(dt); draw(); if(running) requestAnimationFrame(loop); }
+  reset(); draw();
+})();
+</script>
+</body>
+</html>
