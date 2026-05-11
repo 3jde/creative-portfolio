@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Signal Bloom Switchboard | Daily Mini Game 2026-05-11</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root { --void:#05040b; --panel:#111020; --cream:#fff4d8; --cyan:#58e8ff; --rose:#ff5e9c; --gold:#ffd45a; --mint:#8affb8; --violet:#9d79ff; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin:0; width:100%; min-height:100%; overflow:hidden; background: radial-gradient(circle at 50% 18%, #25204d 0, #0d0b19 46%, #040309 100%); color:var(--cream); font-family: ui-rounded, "Avenir Next", "Segoe UI", system-ui, sans-serif; }
+    body { touch-action:none; }
+    canvas { position:fixed; inset:0; width:100%; height:100%; display:block; cursor:grab; }
+    canvas:active { cursor:grabbing; }
+    .shell { position:fixed; inset:0; display:grid; grid-template-rows:auto 1fr auto; pointer-events:none; }
+    header, footer { z-index:3; padding: max(14px, env(safe-area-inset-top)) clamp(14px, 3vw, 34px) 12px; display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+    h1 { margin:0; max-width:760px; font-size:clamp(1.45rem, 5.4vw, 4.5rem); line-height:.85; letter-spacing:-.065em; text-transform:uppercase; text-shadow:0 0 20px rgba(88,232,255,.25); }
+    .subtitle { margin-top:8px; max-width:660px; color:rgba(255,244,216,.78); font-size:clamp(.78rem,2vw,.98rem); line-height:1.4; }
+    .hud { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .chip, button { pointer-events:auto; border:1px solid rgba(255,244,216,.24); border-radius:999px; padding:9px 12px; background:rgba(5,4,11,.52); color:var(--cream); box-shadow:inset 0 0 18px rgba(255,255,255,.04), 0 12px 34px rgba(0,0,0,.28); backdrop-filter:blur(14px); font-size:.8rem; font-weight:900; letter-spacing:.045em; text-transform:uppercase; }
+    button { cursor:pointer; transition:transform .12s ease, border-color .12s ease, background .12s ease; }
+    button:active, .colorBtn.active { transform:scale(.95); background:rgba(88,232,255,.16); border-color:rgba(88,232,255,.75); }
+    .message { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:4; width:min(590px, calc(100vw - 30px)); padding:24px; border:1px solid rgba(88,232,255,.32); border-radius:32px; background:linear-gradient(145deg, rgba(17,16,32,.82), rgba(5,4,11,.62)); box-shadow:0 30px 90px rgba(0,0,0,.54), inset 0 0 80px rgba(157,121,255,.09); text-align:center; pointer-events:auto; backdrop-filter:blur(20px); transition:.25s ease; }
+    .message.hidden { opacity:0; visibility:hidden; transform:translate(-50%,-45%) scale(.96); }
+    .message h2 { margin:0 0 10px; font-size:clamp(2rem,8vw,4rem); line-height:.9; letter-spacing:-.06em; }
+    .message p { margin:8px auto; max-width:48ch; color:rgba(255,244,216,.82); line-height:1.5; }
+    .small { color:rgba(255,244,216,.58)!important; font-size:.82rem; }
+    footer { align-self:end; padding-top:0; padding-bottom:max(14px, env(safe-area-inset-bottom)); align-items:flex-end; }
+    .gesture { pointer-events:auto; max-width:680px; padding:10px 13px; border-left:3px solid var(--cyan); background:linear-gradient(90deg, rgba(88,232,255,.14), transparent); color:rgba(255,244,216,.82); font-size:clamp(.74rem,2.1vw,.92rem); line-height:1.35; }
+    .palette { display:flex; gap:8px; pointer-events:auto; }
+    .colorBtn { min-width:58px; }
+    .colorBtn[data-c="0"] { box-shadow:0 0 24px rgba(88,232,255,.13); }
+    .colorBtn[data-c="1"] { box-shadow:0 0 24px rgba(255,94,156,.13); }
+    .colorBtn[data-c="2"] { box-shadow:0 0 24px rgba(255,212,90,.13); }
+    @media (max-width:760px) { header { flex-direction:column; } .hud { justify-content:flex-start; } footer { flex-direction:column; align-items:stretch; } .palette { justify-content:space-between; } .colorBtn { flex:1; } .message { top:48%; padding:20px; } }
+  </style>
+</head>
+<body>
+<canvas id="game" aria-label="Signal Bloom Switchboard game canvas"></canvas>
+<div class="shell">
+  <header>
+    <div>
+      <h1>Signal Bloom Switchboard</h1>
+      <div class="subtitle">Drag the orbital receiver around the neon dial. Match its color to incoming signal seeds before they hit the core; static shards must be dodged or pulsed away.</div>
+    </div>
+    <div class="hud" aria-live="polite">
+      <div class="chip">Blooms <span id="score">0</span>/18</div>
+      <div class="chip">Streak ×<span id="streak">1</span></div>
+      <div class="chip">Stability <span id="stability">100</span>%</div>
+      <button id="soundBtn" type="button">Sound: Off</button>
+      <button id="restartBtn" type="button">Restart</button>
+    </div>
+  </header>
+  <main></main>
+  <footer>
+    <div class="gesture"><strong>Touch:</strong> drag anywhere to rotate the receiver. Tap a color button to retune. Double-tap / Space makes a pulse. Desktop: mouse drag, ←/→ rotate, 1/2/3 color.</div>
+    <div class="palette" role="group" aria-label="Receiver color controls">
+      <button class="colorBtn active" data-c="0" type="button">Cyan</button>
+      <button class="colorBtn" data-c="1" type="button">Rose</button>
+      <button class="colorBtn" data-c="2" type="button">Gold</button>
+    </div>
+  </footer>
+</div>
+<section id="message" class="message">
+  <h2>Tune the living circuit</h2>
+  <p>Catch colored signal seeds with the matching receiver to bloom the central switchboard. Wrong colors and static shards crack stability; perfect catches make the dial sing.</p>
+  <p class="small">Original daily browser mini game · 2026-05-11</p>
+  <button id="startBtn" type="button">Start tuning</button>
+</section>
+<script>
+(() => {
+  const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score'), streakEl = document.getElementById('streak'), stabilityEl = document.getElementById('stability');
+  const message = document.getElementById('message'), startBtn = document.getElementById('startBtn'), restartBtn = document.getElementById('restartBtn'), soundBtn = document.getElementById('soundBtn');
+  const colorBtns = [...document.querySelectorAll('.colorBtn')];
+  const colors = ['#58e8ff', '#ff5e9c', '#ffd45a'];
+  const names = ['Cyan','Rose','Gold'];
+  let W=1,H=1,DPR=1,cx=0,cy=0,R=180,running=false,last=0,score=0,streak=1,stability=100,receiverA=-Math.PI/2,receiverColor=0,flash=0,shake=0,spawn=0,wave=0,audioOn=false,audioCtx=null,lastTap=0;
+  let seeds=[], particles=[], ripples=[]; const keys = new Set();
+  const rand=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), TAU=Math.PI*2;
+  function resize(){ DPR=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); cx=W/2; cy=H*.52; R=clamp(Math.min(W,H)*.28,118,220); } addEventListener('resize',resize,{passive:true}); resize();
+  function note(freq=440,dur=.07,type='sine',gain=.035){ if(!audioOn) return; audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); const t=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=type; o.frequency.setValueAtTime(freq,t); o.frequency.exponentialRampToValueAtTime(Math.max(60,freq*.65),t+dur); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+dur); }
+  function setColor(i){ receiverColor=(i+3)%3; colorBtns.forEach((b,n)=>{ b.classList.toggle('active', n===receiverColor); b.textContent = names[n] + (n===receiverColor?' ✓':''); }); note([520,620,740][receiverColor],.05,'triangle',.025); }
+  colorBtns.forEach(b=>b.onclick=()=>setColor(+b.dataset.c)); soundBtn.onclick=()=>{ audioOn=!audioOn; soundBtn.textContent='Sound: '+(audioOn?'On':'Off'); note(660,.1,'triangle'); };
+  function updateHud(){ scoreEl.textContent=score; streakEl.textContent=streak; stabilityEl.textContent=Math.max(0,Math.ceil(stability)); }
+  function spawnSeed(){ const a=rand(0,TAU), isStatic=Math.random()<Math.min(.22,.08+wave*.012); seeds.push({a, rad:R+rand(190,310), speed:rand(54,78)+wave*2.5, color:Math.floor(rand(0,3)), static:isStatic, spin:rand(-1,1), wob:rand(0,9), born:performance.now()}); }
+  function reset(){ seeds=[]; particles=[]; ripples=[]; score=0; streak=1; stability=100; receiverA=-Math.PI/2; receiverColor=0; flash=0; shake=0; wave=0; spawn=.5; running=false; setColor(0); updateHud(); message.classList.remove('hidden'); message.querySelector('h2').textContent='Tune the living circuit'; message.querySelector('p').textContent='Catch colored signal seeds with the matching receiver to bloom the central switchboard. Wrong colors and static shards crack stability; perfect catches make the dial sing.'; startBtn.textContent='Start tuning'; draw(); }
+  function start(){ running=true; last=performance.now(); message.classList.add('hidden'); note(440,.08,'triangle'); requestAnimationFrame(loop); }
+  function end(title, body){ running=false; message.classList.remove('hidden'); message.querySelector('h2').textContent=title; message.querySelector('p').textContent=body; startBtn.textContent='Tune again'; }
+  startBtn.onclick=start; restartBtn.onclick=reset;
+  function angleDiff(a,b){ return Math.atan2(Math.sin(a-b), Math.cos(a-b)); }
+  function bloom(x,y,c,n=20){ for(let i=0;i<n;i++){ const a=rand(0,TAU), s=rand(35,190); particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.35,.9),max:.9,c,s:rand(1.5,5)}); } }
+  function pulse(){ if(!running) return start(); ripples.push({r:R*.72,life:.42,max:.42}); flash=.18; shake=4; note(210+streak*36,.12,'triangle',.04); seeds.forEach(s=>{ if(s.static && s.rad<R+125) s.rad += 110; }); }
+  canvas.addEventListener('pointerdown', e=>{ canvas.setPointerCapture(e.pointerId); const now=performance.now(); if(now-lastTap<280) pulse(); lastTap=now; if(!running) start(); receiverA=Math.atan2(e.clientY-cy,e.clientX-cx); });
+  canvas.addEventListener('pointermove', e=>{ if(e.buttons || e.pointerType==='touch') receiverA=Math.atan2(e.clientY-cy,e.clientX-cx); });
+  addEventListener('keydown', e=>{ keys.add(e.key.toLowerCase()); if(e.code==='Space'){ e.preventDefault(); pulse(); } if(['1','2','3'].includes(e.key)) setColor(+e.key-1); });
+  addEventListener('keyup', e=>keys.delete(e.key.toLowerCase()));
+  function fail(amount){ stability-=amount; streak=1; shake=8; flash=.24; note(90,.12,'sawtooth',.03); if(stability<=0) end('The circuit shattered', `You bloomed ${score} signals. Try matching color first, then rotating into place near the inner ring.`); }
+  function update(dt){ wave += dt; spawn -= dt; flash=Math.max(0,flash-dt); shake=Math.max(0,shake-dt*18); if(keys.has('arrowleft')||keys.has('a')) receiverA-=dt*3.2; if(keys.has('arrowright')||keys.has('d')) receiverA+=dt*3.2; if(spawn<=0){ spawnSeed(); spawn=Math.max(.34, .92-wave*.012); }
+    const rx=cx+Math.cos(receiverA)*R, ry=cy+Math.sin(receiverA)*R;
+    seeds.forEach(s=>{ s.rad-=s.speed*dt; s.a += Math.sin(wave*1.8+s.wob)*dt*.14 + s.spin*dt*.035; s.x=cx+Math.cos(s.a)*s.rad; s.y=cy+Math.sin(s.a)*s.rad; });
+    for(let i=seeds.length-1;i>=0;i--){ const s=seeds[i], d=Math.hypot(s.x-rx,s.y-ry), nearCore=s.rad<R*.38; if(d<34){ seeds.splice(i,1); if(s.static) { fail(16); bloom(s.x,s.y,'#9d79ff',14); continue; } if(s.color===receiverColor){ score++; streak=Math.min(9,streak+1); stability=Math.min(100, stability+1.5+streak*.2); flash=.22; bloom(s.x,s.y,colors[s.color],28); note([620,740,880][s.color]+streak*18,.09,'sine',.045); if(score>=18) end('Switchboard in full bloom', `Beautiful tuning — 18 signals bloomed with a final ×${streak} streak and ${Math.ceil(stability)}% stability.`); } else { fail(9); bloom(s.x,s.y,colors[s.color],16); } }
+      else if(nearCore){ seeds.splice(i,1); fail(s.static?8:7); bloom(cx+Math.cos(s.a)*R*.4, cy+Math.sin(s.a)*R*.4, s.static?'#9d79ff':colors[s.color],12); }
+    }
+    ripples.forEach(r=>{ r.life-=dt; r.r+=360*dt; }); ripples=ripples.filter(r=>r.life>0);
+    particles.forEach(p=>{ p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=Math.pow(.16,dt); p.vy*=Math.pow(.16,dt); }); particles=particles.filter(p=>p.life>0); updateHud(); }
+  function draw(){ const ox=shake?rand(-shake,shake):0, oy=shake?rand(-shake,shake):0; ctx.save(); ctx.translate(ox,oy); ctx.clearRect(-20,-20,W+40,H+40); const bg=ctx.createRadialGradient(cx,cy,8,cx,cy,Math.max(W,H)*.72); bg.addColorStop(0,'#241d4d'); bg.addColorStop(.48,'#100e21'); bg.addColorStop(1,'#040309'); ctx.fillStyle=bg; ctx.fillRect(-20,-20,W+40,H+40);
+    ctx.save(); ctx.globalAlpha=.2; for(let i=0;i<18;i++){ const a=i/18*TAU+wave*.08; ctx.strokeStyle=i%3===0?colors[i%3]:'rgba(255,244,216,.18)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*44,cy+Math.sin(a)*44); ctx.lineTo(cx+Math.cos(a)*(R+260),cy+Math.sin(a)*(R+260)); ctx.stroke(); } ctx.restore();
+    for(let rr=R*.42; rr<R+260; rr+=52){ ctx.save(); ctx.globalAlpha=.12; ctx.strokeStyle='#fff4d8'; ctx.lineWidth=1; ctx.setLineDash([3,10]); ctx.beginPath(); ctx.arc(cx,cy,rr,0,TAU); ctx.stroke(); ctx.restore(); }
+    const core=ctx.createRadialGradient(cx,cy,6,cx,cy,R*.38); core.addColorStop(0,'rgba(255,244,216,.95)'); core.addColorStop(.3,'rgba(88,232,255,.28)'); core.addColorStop(1,'rgba(157,121,255,.03)'); ctx.fillStyle=core; ctx.beginPath(); ctx.arc(cx,cy,R*.38,0,TAU); ctx.fill();
+    seeds.forEach(s=>{ ctx.save(); ctx.translate(s.x,s.y); ctx.rotate(s.a+wave); ctx.shadowColor=s.static?'#9d79ff':colors[s.color]; ctx.shadowBlur=18; ctx.fillStyle=s.static?'#9d79ff':colors[s.color]; if(s.static){ ctx.beginPath(); for(let i=0;i<8;i++){ const a=i/8*TAU, r=i%2?8:18; ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); } ctx.closePath(); ctx.fill(); } else { ctx.beginPath(); ctx.ellipse(0,0,18,10,0,0,TAU); ctx.fill(); ctx.fillStyle='rgba(255,255,255,.8)'; ctx.beginPath(); ctx.arc(6,-2,3,0,TAU); ctx.fill(); } ctx.restore(); });
+    ripples.forEach(r=>{ ctx.save(); ctx.globalAlpha=r.life/r.max; ctx.strokeStyle='#8affb8'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(cx,cy,r.r,0,TAU); ctx.stroke(); ctx.restore(); });
+    const rx=cx+Math.cos(receiverA)*R, ry=cy+Math.sin(receiverA)*R; ctx.save(); ctx.strokeStyle='rgba(255,244,216,.25)'; ctx.lineWidth=8; ctx.beginPath(); ctx.arc(cx,cy,R,0,TAU); ctx.stroke(); ctx.shadowColor=colors[receiverColor]; ctx.shadowBlur=26; ctx.strokeStyle=colors[receiverColor]; ctx.lineWidth=12; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(cx,cy,R,receiverA-.23,receiverA+.23); ctx.stroke(); ctx.translate(rx,ry); ctx.rotate(receiverA+Math.PI/2); ctx.fillStyle=colors[receiverColor]; ctx.beginPath(); ctx.roundRect(-26,-17,52,34,13); ctx.fill(); ctx.fillStyle='#05040b'; ctx.font='900 12px ui-rounded, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('TUNE',0,1); ctx.restore();
+    particles.forEach(p=>{ ctx.save(); ctx.globalAlpha=Math.max(0,p.life/p.max); ctx.fillStyle=p.c; ctx.shadowColor=p.c; ctx.shadowBlur=12; ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,TAU); ctx.fill(); ctx.restore(); });
+    ctx.fillStyle='rgba(255,244,216,.72)'; ctx.font='900 12px ui-rounded, sans-serif'; ctx.textAlign='center'; ctx.fillText('MATCH: '+names[receiverColor].toUpperCase(), cx, cy+4);
+    if(flash>0){ ctx.globalAlpha=flash*.55; ctx.fillStyle='#fff4d8'; ctx.fillRect(-20,-20,W+40,H+40); } ctx.restore(); }
+  function loop(now){ if(!running){ draw(); return; } const dt=Math.min(.033,(now-last)/1000||.016); last=now; update(dt); draw(); if(running) requestAnimationFrame(loop); }
+  reset();
+})();
+</script>
+</body>
+</html>
