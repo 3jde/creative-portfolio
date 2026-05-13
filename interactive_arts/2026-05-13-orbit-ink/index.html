@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ORBIT INK CARTOGRAPHER | ONE ZEN</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #070713;
+      --ink: #d8fff5;
+      --cyan: #3ff3ff;
+      --rose: #ff4fa3;
+      --gold: #ffe66d;
+      --bad: #17121f;
+      --panel: rgba(7, 7, 19, 0.74);
+    }
+    html, body { width: 100%; min-height: 100%; background: var(--bg); color: var(--ink); font-family: 'Space Mono', monospace; overflow-x: hidden; }
+    body {
+      min-height: 100dvh;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(63,243,255,0.22), transparent 30%),
+        radial-gradient(circle at 80% 18%, rgba(255,79,163,0.18), transparent 28%),
+        linear-gradient(135deg, #050511 0%, #111328 55%, #070713 100%);
+      touch-action: none;
+    }
+    .top-nav {
+      position: fixed; inset: 0 0 auto 0; z-index: 20;
+      display: flex; justify-content: space-between; gap: 18px; align-items: center;
+      padding: 14px clamp(14px, 4vw, 42px);
+      border-bottom: 1px solid rgba(216,255,245,0.18);
+      background: rgba(5,5,17,0.68); backdrop-filter: blur(14px);
+    }
+    .nav-logo { font-family: 'VT323', monospace; font-size: 2rem; color: var(--cyan); text-decoration: none; text-shadow: 0 0 14px rgba(63,243,255,0.7); }
+    .nav-menu { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .nav-menu a { color: var(--ink); text-decoration: none; font-size: 0.78rem; border: 1px solid rgba(216,255,245,0.28); padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.04); }
+    .nav-menu a:hover, .nav-menu a.active { color: #050511; background: var(--cyan); }
+    .game-shell { min-height: 100dvh; padding: 78px 14px 18px; display: grid; place-items: center; }
+    .stage {
+      width: min(1120px, 100%); min-height: min(760px, calc(100dvh - 96px)); position: relative; overflow: hidden;
+      border: 1px solid rgba(216,255,245,0.22); border-radius: 30px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      box-shadow: 0 26px 80px rgba(0,0,0,0.42), inset 0 0 48px rgba(63,243,255,0.06);
+    }
+    canvas { display: block; width: 100%; height: 100%; min-height: min(760px, calc(100dvh - 96px)); cursor: crosshair; }
+    .hud {
+      position: absolute; inset: 18px 18px auto; z-index: 5; pointer-events: none;
+      display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start;
+    }
+    .title-card, .stats, .note-card, .controls-card {
+      background: var(--panel); border: 1px solid rgba(216,255,245,0.18); border-radius: 20px;
+      padding: 14px 16px; backdrop-filter: blur(14px); box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+    }
+    .kicker { color: var(--gold); font-size: 0.72rem; letter-spacing: 0.16em; }
+    h1 { font-family: 'VT323', monospace; font-size: clamp(2.4rem, 7vw, 5.8rem); line-height: 0.9; color: var(--ink); text-shadow: 0 0 18px rgba(63,243,255,0.38); }
+    .title-card p { max-width: 620px; margin-top: 8px; color: rgba(216,255,245,0.78); font-size: 0.86rem; line-height: 1.45; }
+    .stats { display: grid; gap: 7px; min-width: 220px; text-align: right; }
+    .stat { display: flex; justify-content: space-between; gap: 18px; font-size: 0.82rem; }
+    .stat strong { color: var(--cyan); }
+    .meter { height: 8px; border-radius: 99px; overflow: hidden; background: rgba(216,255,245,0.12); border: 1px solid rgba(216,255,245,0.16); }
+    .meter span { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--rose), var(--gold), var(--cyan)); box-shadow: 0 0 14px var(--cyan); }
+    .note-card { position: absolute; left: 18px; bottom: 18px; z-index: 5; width: min(430px, calc(100% - 36px)); pointer-events: none; }
+    .note-card b { color: var(--gold); }
+    .note-card p { margin-top: 6px; color: rgba(216,255,245,0.76); font-size: 0.82rem; line-height: 1.45; }
+    .controls-card { position: absolute; right: 18px; bottom: 18px; z-index: 8; display: grid; gap: 10px; width: min(340px, calc(100% - 36px)); }
+    .pad-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      border: 1px solid rgba(216,255,245,0.26); border-radius: 18px; color: var(--ink); background: rgba(255,255,255,0.07);
+      font: 700 0.9rem 'Space Mono', monospace; padding: 14px 12px; cursor: pointer; touch-action: manipulation;
+      box-shadow: inset 0 0 18px rgba(255,255,255,0.04); transition: transform 120ms ease, background 120ms ease;
+    }
+    button:active, button.is-down { transform: scale(0.96); background: rgba(63,243,255,0.22); }
+    .swap { color: #050511; background: linear-gradient(90deg, var(--cyan), var(--rose)); border: 0; box-shadow: 0 0 24px rgba(255,79,163,0.28); }
+    .ghost { padding: 10px 12px; font-size: 0.78rem; }
+    .overlay {
+      position: absolute; inset: 0; z-index: 12; display: grid; place-items: center; padding: 18px;
+      background: radial-gradient(circle at center, rgba(17,19,40,0.54), rgba(5,5,17,0.88)); backdrop-filter: blur(7px);
+    }
+    .overlay.hidden { display: none; }
+    .modal { width: min(590px, 100%); text-align: center; padding: 28px; border: 1px solid rgba(216,255,245,0.22); border-radius: 28px; background: rgba(7,7,19,0.86); box-shadow: 0 24px 90px rgba(0,0,0,0.5); }
+    .modal h2 { font-family: 'VT323', monospace; font-size: clamp(3rem, 11vw, 6.6rem); color: var(--cyan); line-height: 0.85; margin: 8px 0 14px; }
+    .modal p { color: rgba(216,255,245,0.78); line-height: 1.55; margin-bottom: 18px; }
+    .modal .buttons { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+    .modal .buttons .wide { grid-column: 1 / -1; }
+    .toast { position: absolute; left: 50%; top: 48%; transform: translate(-50%, -50%); z-index: 7; color: var(--gold); font: 2.2rem 'VT323', monospace; text-shadow: 0 0 18px var(--gold); opacity: 0; pointer-events: none; }
+    .toast.show { animation: pop 560ms ease; }
+    @keyframes pop { 0% { opacity: 0; transform: translate(-50%,-40%) scale(.7); } 35% { opacity: 1; transform: translate(-50%,-54%) scale(1.15); } 100% { opacity: 0; transform: translate(-50%,-68%) scale(1); } }
+    @media (max-width: 760px) {
+      .top-nav { align-items: flex-start; }
+      .nav-menu a { font-size: 0.68rem; padding: 5px 8px; }
+      .game-shell { padding: 72px 8px 8px; }
+      .stage { border-radius: 22px; min-height: calc(100dvh - 84px); }
+      canvas { min-height: calc(100dvh - 84px); }
+      .hud { grid-template-columns: 1fr; inset: 12px 12px auto; }
+      .stats { text-align: left; width: min(100%, 360px); }
+      .title-card { padding: 12px; }
+      .title-card p { display: none; }
+      .note-card { display: none; }
+      .controls-card { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); width: auto; background: rgba(7,7,19,0.52); }
+      button { padding: 13px 10px; }
+      .modal { padding: 22px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <a href="../../index.html" class="nav-logo">ONE_ZEN_</a>
+    <div class="nav-menu">
+      <a href="../../generative.html">CODE ART</a>
+      <a href="../../digital.html">DIGITAL ART</a>
+      <a href="../../playground.html" class="active">PLAYGROUND</a>
+    </div>
+  </nav>
+
+  <main class="game-shell">
+    <section class="stage" id="stage" aria-label="Orbit Ink Cartographer mini game">
+      <canvas id="game" aria-label="Two orbiting ink satellites catch matching glyphs before they reach the center"></canvas>
+      <div class="hud">
+        <div class="title-card">
+          <div class="kicker">DAILY MINI GAME // 2026.05.13</div>
+          <h1>ORBIT INK CARTOGRAPHER</h1>
+          <p>Rotate twin ink moons around the atlas. Catch matching cyan/rose glyphs, dodge black thorns, swap palette at the right beat, and map 24 constellations before the center overflows.</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><span>SCORE</span><strong id="score">0</strong></div>
+          <div class="stat"><span>MAPPED</span><strong id="mapped">0/24</strong></div>
+          <div class="stat"><span>COMBO</span><strong id="combo">x1</strong></div>
+          <div class="meter" aria-label="stability"><span id="stability"></span></div>
+          <div class="stat"><span>STABILITY</span><strong id="stabilityText">100%</strong></div>
+        </div>
+      </div>
+
+      <div class="note-card">
+        <b>Rule:</b>
+        <p>Each moon only absorbs matching glyphs. The small ring previews which color is leading. Use left/right holds for precise orbiting; tap SWAP when the incoming lane color changes.</p>
+      </div>
+
+      <div class="controls-card" aria-label="Touch controls">
+        <div class="pad-row">
+          <button type="button" id="leftBtn" data-hold="left">⟲ HOLD LEFT</button>
+          <button type="button" id="rightBtn" data-hold="right">HOLD RIGHT ⟳</button>
+        </div>
+        <button class="swap" type="button" id="swapBtn">SWAP INK / SPACE</button>
+        <button class="ghost" type="button" id="restartBtn">RESTART MAP</button>
+      </div>
+
+      <div class="toast" id="toast">PERFECT ARC</div>
+
+      <div class="overlay" id="startOverlay">
+        <div class="modal">
+          <div class="kicker">TOUCH-FIRST ORBIT ARCADE</div>
+          <h2>MAP THE INK SKY</h2>
+          <p>Hold the left or right side to rotate the twin moons. Catch same-color glyphs with either moon, avoid black thorns, and tap swap to reverse the palette when the sky changes rhythm.</p>
+          <div class="buttons">
+            <button class="wide swap" type="button" id="startBtn">START CARTOGRAPHY</button>
+            <button type="button" data-demo="left">Left hold</button>
+            <button type="button" data-demo="right">Right hold</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="endOverlay">
+        <div class="modal">
+          <div class="kicker" id="endKicker">MISSION REPORT</div>
+          <h2 id="endTitle">ATLAS COMPLETE</h2>
+          <p id="endCopy">The sky has been charted.</p>
+          <button class="swap" type="button" id="againBtn">PLAY AGAIN</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const stage = document.getElementById('stage');
+    const ui = {
+      score: document.getElementById('score'), mapped: document.getElementById('mapped'), combo: document.getElementById('combo'),
+      stability: document.getElementById('stability'), stabilityText: document.getElementById('stabilityText'), toast: document.getElementById('toast'),
+      startOverlay: document.getElementById('startOverlay'), endOverlay: document.getElementById('endOverlay'), endTitle: document.getElementById('endTitle'),
+      endCopy: document.getElementById('endCopy'), endKicker: document.getElementById('endKicker')
+    };
+
+    const TAU = Math.PI * 2;
+    const colors = ['#3ff3ff', '#ff4fa3'];
+    const keys = { left: false, right: false };
+    let W = 900, H = 700, dpr = 1, cx = 450, cy = 350, radius = 160;
+    let running = false, ended = false, last = 0, spawnTimer = 0, shake = 0;
+    let angle = -Math.PI / 2, swap = 0, score = 0, mapped = 0, combo = 1, stability = 100;
+    let glyphs = [], sparks = [], stars = [];
+
+    function fit() {
+      const r = stage.getBoundingClientRect();
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = Math.max(320, Math.floor(r.width));
+      H = Math.max(520, Math.floor(r.height));
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx = W / 2;
+      cy = H * (W < 760 ? 0.48 : 0.53);
+      radius = Math.min(W, H) * (W < 760 ? 0.255 : 0.24);
+      stars = Array.from({ length: 70 }, () => ({ x: Math.random()*W, y: Math.random()*H, r: Math.random()*1.8+0.3, a: Math.random()*TAU }));
+    }
+
+    function reset() {
+      running = false; ended = false; last = performance.now(); spawnTimer = 0; shake = 0;
+      angle = -Math.PI / 2; swap = 0; score = 0; mapped = 0; combo = 1; stability = 100;
+      glyphs = []; sparks = [];
+      ui.startOverlay.classList.remove('hidden'); ui.endOverlay.classList.add('hidden'); updateUI();
+    }
+
+    function start() { running = true; ended = false; last = performance.now(); ui.startOverlay.classList.add('hidden'); requestAnimationFrame(loop); }
+
+    function finish(win) {
+      running = false; ended = true; ui.endOverlay.classList.remove('hidden');
+      ui.endKicker.textContent = win ? 'CONSTELLATION COMPLETE' : 'ATLAS OVERFLOW';
+      ui.endTitle.textContent = win ? 'INK SKY MAPPED' : 'SIGNAL SPILLED';
+      ui.endCopy.textContent = win ? `Final score ${score}. You chained x${combo} cartography and kept ${Math.round(stability)}% stability.` : `You mapped ${mapped}/24 glyphs. Final score ${score}. Try swapping earlier and avoiding thorns.`;
+    }
+
+    function updateUI() {
+      ui.score.textContent = score;
+      ui.mapped.textContent = mapped + '/24';
+      ui.combo.textContent = 'x' + combo;
+      ui.stability.style.width = Math.max(0, stability) + '%';
+      ui.stabilityText.textContent = Math.max(0, Math.round(stability)) + '%';
+    }
+
+    function showToast(text) { ui.toast.textContent = text; ui.toast.classList.remove('show'); void ui.toast.offsetWidth; ui.toast.classList.add('show'); }
+
+    function spawnGlyph() {
+      const lane = Math.random() * TAU;
+      const dist = Math.max(W, H) * 0.62;
+      const typeRoll = Math.random();
+      glyphs.push({
+        a: lane,
+        x: cx + Math.cos(lane) * dist,
+        y: cy + Math.sin(lane) * dist,
+        speed: 74 + mapped * 2.4 + Math.random()*34,
+        color: Math.random() < 0.5 ? 0 : 1,
+        thorn: typeRoll > 0.82,
+        size: typeRoll > 0.82 ? 17 : 14,
+        spin: Math.random()*TAU,
+        hit: false
+      });
+    }
+
+    function moon(i) {
+      const a = angle + i * Math.PI;
+      return { x: cx + Math.cos(a) * radius, y: cy + Math.sin(a) * radius, color: (i + swap) % 2, a };
+    }
+
+    function addSparks(x, y, color, n = 12) {
+      for (let i = 0; i < n; i++) sparks.push({ x, y, vx: (Math.random()-0.5)*210, vy: (Math.random()-0.5)*210, life: 0.55, color, r: Math.random()*3+1 });
+    }
+
+    function damage(amount, x = cx, y = cy) {
+      stability -= amount; combo = 1; shake = 10; addSparks(x, y, '#ffe66d', 20); showToast('INK SPILL');
+      if (stability <= 0) finish(false);
+    }
+
+    function collect(g, m) {
+      g.hit = true;
+      const good = !g.thorn && g.color === m.color;
+      if (g.thorn) {
+        damage(16, g.x, g.y);
+        return;
+      }
+      if (!good) {
+        damage(10, g.x, g.y);
+        return;
+      }
+      mapped += 1;
+      score += 90 * combo;
+      combo = Math.min(combo + 1, 12);
+      stability = Math.min(100, stability + 1.8);
+      shake = 4;
+      addSparks(g.x, g.y, colors[g.color], 18);
+      if (combo === 4 || combo === 8 || combo === 12) showToast(combo === 12 ? 'CELESTIAL FLOW' : 'PERFECT ARC');
+      if (mapped >= 24) finish(true);
+    }
+
+    function swapInk() { swap = 1 - swap; shake = 3; addSparks(cx, cy, '#d8fff5', 14); }
+
+    function update(dt) {
+      const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+      angle += dir * dt * (2.75 + Math.min(combo, 8)*0.045);
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) { spawnGlyph(); spawnTimer = Math.max(0.36, 1.04 - mapped * 0.018 - Math.random()*0.2); }
+
+      const moons = [moon(0), moon(1)];
+      for (const g of glyphs) {
+        const dx = cx - g.x, dy = cy - g.y;
+        const len = Math.hypot(dx, dy) || 1;
+        g.x += (dx / len) * g.speed * dt;
+        g.y += (dy / len) * g.speed * dt;
+        g.spin += dt * 3;
+        for (const m of moons) if (!g.hit && Math.hypot(g.x - m.x, g.y - m.y) < g.size + 24) collect(g, m);
+        if (!g.hit && Math.hypot(g.x - cx, g.y - cy) < 34) { g.hit = true; damage(g.thorn ? 7 : 13, g.x, g.y); }
+      }
+      glyphs = glyphs.filter(g => !g.hit);
+      for (const s of sparks) { s.x += s.vx*dt; s.y += s.vy*dt; s.vx *= 0.96; s.vy *= 0.96; s.life -= dt; }
+      sparks = sparks.filter(s => s.life > 0);
+      shake = Math.max(0, shake - 32*dt);
+      updateUI();
+    }
+
+    function drawGlyph(g) {
+      ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.spin);
+      if (g.thorn) {
+        ctx.strokeStyle = '#ffe66d'; ctx.fillStyle = '#17121f'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) { const r = i % 2 ? g.size*0.45 : g.size*1.25; const a = i/8*TAU; ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r); }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else {
+        ctx.strokeStyle = colors[g.color]; ctx.fillStyle = colors[g.color] + '33'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, g.size, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-g.size*0.6, 0); ctx.lineTo(g.size*0.6, 0); ctx.moveTo(0, -g.size*0.6); ctx.lineTo(0, g.size*0.6); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.save();
+      const sx = shake ? (Math.random()-0.5)*shake : 0, sy = shake ? (Math.random()-0.5)*shake : 0;
+      ctx.clearRect(0, 0, W, H); ctx.translate(sx, sy);
+      const grd = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(W,H)*0.62);
+      grd.addColorStop(0, 'rgba(63,243,255,0.10)'); grd.addColorStop(0.45, 'rgba(255,79,163,0.05)'); grd.addColorStop(1, 'rgba(7,7,19,0)');
+      ctx.fillStyle = grd; ctx.fillRect(-sx, -sy, W, H);
+
+      for (const st of stars) { st.a += 0.006; ctx.globalAlpha = 0.28 + Math.sin(st.a)*0.18; ctx.fillStyle = '#d8fff5'; ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, TAU); ctx.fill(); }
+      ctx.globalAlpha = 1;
+
+      ctx.strokeStyle = 'rgba(216,255,245,0.13)'; ctx.lineWidth = 1;
+      for (let r = radius * 0.45; r <= radius * 1.75; r += radius * 0.32) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(216,255,245,0.42)'; ctx.setLineDash([10, 18]); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, radius, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+
+      const moons = [moon(0), moon(1)];
+      ctx.lineWidth = 5; const link = ctx.createLinearGradient(moons[0].x, moons[0].y, moons[1].x, moons[1].y); link.addColorStop(0, colors[moons[0].color]); link.addColorStop(1, colors[moons[1].color]); ctx.strokeStyle = link; ctx.globalAlpha = 0.42; ctx.beginPath(); ctx.moveTo(moons[0].x, moons[0].y); ctx.lineTo(moons[1].x, moons[1].y); ctx.stroke(); ctx.globalAlpha = 1;
+
+      ctx.fillStyle = '#070713'; ctx.strokeStyle = 'rgba(216,255,245,0.34)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, 30, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = colors[swap]; ctx.beginPath(); ctx.arc(cx, cy, 7, 0, TAU); ctx.fill();
+
+      for (const g of glyphs) drawGlyph(g);
+      for (const m of moons) {
+        const glow = ctx.createRadialGradient(m.x, m.y, 2, m.x, m.y, 44); glow.addColorStop(0, colors[m.color]); glow.addColorStop(1, colors[m.color] + '00'); ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(m.x, m.y, 44, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#070713'; ctx.strokeStyle = colors[m.color]; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(m.x, m.y, 21, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = colors[m.color]; ctx.beginPath(); ctx.arc(m.x, m.y, 8, 0, TAU); ctx.fill();
+      }
+      for (const s of sparks) { ctx.globalAlpha = Math.max(0, s.life / 0.55); ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill(); }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    function loop(t) {
+      if (!running) { draw(); return; }
+      const dt = Math.min(0.033, (t - last) / 1000 || 0.016); last = t;
+      update(dt); draw();
+      if (running) requestAnimationFrame(loop);
+    }
+
+    function bindHold(button, key) {
+      const down = (e) => { e.preventDefault(); keys[key] = true; button.classList.add('is-down'); if (!running && !ended && ui.startOverlay.classList.contains('hidden')) start(); };
+      const up = (e) => { e.preventDefault(); keys[key] = false; button.classList.remove('is-down'); };
+      button.addEventListener('pointerdown', down);
+      button.addEventListener('pointerup', up);
+      button.addEventListener('pointercancel', up);
+      button.addEventListener('pointerleave', up);
+    }
+
+    bindHold(document.getElementById('leftBtn'), 'left');
+    bindHold(document.getElementById('rightBtn'), 'right');
+    bindHold(document.querySelector('[data-demo="left"]'), 'left');
+    bindHold(document.querySelector('[data-demo="right"]'), 'right');
+    document.getElementById('swapBtn').addEventListener('pointerdown', e => { e.preventDefault(); if (running) swapInk(); });
+    document.getElementById('restartBtn').addEventListener('click', reset);
+    document.getElementById('startBtn').addEventListener('click', start);
+    document.getElementById('againBtn').addEventListener('click', () => { reset(); start(); });
+
+    window.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = true;
+      if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = true;
+      if (e.code === 'Space') { e.preventDefault(); if (running) swapInk(); }
+      if (e.key === 'Enter' && !running) start();
+      if (e.key.toLowerCase() === 'r') reset();
+    });
+    window.addEventListener('keyup', e => {
+      if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = false;
+      if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = false;
+    });
+    window.addEventListener('resize', fit);
+    fit(); reset(); draw();
+  </script>
+</body>
+</html>
