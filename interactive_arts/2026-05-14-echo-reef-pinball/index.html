@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Echo Reef Pinball | Daily Mini Game 2026-05-14</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --lime: #ccff00;
+      --ink: #061012;
+      --cyan: #51f6ff;
+      --pink: #ff4fd8;
+      --amber: #ffd166;
+      --panel: rgba(4, 14, 18, .72);
+    }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: radial-gradient(circle at 50% 20%, #16333b 0%, #071214 44%, #020607 100%); color: var(--lime); font-family: 'Space Mono', monospace; touch-action: none; }
+    #game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; cursor: crosshair; }
+    .hud { position: fixed; inset: 0; pointer-events: none; display: grid; grid-template-rows: auto 1fr auto; padding: clamp(12px, 3vw, 28px); gap: 12px; }
+    .top { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+    .title, .panel, .controls button { border: 1px solid rgba(204,255,0,.72); background: var(--panel); box-shadow: 0 0 24px rgba(81,246,255,.12), inset 0 0 22px rgba(204,255,0,.04); backdrop-filter: blur(10px); }
+    .title { padding: 12px 16px; max-width: 720px; }
+    h1 { font-family: 'VT323', monospace; font-size: clamp(2.2rem, 6vw, 5rem); font-weight: 400; line-height: .86; letter-spacing: .04em; text-shadow: 0 0 16px rgba(204,255,0,.45); }
+    .subtitle { color: #b9ffee; font-size: clamp(.68rem, 1.8vw, .88rem); line-height: 1.55; margin-top: 8px; text-transform: uppercase; }
+    .stats { display: grid; grid-template-columns: repeat(2, minmax(82px, auto)); gap: 8px; }
+    .stat { padding: 10px 12px; text-align: center; min-width: 86px; }
+    .stat b { display: block; font-family: 'VT323', monospace; font-size: 2rem; line-height: 1; color: white; }
+    .stat span { font-size: .65rem; color: #b9ffee; }
+    .center-card { align-self: center; justify-self: center; max-width: 520px; text-align: center; padding: 18px; transform: translateY(20px); transition: opacity .25s, transform .25s; }
+    .center-card.hidden { opacity: 0; transform: translateY(36px) scale(.98); }
+    .center-card strong { color: #fff; }
+    .bottom { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px; }
+    .instructions { padding: 10px 12px; font-size: .72rem; line-height: 1.45; color: #dff; max-width: 480px; text-transform: uppercase; }
+    .controls { pointer-events: auto; display: flex; gap: 10px; justify-content: center; align-items: end; flex-wrap: wrap; }
+    .controls button { color: var(--lime); font: 700 .78rem 'Space Mono', monospace; padding: 13px 16px; border-radius: 999px; text-transform: uppercase; min-width: 92px; touch-action: none; }
+    .controls button:active, .controls button.active { background: var(--lime); color: #051012; transform: translateY(2px); box-shadow: 0 0 22px rgba(204,255,0,.45); }
+    .right-actions { display: flex; gap: 10px; justify-content: flex-end; pointer-events: auto; }
+    .small { min-width: 72px !important; padding: 12px 13px !important; }
+    @media (max-width: 720px) {
+      .hud { padding: 10px; }
+      .top { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(4, 1fr); }
+      .stat { min-width: 0; padding: 8px 4px; }
+      .subtitle { max-width: 34em; }
+      .bottom { grid-template-columns: 1fr; }
+      .instructions { order: 2; max-width: none; font-size: .64rem; }
+      .right-actions { justify-content: center; }
+      .controls button { min-width: 76px; padding: 12px 13px; }
+      h1 { font-size: 2.7rem; }
+    }
+  </style>
+</head>
+<body>
+<canvas id="game" aria-label="Echo Reef Pinball canvas game"></canvas>
+<div class="hud">
+  <div class="top">
+    <div class="title">
+      <h1>ECHO REEF PINBALL</h1>
+      <div class="subtitle">Drag the moon pearl, release to shoot, then rotate the twin coral flippers to ricochet it through matching tone gates. Bloom 12 reef chords before your shots run dry.</div>
+    </div>
+    <div class="stats">
+      <div class="stat panel"><b id="score">0</b><span>SCORE</span></div>
+      <div class="stat panel"><b id="blooms">0/12</b><span>BLOOMS</span></div>
+      <div class="stat panel"><b id="shots">9</b><span>SHOTS</span></div>
+      <div class="stat panel"><b id="combo">x1</b><span>COMBO</span></div>
+    </div>
+  </div>
+  <div id="message" class="center-card panel">
+    <p><strong>TOUCH FIRST:</strong> drag near the bottom pearl to aim, release to launch. Hold LEFT / RIGHT to rotate the mirrored reef. Press SWAP to change pearl color; PULSE repels ink mines.</p>
+  </div>
+  <div class="bottom">
+    <div class="instructions panel">Desktop: mouse drag to launch, A/D or ←/→ rotate, S swap, Space pulse. Mobile: drag/release, hold buttons. Matching colors bloom; wrong colors wobble the reef.</div>
+    <div class="controls">
+      <button id="leftBtn">◀ LEFT</button>
+      <button id="rightBtn">RIGHT ▶</button>
+      <button id="swapBtn">SWAP</button>
+      <button id="pulseBtn">PULSE</button>
+    </div>
+    <div class="right-actions">
+      <button id="soundBtn" class="small">SOUND OFF</button>
+      <button id="restartBtn" class="small">RESTART</button>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const colors = ['#51f6ff', '#ff4fd8', '#ffd166'];
+  const names = ['CYAN', 'PINK', 'GOLD'];
+  let W = 0, H = 0, DPR = 1, t = 0, last = 0;
+  let score = 0, blooms = 0, shots = 9, combo = 1, state = 'aim', messageTimer = 0;
+  let pointer = null, aiming = false, aim = {x:0,y:0};
+  let keys = {left:false,right:false};
+  let angle = 0, shake = 0, pulse = 0, sound = false, audioCtx = null;
+  let pearl, gates = [], mines = [], sparks = [], ripples = [], bubbles = [];
+
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    reset(false);
+  }
+
+  function reset(full = true) {
+    if (full) { score = 0; blooms = 0; shots = 9; combo = 1; state = 'aim'; angle = 0; shake = 0; pulse = 0; }
+    pearl = { x: W/2, y: H - Math.min(128, H*.17), vx: 0, vy: 0, r: Math.max(11, Math.min(W,H)*.018), color: 0, trail: [] };
+    gates = []; mines = []; sparks = []; ripples = [];
+    const cx = W/2, cy = H*.45, ring = Math.min(W,H)*.29;
+    for (let i=0; i<7; i++) {
+      gates.push({ a: i * Math.PI*2/7 + .25, r: ring + (i%2)*28, color: i%3, hit: 0, wobble: 0 });
+    }
+    for (let i=0; i<6; i++) mines.push({ x: cx + Math.cos(i*1.9)*ring*.67, y: cy + Math.sin(i*1.35)*ring*.47, r: 12 + (i%3)*3, phase: i });
+    for (let i=0; i<42; i++) bubbles.push({ x: Math.random()*W, y: Math.random()*H, r: 1+Math.random()*3, s: .15+Math.random()*.55, p: Math.random()*7 });
+    updateHud(); showMessage(full ? 'Aim the pearl into matching gates. Bloom 12 chords to win.' : '');
+  }
+
+  function updateHud() { $('score').textContent = score; $('blooms').textContent = blooms + '/12'; $('shots').textContent = shots; $('combo').textContent = 'x' + combo; }
+  function showMessage(text) { const m=$('message'); if (!text) { m.classList.add('hidden'); return; } m.querySelector('p').innerHTML = text; m.classList.remove('hidden'); messageTimer = 2.8; }
+  function beep(freq=320, dur=.06, type='sine') { if (!sound) return; audioCtx ||= new (window.AudioContext || window.webkitAudioContext)(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(.0001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(.055,audioCtx.currentTime+.01); g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+dur+.02); }
+  const dist = (a,b,c,d) => Math.hypot(a-c,b-d);
+
+  function launch(x,y) {
+    if (state !== 'aim' || shots <= 0) return;
+    const max = Math.min(190, H*.23), dx = pearl.x - x, dy = pearl.y - y, len = Math.min(max, Math.hypot(dx,dy));
+    if (len < 18) return;
+    const nx = dx / (Math.hypot(dx,dy)||1), ny = dy / (Math.hypot(dx,dy)||1);
+    pearl.vx = nx * len * 3.1; pearl.vy = ny * len * 3.1;
+    shots--; state = 'play'; aiming = false; combo = Math.max(1, combo); updateHud(); beep(210,.07,'triangle');
+  }
+
+  function doSwap() { pearl.color = (pearl.color + 1) % 3; spawn(pearl.x, pearl.y, colors[pearl.color], 12); beep(440 + pearl.color*120,.05,'square'); }
+  function doPulse() { if (pulse > 0) return; pulse = .55; ripples.push({x:pearl.x,y:pearl.y,r:20,life:1,color:'#ccff00'}); mines.forEach(m => { const d=dist(pearl.x,pearl.y,m.x,m.y); if (d < 145) { const a=Math.atan2(m.y-pearl.y,m.x-pearl.x); m.x += Math.cos(a)*48; m.y += Math.sin(a)*48; score += 5; } }); updateHud(); beep(95,.12,'sawtooth'); }
+
+  function spawn(x,y,color,n=8) { for(let i=0;i<n;i++) sparks.push({x,y,vx:(Math.random()-.5)*180,vy:(Math.random()-.5)*180,life:.45+Math.random()*.45,color,r:2+Math.random()*3}); }
+
+  function update(dt) {
+    t += dt; messageTimer -= dt; if (messageTimer < 0 && state !== 'win' && state !== 'over') $('message').classList.add('hidden');
+    const rot = (keys.left ? -1 : 0) + (keys.right ? 1 : 0); angle += rot * dt * 2.8;
+    if (pulse > 0) pulse -= dt;
+    shake *= .88;
+    bubbles.forEach(b => { b.y -= b.s * 26 * dt; b.x += Math.sin(t+b.p)*10*dt; if (b.y < -10) { b.y = H+10; b.x = Math.random()*W; } });
+    if (state === 'play') updatePearl(dt);
+    gates.forEach(g => { g.hit = Math.max(0, g.hit-dt*2); g.wobble *= .88; });
+    sparks = sparks.filter(s => (s.life -= dt) > 0).map(s => (s.x+=s.vx*dt, s.y+=s.vy*dt, s.vy+=60*dt, s));
+    ripples = ripples.filter(r => (r.life -= dt) > 0).map(r => (r.r += 260*dt, r));
+  }
+
+  function updatePearl(dt) {
+    pearl.vy += 105 * dt; pearl.x += pearl.vx * dt; pearl.y += pearl.vy * dt;
+    pearl.trail.push({x:pearl.x,y:pearl.y,c:colors[pearl.color]}); if (pearl.trail.length > 18) pearl.trail.shift();
+    if (pearl.x < pearl.r) { pearl.x=pearl.r; pearl.vx=Math.abs(pearl.vx)*.92; beep(160,.03); }
+    if (pearl.x > W-pearl.r) { pearl.x=W-pearl.r; pearl.vx=-Math.abs(pearl.vx)*.92; beep(160,.03); }
+    if (pearl.y < pearl.r+70) { pearl.y=pearl.r+70; pearl.vy=Math.abs(pearl.vy)*.9; }
+    const cx=W/2, cy=H*.45, flR=Math.min(W,H)*.2;
+    for (const side of [-1,1]) {
+      const a = angle + side*.78, fx = cx + Math.cos(a)*flR, fy = cy + Math.sin(a)*flR;
+      const d = dist(pearl.x,pearl.y,fx,fy);
+      if (d < pearl.r + 24) {
+        const nx=(pearl.x-fx)/(d||1), ny=(pearl.y-fy)/(d||1), dot=pearl.vx*nx+pearl.vy*ny;
+        if (dot < 0) { pearl.vx -= 2*dot*nx; pearl.vy -= 2*dot*ny; pearl.vx += side*rotBoost()*90; pearl.vy -= 60; spawn(fx,fy,'#ccff00',8); shake=.9; beep(260,.04,'triangle'); }
+      }
+    }
+    gates.forEach(g => {
+      const gx = cx + Math.cos(g.a + Math.sin(t*.7)*.08) * g.r, gy = cy + Math.sin(g.a + Math.sin(t*.7)*.08) * g.r;
+      if (dist(pearl.x,pearl.y,gx,gy) < pearl.r + 25 && g.hit <= 0) {
+        g.hit = 1; const good = g.color === pearl.color;
+        if (good) { blooms++; combo = Math.min(9, combo+1); score += 80*combo; spawn(gx,gy,colors[g.color],20); ripples.push({x:gx,y:gy,r:18,life:.8,color:colors[g.color]}); beep(520 + combo*45,.08,'sine'); if (blooms >= 12) { state='win'; showMessage('<strong>REEF COMPLETE!</strong><br>You tuned 12 chords into a glowing orbit. Restart for a cleaner combo run.'); } }
+        else { combo = 1; score = Math.max(0, score-25); g.wobble = 1; shake = 1.2; spawn(gx,gy,'#ffffff',10); beep(120,.08,'sawtooth'); }
+        const a = Math.atan2(pearl.y-gy, pearl.x-gx); pearl.vx += Math.cos(a)*180; pearl.vy += Math.sin(a)*180; updateHud();
+      }
+    });
+    mines.forEach(m => {
+      m.x = Math.max(36, Math.min(W-36, m.x)); m.y = Math.max(110, Math.min(H-130, m.y));
+      if (dist(pearl.x,pearl.y,m.x,m.y) < pearl.r + m.r) { combo=1; score=Math.max(0,score-40); const a=Math.atan2(pearl.y-m.y,pearl.x-m.x); pearl.vx=Math.cos(a)*310; pearl.vy=Math.sin(a)*310; shake=1.5; spawn(m.x,m.y,'#6d4bff',16); updateHud(); beep(70,.12,'sawtooth'); }
+    });
+    if (pearl.y > H + 90) {
+      if (shots <= 0) { state='over'; showMessage('<strong>REEF QUIET.</strong><br>No shots left. You bloomed '+blooms+' / 12 chords — restart and use the flippers for longer rallies.'); }
+      else { state='aim'; combo=1; pearl.x=W/2; pearl.y=H-Math.min(128,H*.17); pearl.vx=pearl.vy=0; pearl.trail=[]; showMessage('Pearl recovered. Drag from the launcher for the next shot.'); updateHud(); }
+    }
+  }
+  function rotBoost(){ return (keys.right?1:0) - (keys.left?1:0); }
+
+  function draw() {
+    const sx = (Math.random()-.5)*shake*8, sy = (Math.random()-.5)*shake*8;
+    ctx.save(); ctx.translate(sx,sy); ctx.clearRect(-20,-20,W+40,H+40);
+    const grd=ctx.createRadialGradient(W/2,H*.28,20,W/2,H*.42,Math.max(W,H)*.72); grd.addColorStop(0,'#174653'); grd.addColorStop(.5,'#071417'); grd.addColorStop(1,'#010506'); ctx.fillStyle=grd; ctx.fillRect(-20,-20,W+40,H+40);
+    drawBackground(); drawReef(); drawActors(); drawAim(); ctx.restore();
+  }
+  function drawBackground(){
+    ctx.globalAlpha=.65; bubbles.forEach(b=>{ctx.strokeStyle='rgba(185,255,238,.45)';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.stroke();}); ctx.globalAlpha=1;
+    ctx.strokeStyle='rgba(204,255,0,.08)'; ctx.lineWidth=1; for(let y=90;y<H;y+=34){ctx.beginPath(); for(let x=0;x<W;x+=26){ctx.lineTo(x,y+Math.sin(x*.018+t+y*.01)*7);} ctx.stroke();}
+  }
+  function drawReef(){
+    const cx=W/2, cy=H*.45, ring=Math.min(W,H)*.29;
+    ctx.save(); ctx.translate(cx,cy); ctx.strokeStyle='rgba(204,255,0,.22)'; ctx.lineWidth=2; ctx.setLineDash([8,12]); ctx.beginPath(); ctx.arc(0,0,ring+26,0,7); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    gates.forEach(g=>{ const a=g.a+Math.sin(t*.7)*.08, x=cx+Math.cos(a)*g.r, y=cy+Math.sin(a)*g.r; ctx.save(); ctx.translate(x,y); ctx.rotate(a+Math.PI/2+Math.sin(t*10)*g.wobble*.18); ctx.shadowColor=colors[g.color]; ctx.shadowBlur=18+g.hit*24; ctx.strokeStyle=colors[g.color]; ctx.fillStyle=g.hit>0?'rgba(255,255,255,.22)':'rgba(0,0,0,.32)'; ctx.lineWidth=4; roundedRect(-28,-16,56,32,13); ctx.fill(); ctx.stroke(); ctx.fillStyle=colors[g.color]; ctx.font='12px Space Mono'; ctx.textAlign='center'; ctx.fillText(names[g.color][0],0,5); ctx.restore(); });
+    for(const side of [-1,1]){ const a=angle+side*.78, x=cx+Math.cos(a)*Math.min(W,H)*.2, y=cy+Math.sin(a)*Math.min(W,H)*.2; ctx.save(); ctx.translate(x,y); ctx.rotate(a+Math.PI/2); ctx.shadowColor='#ccff00'; ctx.shadowBlur=22; ctx.fillStyle='rgba(204,255,0,.16)'; ctx.strokeStyle='#ccff00'; ctx.lineWidth=4; roundedRect(-44,-11,88,22,18); ctx.fill(); ctx.stroke(); ctx.restore(); }
+  }
+  function drawActors(){
+    mines.forEach(m=>{ctx.save();ctx.translate(m.x,m.y);ctx.rotate(t+m.phase);ctx.strokeStyle='#6d4bff';ctx.fillStyle='rgba(109,75,255,.18)';ctx.shadowColor='#6d4bff';ctx.shadowBlur=18;ctx.lineWidth=3;ctx.beginPath();for(let i=0;i<8;i++){const r=i%2?m.r*.62:m.r;ctx.lineTo(Math.cos(i*Math.PI/4)*r,Math.sin(i*Math.PI/4)*r);}ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();});
+    ripples.forEach(r=>{ctx.globalAlpha=Math.max(0,r.life);ctx.strokeStyle=r.color;ctx.lineWidth=3;ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,7);ctx.stroke();ctx.globalAlpha=1;});
+    pearl.trail.forEach((p,i)=>{ctx.globalAlpha=i/pearl.trail.length*.55;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,pearl.r*(i/pearl.trail.length),0,7);ctx.fill();}); ctx.globalAlpha=1;
+    sparks.forEach(s=>{ctx.globalAlpha=Math.max(0,s.life);ctx.fillStyle=s.color;ctx.shadowColor=s.color;ctx.shadowBlur=10;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);ctx.fill();}); ctx.globalAlpha=1;
+    ctx.save();ctx.translate(pearl.x,pearl.y);ctx.shadowColor=colors[pearl.color];ctx.shadowBlur=26;ctx.fillStyle=colors[pearl.color];ctx.beginPath();ctx.arc(0,0,pearl.r,0,7);ctx.fill();ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();ctx.restore();
+  }
+  function drawAim(){
+    if (state==='aim') { ctx.strokeStyle='rgba(204,255,0,.28)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(W/2-38,pearl.y+30); ctx.lineTo(W/2+38,pearl.y+30); ctx.stroke(); }
+    if (aiming && pointer) { ctx.strokeStyle='#ccff00'; ctx.lineWidth=3; ctx.setLineDash([10,8]); ctx.beginPath(); ctx.moveTo(pearl.x,pearl.y); ctx.lineTo(pointer.x,pointer.y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle='rgba(204,255,0,.16)'; ctx.beginPath(); ctx.arc(pointer.x,pointer.y,24,0,7); ctx.fill(); }
+  }
+  function roundedRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+  function loop(now){ const dt=Math.min(.033,(now-last)/1000||0); last=now; update(dt); draw(); requestAnimationFrame(loop); }
+
+  canvas.addEventListener('pointerdown', e => { pointer={x:e.clientX,y:e.clientY}; if (state==='aim' && dist(pointer.x,pointer.y,pearl.x,pearl.y)<160) aiming=true; });
+  canvas.addEventListener('pointermove', e => { pointer={x:e.clientX,y:e.clientY}; });
+  canvas.addEventListener('pointerup', e => { if (aiming) launch(e.clientX,e.clientY); pointer=null; aiming=false; });
+  function hold(btn, key){ btn.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;btn.classList.add('active');}); ['pointerup','pointercancel','pointerleave'].forEach(type=>btn.addEventListener(type,()=>{keys[key]=false;btn.classList.remove('active');})); }
+  hold($('leftBtn'),'left'); hold($('rightBtn'),'right');
+  $('swapBtn').addEventListener('click', doSwap); $('pulseBtn').addEventListener('click', doPulse); $('restartBtn').addEventListener('click', () => reset(true)); $('soundBtn').addEventListener('click', () => { sound=!sound; $('soundBtn').textContent=sound?'SOUND ON':'SOUND OFF'; beep(330,.06); });
+  addEventListener('keydown', e => { if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a') keys.left=true; if(e.key==='ArrowRight'||e.key.toLowerCase()==='d') keys.right=true; if(e.key.toLowerCase()==='s') doSwap(); if(e.code==='Space') { e.preventDefault(); doPulse(); } });
+  addEventListener('keyup', e => { if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a') keys.left=false; if(e.key==='ArrowRight'||e.key.toLowerCase()==='d') keys.right=false; });
+  addEventListener('resize', resize);
+  resize(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
