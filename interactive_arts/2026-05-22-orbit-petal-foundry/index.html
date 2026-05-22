@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Orbit Petal Foundry | Daily Mini Game 2026-05-22</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--lime:#ccff00;--ink:#030409;--cyan:#53f7ff;--rose:#ff5ed6;--gold:#ffd260;--violet:#8f7bff;--panel:rgba(4,7,14,.78)}
+    html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--lime);font-family:'Space Mono',monospace;text-transform:uppercase;touch-action:none;overscroll-behavior:none}
+    #game{position:fixed;inset:0;width:100vw;height:100vh;display:block;background:radial-gradient(circle at 48% 18%,#24204a 0,#07151d 43%,#030409 100%);cursor:grab}
+    #game:active{cursor:grabbing}
+    .hud{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:clamp(10px,2.5vw,24px);pointer-events:none}
+    .top{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+    .title,.panel,.controls button{border:1px solid rgba(204,255,0,.72);background:var(--panel);box-shadow:0 0 28px rgba(83,247,255,.12),inset 0 0 22px rgba(204,255,0,.05);backdrop-filter:blur(10px)}
+    .title{padding:12px 16px;max-width:820px}
+    h1{font-family:'VT323',monospace;font-size:clamp(2.35rem,6.7vw,5.55rem);font-weight:400;line-height:.86;letter-spacing:0;text-shadow:0 0 18px rgba(204,255,0,.55)}
+    .subtitle{margin-top:8px;color:#e3fff8;font-size:clamp(.64rem,1.55vw,.86rem);line-height:1.45;max-width:68em}
+    .stats{display:grid;grid-template-columns:repeat(2,minmax(84px,auto));gap:8px}
+    .stat{padding:9px 10px;text-align:center;min-width:84px}.stat b{display:block;font-family:'VT323';font-size:2rem;line-height:1;color:white}.stat span{font-size:.62rem;color:#c8fff4}
+    .center-card{align-self:center;justify-self:center;max-width:590px;text-align:center;padding:18px;transition:.25s opacity,.25s transform}.center-card.hidden{opacity:0;transform:translateY(16px) scale(.98)}.center-card strong{color:white}
+    .bottom{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px}.instructions{padding:10px 12px;font-size:.67rem;line-height:1.45;color:#ecfffb;max-width:560px}
+    .controls{pointer-events:auto;display:flex;gap:10px;justify-content:center;align-items:end;flex-wrap:wrap}.controls button{color:var(--lime);font:700 .74rem 'Space Mono';padding:13px 15px;border-radius:999px;min-width:78px;text-transform:uppercase;touch-action:none}
+    .controls button:active,.controls button.active{background:var(--lime);color:#05070b;transform:translateY(2px);box-shadow:0 0 24px rgba(204,255,0,.5)}.right-actions{pointer-events:auto;display:flex;gap:10px;justify-content:flex-end}.small{min-width:72px!important;padding:12px!important}
+    .tilt-dot{display:inline-block;width:.72em;height:.72em;border-radius:50%;margin:0 .25em;background:var(--lime);box-shadow:0 0 12px rgba(204,255,0,.8)}
+    @media(max-width:760px){.hud{padding:10px}.top{grid-template-columns:1fr}.stats{grid-template-columns:repeat(4,1fr)}.stat{min-width:0;padding:7px 3px}.bottom{grid-template-columns:1fr}.instructions{order:2;max-width:none;font-size:.6rem}.right-actions{justify-content:center}.controls button{min-width:72px;padding:12px 9px}h1{font-size:2.7rem}.subtitle{max-width:38em}}
+  </style>
+</head>
+<body>
+<canvas id="game" aria-label="Orbit Petal Foundry touch tilt arcade game"></canvas>
+<div class="hud">
+  <div class="top">
+    <section class="title">
+      <h1>ORBIT PETAL FOUNDRY</h1>
+      <p class="subtitle">Drag to tilt the glass tray, slide colored sparks into matching petal sockets, swap the socket ring, and pulse slag away before heat overruns the foundry.</p>
+    </section>
+    <section class="stats">
+      <div class="stat panel"><b id="score">0</b><span>score</span></div>
+      <div class="stat panel"><b id="petals">0/21</b><span>petals</span></div>
+      <div class="stat panel"><b id="heat">0</b><span>heat</span></div>
+      <div class="stat panel"><b id="tilt"><span class="tilt-dot"></span></b><span>tilt</span></div>
+    </section>
+  </div>
+  <section id="message" class="center-card panel">
+    <strong>Touch and drag the tray.</strong><br>
+    Sparks roll like beads. Match each spark to a same-color socket. Slag raises heat unless you pulse it away.
+  </section>
+  <div class="bottom">
+    <section class="instructions panel">Mobile: drag anywhere to tilt, tap SWAP to rotate socket colors, tap PULSE to repel slag. Desktop: mouse drag or WASD/arrows, Space pulse, C swap. Forge 21 petals.</section>
+    <section class="controls">
+      <button id="swapBtn" aria-label="swap socket colors">Swap</button>
+      <button id="pulseBtn" aria-label="pulse slag away">Pulse</button>
+    </section>
+    <section class="right-actions">
+      <button id="soundBtn" class="small" aria-label="toggle sound">Sound Off</button>
+      <button id="restartBtn" class="small" aria-label="restart game">Restart</button>
+    </section>
+  </div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const ui = {score:$('score'),petals:$('petals'),heat:$('heat'),tilt:$('tilt'),message:$('message'),swap:$('swapBtn'),pulse:$('pulseBtn'),sound:$('soundBtn'),restart:$('restartBtn')};
+  const palette = ['#53f7ff','#ff5ed6','#ffd260'];
+  const names = ['cyan','rose','gold'];
+  const state = {w:0,h:0,dpr:1,cx:0,cy:0,radius:0,last:0,time:0,mode:'ready',score:0,petals:0,heat:0,tiltX:0,tiltY:0,targetX:0,targetY:0,pointer:false,pointerId:null,keys:{},socketShift:0,pulse:1,shake:0,msg:0,sound:false,audio:null,sparks:[],slag:[],sockets:[],particles:[],ripples:[],stars:[],ghosts:[]};
+  const rand=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), dist=(a,b,c,d)=>Math.hypot(a-c,b-d);
+
+  function resize(){
+    state.dpr = Math.min(2, window.devicePixelRatio || 1);
+    state.w = innerWidth; state.h = innerHeight;
+    canvas.width = Math.floor(state.w * state.dpr); canvas.height = Math.floor(state.h * state.dpr);
+    canvas.style.width = state.w + 'px'; canvas.style.height = state.h + 'px';
+    ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
+    state.cx = state.w * .5; state.cy = state.h * (state.w < 760 ? .5 : .53);
+    state.radius = Math.min(state.w, state.h) * (state.w < 760 ? .34 : .36);
+    state.stars = Array.from({length:90}, () => ({x:Math.random()*state.w,y:Math.random()*state.h,a:Math.random(),r:rand(.5,2.1)}));
+    layoutSockets();
+  }
+
+  function layoutSockets(){
+    state.sockets = [];
+    for(let i=0;i<9;i++){
+      const a = -Math.PI/2 + i * Math.PI * 2 / 9;
+      state.sockets.push({x:state.cx+Math.cos(a)*state.radius*.72,y:state.cy+Math.sin(a)*state.radius*.72,a,color:(i+state.socketShift)%3,flash:0});
+    }
+  }
+
+  function reset(){
+    state.time=0; state.last=performance.now(); state.mode='ready'; state.score=0; state.petals=0; state.heat=0; state.tiltX=0; state.tiltY=0; state.targetX=0; state.targetY=0; state.socketShift=0; state.pulse=1; state.shake=0; state.msg=0;
+    state.sparks=[]; state.slag=[]; state.particles=[]; state.ripples=[]; state.ghosts=[];
+    layoutSockets();
+    for(let i=0;i<7;i++) spawnSpark(true);
+    for(let i=0;i<3;i++) spawnSlag(true);
+    show('<strong>Touch and drag the tray.</strong><br>Guide sparks into matching petals. Wrong sockets bounce and raise heat.', 7);
+    updateHud();
+  }
+
+  function start(){ if(state.mode==='won' || state.mode==='over') reset(); if(state.mode==='ready') state.mode='play'; ui.message.classList.add('hidden'); unlockAudio(); }
+
+  function spawnSpark(initial=false){
+    const a = rand(0,Math.PI*2), r = rand(0,state.radius*.34);
+    state.sparks.push({x:state.cx+Math.cos(a)*r,y:state.cy+Math.sin(a)*r,vx:rand(-24,24),vy:rand(-24,24),r:rand(10,13),color:Math.floor(Math.random()*3),spin:rand(0,7),life:initial?rand(0,2):0});
+  }
+
+  function spawnSlag(initial=false){
+    const a = rand(0,Math.PI*2), r = rand(state.radius*.15,state.radius*.55);
+    state.slag.push({x:state.cx+Math.cos(a)*r,y:state.cy+Math.sin(a)*r,vx:rand(-18,18),vy:rand(-18,18),r:rand(13,18),spin:rand(0,7),life:initial?rand(0,3):0});
+  }
+
+  function show(html, sec=2){ ui.message.innerHTML = html; ui.message.classList.remove('hidden'); state.msg = sec; }
+  function burst(x,y,color,n=18,power=1){ for(let i=0;i<n;i++){const a=rand(0,Math.PI*2),s=rand(60,210)*power;state.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.25,.7),max:.7,color,r:rand(2,5)});}}
+  function ripple(x,y,color,max=120){ state.ripples.push({x,y,r:10,max,life:.55,color}); }
+
+  function swapSockets(){
+    start();
+    state.socketShift = (state.socketShift + 1) % 3;
+    layoutSockets();
+    for(const s of state.sockets) s.flash=.45;
+    ripple(state.cx,state.cy,'#ccff00',state.radius*.9);
+    beep(420 + state.socketShift*140, .05, 'triangle', .045);
+    show('Socket colors rotated: ' + names[state.socketShift] + ' phase.', 1.2);
+  }
+
+  function pulse(){
+    start();
+    if(state.pulse < .98) return;
+    state.pulse = 0; state.shake = 8;
+    ripple(state.cx,state.cy,'#ccff00',state.radius*.95);
+    let hits = 0;
+    for(const s of state.slag){
+      const d = dist(state.cx,state.cy,s.x,s.y) || 1;
+      s.vx += (s.x-state.cx)/d * 360; s.vy += (s.y-state.cy)/d * 360; hits++;
+    }
+    for(const p of state.sparks){
+      const d = dist(state.cx,state.cy,p.x,p.y) || 1;
+      p.vx += (p.x-state.cx)/d * 120; p.vy += (p.y-state.cy)/d * 120;
+    }
+    state.score += hits * 8;
+    burst(state.cx,state.cy,'#ccff00',34,1.1);
+    beep(150,.09,'sawtooth',.05);
+    updateHud();
+  }
+
+  function pointerTilt(x,y){
+    const dx = (x - state.cx) / Math.max(120, state.radius);
+    const dy = (y - state.cy) / Math.max(120, state.radius);
+    state.targetX = clamp(dx, -1, 1);
+    state.targetY = clamp(dy, -1, 1);
+  }
+
+  canvas.addEventListener('pointerdown', e => { e.preventDefault(); start(); state.pointer=true; state.pointerId=e.pointerId; canvas.setPointerCapture(e.pointerId); pointerTilt(e.clientX,e.clientY); });
+  canvas.addEventListener('pointermove', e => { if(!state.pointer || e.pointerId!==state.pointerId) return; e.preventDefault(); pointerTilt(e.clientX,e.clientY); });
+  canvas.addEventListener('pointerup', e => { if(e.pointerId!==state.pointerId) return; state.pointer=false; state.pointerId=null; state.targetX=0; state.targetY=0; });
+  canvas.addEventListener('pointercancel', () => { state.pointer=false; state.targetX=0; state.targetY=0; });
+  ui.swap.addEventListener('pointerdown', e => { e.preventDefault(); swapSockets(); });
+  ui.pulse.addEventListener('pointerdown', e => { e.preventDefault(); pulse(); });
+  ui.restart.addEventListener('pointerdown', e => { e.preventDefault(); reset(); start(); });
+  ui.sound.addEventListener('pointerdown', e => { e.preventDefault(); state.sound=!state.sound; ui.sound.textContent=state.sound?'Sound On':'Sound Off'; unlockAudio(); beep(520,.04,'sine',.04); });
+  window.addEventListener('keydown', e => { if(e.repeat) return; const k=e.key.toLowerCase(); state.keys[k]=true; if(['arrowleft','arrowright','arrowup','arrowdown','a','d','w','s'].includes(k)) start(); if(k===' ') pulse(); if(k==='c') swapSockets(); if(k==='r'){reset();start();} });
+  window.addEventListener('keyup', e => { state.keys[e.key.toLowerCase()]=false; });
+  window.addEventListener('resize', resize);
+
+  function unlockAudio(){ if(state.audio) return; const AC=window.AudioContext||window.webkitAudioContext; if(AC) state.audio=new AC(); }
+  function beep(freq,dur,type,vol){ if(!state.sound || !state.audio) return; const t=state.audio.currentTime,o=state.audio.createOscillator(),g=state.audio.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g).connect(state.audio.destination); o.start(t); o.stop(t+dur+.03); }
+
+  function update(dt){
+    if(state.mode==='play') state.time += dt;
+    state.msg -= dt; if(state.msg < 0) ui.message.classList.add('hidden');
+    state.pulse = Math.min(1, state.pulse + dt * .19);
+    state.shake *= .88;
+    for(const s of state.sockets) s.flash = Math.max(0, s.flash - dt);
+    let kx = (state.keys.arrowright||state.keys.d?1:0) - (state.keys.arrowleft||state.keys.a?1:0);
+    let ky = (state.keys.arrowdown||state.keys.s?1:0) - (state.keys.arrowup||state.keys.w?1:0);
+    if(kx || ky){ state.targetX = kx; state.targetY = ky; }
+    else if(!state.pointer){ state.targetX *= .92; state.targetY *= .92; }
+    state.tiltX += (state.targetX - state.tiltX) * .13;
+    state.tiltY += (state.targetY - state.tiltY) * .13;
+    if(state.mode !== 'play') return;
+    if(Math.random() < dt * 1.15 && state.sparks.length < 10) spawnSpark();
+    if(Math.random() < dt * .36 && state.slag.length < 7) spawnSlag();
+    state.heat = clamp(state.heat + dt * (2.1 + state.slag.length * .2), 0, 100);
+    if(state.heat >= 100){ state.mode='over'; show('<strong>FOUNDRY OVERHEATED.</strong><br>Pulse earlier and use gentler tilts.', 9); beep(90,.2,'sawtooth',.05); }
+    if(state.petals >= 21){ state.mode='won'; state.score += Math.max(0, Math.round(100-state.heat))*15; show('<strong>PETAL ORBIT COMPLETE.</strong><br>The foundry cooled into a perfect luminous flower.', 9); beep(760,.18,'triangle',.06); }
+    const gravity = 330;
+    for(const p of state.sparks) moveBody(p, dt, gravity);
+    for(const s of state.slag) moveBody(s, dt, gravity*.76);
+    collideBodies(state.sparks, state.slag);
+    checkSockets();
+    for(let i=state.slag.length-1;i>=0;i--){
+      const s=state.slag[i];
+      if(dist(state.cx,state.cy,s.x,s.y) > state.radius*.93){ burst(s.x,s.y,'#d8fff7',12,.75); state.slag.splice(i,1); state.heat=clamp(state.heat-6,0,100); state.score+=6; }
+    }
+  }
+
+  function moveBody(o,dt,gravity){
+    o.life += dt; o.spin += dt*4;
+    o.vx += state.tiltX * gravity * dt; o.vy += state.tiltY * gravity * dt;
+    o.vx *= .992; o.vy *= .992;
+    o.x += o.vx * dt; o.y += o.vy * dt;
+    const dx=o.x-state.cx, dy=o.y-state.cy, d=Math.hypot(dx,dy), limit=state.radius*.86-o.r;
+    if(d > limit){ const nx=dx/(d||1), ny=dy/(d||1); o.x=state.cx+nx*limit; o.y=state.cy+ny*limit; const dot=o.vx*nx+o.vy*ny; o.vx-=1.75*dot*nx; o.vy-=1.75*dot*ny; o.vx*=.82; o.vy*=.82; state.shake=Math.max(state.shake,2); }
+  }
+
+  function collideBodies(sparks, slag){
+    const all = sparks.concat(slag);
+    for(let i=0;i<all.length;i++) for(let j=i+1;j<all.length;j++){
+      const a=all[i], b=all[j], dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, min=a.r+b.r;
+      if(d<min){ const nx=dx/d, ny=dy/d, push=(min-d)*.5; a.x-=nx*push; a.y-=ny*push; b.x+=nx*push; b.y+=ny*push; const av=a.vx*nx+a.vy*ny, bv=b.vx*nx+b.vy*ny; a.vx+=(bv-av)*nx*.65; a.vy+=(bv-av)*ny*.65; b.vx+=(av-bv)*nx*.65; b.vy+=(av-bv)*ny*.65; }
+    }
+  }
+
+  function checkSockets(){
+    for(let i=state.sparks.length-1;i>=0;i--){
+      const p=state.sparks[i];
+      for(const s of state.sockets){
+        if(dist(p.x,p.y,s.x,s.y) < p.r + 22){
+          if(p.color === s.color){
+            state.petals++; state.score += 60 + Math.round((100-state.heat)*.5); state.heat=clamp(state.heat-4,0,100); s.flash=.55;
+            burst(s.x,s.y,palette[p.color],28,1); ripple(s.x,s.y,palette[p.color],78); state.ghosts.push({x:s.x,y:s.y,color:p.color,life:1});
+            state.sparks.splice(i,1); spawnSpark(); beep(520+p.color*120,.055,'triangle',.05); updateHud(); return;
+          }
+          const dx=p.x-s.x, dy=p.y-s.y, d=Math.hypot(dx,dy)||1; p.vx += dx/d*220; p.vy += dy/d*220; state.heat=clamp(state.heat+5,0,100); state.shake=6; burst(p.x,p.y,'#ffffff',10,.55); beep(145,.06,'square',.035); updateHud(); return;
+        }
+      }
+    }
+  }
+
+  function updateHud(){
+    ui.score.textContent = Math.round(state.score);
+    ui.petals.textContent = state.petals + '/21';
+    ui.heat.textContent = Math.round(state.heat);
+    const mag = Math.min(99, Math.round(Math.hypot(state.tiltX,state.tiltY)*99));
+    ui.tilt.innerHTML = '<span class="tilt-dot"></span>' + mag;
+    ui.pulse.textContent = state.pulse >= .98 ? 'Pulse' : 'Pulse ' + Math.round(state.pulse*100) + '%';
+  }
+
+  function draw(){
+    const sx = (Math.random()-.5)*state.shake, sy=(Math.random()-.5)*state.shake;
+    ctx.clearRect(0,0,state.w,state.h);
+    ctx.save(); ctx.translate(sx,sy);
+    drawBack();
+    drawTray();
+    for(const g of state.ghosts) drawGhost(g);
+    for(const s of state.sockets) drawSocket(s);
+    for(const s of state.slag) drawSlag(s);
+    for(const p of state.sparks) drawSpark(p);
+    for(const r of state.ripples) drawRipple(r);
+    for(const p of state.particles) drawParticle(p);
+    drawTiltHandle();
+    ctx.restore();
+  }
+
+  function drawBack(){
+    ctx.fillStyle='#030409'; ctx.fillRect(0,0,state.w,state.h);
+    const grad=ctx.createRadialGradient(state.cx,state.cy-state.radius*.45,10,state.cx,state.cy,state.radius*1.35);
+    grad.addColorStop(0,'rgba(143,123,255,.28)'); grad.addColorStop(.45,'rgba(83,247,255,.08)'); grad.addColorStop(1,'rgba(3,4,9,0)');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,state.w,state.h);
+    for(const star of state.stars){ const a=.25 + .55*Math.abs(Math.sin(state.time*1.2+star.a*8)); ctx.fillStyle='rgba(214,255,247,'+a+')'; ctx.beginPath(); ctx.arc(star.x,star.y,star.r,0,Math.PI*2); ctx.fill(); }
+  }
+
+  function drawTray(){
+    ctx.save(); ctx.translate(state.cx,state.cy); ctx.rotate(state.tiltX*.1-state.tiltY*.06);
+    ctx.strokeStyle='rgba(204,255,0,.65)'; ctx.lineWidth=2; ctx.shadowColor='rgba(204,255,0,.45)'; ctx.shadowBlur=16;
+    ctx.beginPath(); ctx.arc(0,0,state.radius*.88,0,Math.PI*2); ctx.stroke();
+    ctx.shadowBlur=0; ctx.strokeStyle='rgba(83,247,255,.18)'; ctx.lineWidth=1;
+    for(let i=1;i<4;i++){ ctx.beginPath(); ctx.arc(0,0,state.radius*.18*i,0,Math.PI*2); ctx.stroke(); }
+    for(let i=0;i<18;i++){ const a=i*Math.PI*2/18+state.time*.08; ctx.beginPath(); ctx.moveTo(Math.cos(a)*state.radius*.12,Math.sin(a)*state.radius*.12); ctx.lineTo(Math.cos(a)*state.radius*.84,Math.sin(a)*state.radius*.84); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  function drawSocket(s){
+    ctx.save(); ctx.translate(s.x,s.y); ctx.rotate(s.a+state.time*.35);
+    ctx.shadowColor=palette[s.color]; ctx.shadowBlur=12 + s.flash*25;
+    ctx.strokeStyle=palette[s.color]; ctx.lineWidth=3; ctx.fillStyle='rgba(3,4,9,.68)';
+    for(let i=0;i<4;i++){ ctx.rotate(Math.PI/2); ctx.beginPath(); ctx.ellipse(0,-16,10+s.flash*8,19+s.flash*10,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
+    ctx.shadowBlur=0; ctx.fillStyle=palette[s.color]; ctx.beginPath(); ctx.arc(0,0,6+s.flash*5,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawSpark(p){
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.spin);
+    ctx.shadowColor=palette[p.color]; ctx.shadowBlur=18; ctx.fillStyle=palette[p.color];
+    ctx.beginPath(); for(let i=0;i<6;i++){ const a=i*Math.PI*2/6, r=i%2?p.r*.62:p.r; ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); } ctx.closePath(); ctx.fill();
+    ctx.shadowBlur=0; ctx.fillStyle='rgba(255,255,255,.9)'; ctx.beginPath(); ctx.arc(-p.r*.25,-p.r*.22,p.r*.22,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawSlag(s){
+    ctx.save(); ctx.translate(s.x,s.y); ctx.rotate(s.spin);
+    ctx.shadowColor='rgba(255,255,255,.55)'; ctx.shadowBlur=13; ctx.fillStyle='rgba(216,255,247,.88)'; ctx.strokeStyle='rgba(204,255,0,.65)'; ctx.lineWidth=2;
+    ctx.beginPath(); for(let i=0;i<9;i++){ const a=i*Math.PI*2/9, r=s.r*(i%2?.72:1); ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r); } ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawRipple(r){ r.life-=1/60; r.r += (r.max-r.r)*.08; ctx.save(); ctx.globalAlpha=Math.max(0,r.life/.55); ctx.strokeStyle=r.color; ctx.lineWidth=2; ctx.shadowColor=r.color; ctx.shadowBlur=12; ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,Math.PI*2); ctx.stroke(); ctx.restore(); }
+  function drawParticle(p){ p.life-=1/60; p.x+=p.vx/60; p.y+=p.vy/60; p.vy+=95/60; ctx.save(); ctx.globalAlpha=Math.max(0,p.life/p.max); ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=10; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+  function drawGhost(g){ g.life-=1/60; ctx.save(); ctx.globalAlpha=Math.max(0,g.life); ctx.strokeStyle=palette[g.color]; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(g.x,g.y,(1-g.life)*34+20,0,Math.PI*2); ctx.stroke(); ctx.restore(); }
+  function drawTiltHandle(){ ctx.save(); ctx.translate(state.cx + state.tiltX*state.radius*.22, state.cy + state.tiltY*state.radius*.22); ctx.strokeStyle='rgba(204,255,0,.75)'; ctx.fillStyle='rgba(204,255,0,.12)'; ctx.lineWidth=2; ctx.shadowColor='rgba(204,255,0,.55)'; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(0,0,18,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.restore(); }
+
+  function cleanup(){
+    state.particles = state.particles.filter(p=>p.life>0);
+    state.ripples = state.ripples.filter(r=>r.life>0);
+    state.ghosts = state.ghosts.filter(g=>g.life>0);
+  }
+
+  function loop(now){
+    const dt = Math.min(.033, (now-state.last)/1000 || .016); state.last=now;
+    update(dt); cleanup(); updateHud(); draw(); requestAnimationFrame(loop);
+  }
+
+  resize(); reset(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
