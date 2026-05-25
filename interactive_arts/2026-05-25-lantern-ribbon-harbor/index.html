@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lantern Ribbon Harbor | Daily Mini Game 2026-05-25</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--lime:#ccff00;--ink:#030408;--water:#102833;--cyan:#54f7ff;--coral:#ff6a9e;--amber:#ffd36a;--mint:#8cffbf;--panel:rgba(5,10,16,.78)}
+    html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--lime);font-family:'Space Mono',monospace;text-transform:uppercase;touch-action:none;overscroll-behavior:none}
+    #game{position:fixed;inset:0;width:100vw;height:100vh;display:block;background:radial-gradient(circle at 52% 14%,#243752 0,#071722 42%,#030408 100%);cursor:grab}
+    #game:active{cursor:grabbing}
+    .hud{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:clamp(10px,2.5vw,24px);pointer-events:none}
+    .top{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+    .title,.panel,.controls button{border:1px solid rgba(204,255,0,.72);background:var(--panel);box-shadow:0 0 28px rgba(84,247,255,.13),inset 0 0 22px rgba(204,255,0,.05);backdrop-filter:blur(10px)}
+    .title{padding:12px 16px;max-width:810px}
+    h1{font-family:'VT323',monospace;font-size:clamp(2.38rem,6.8vw,5.55rem);font-weight:400;line-height:.86;letter-spacing:0;text-shadow:0 0 18px rgba(204,255,0,.52)}
+    .subtitle{margin-top:8px;color:#e6fff8;font-size:clamp(.64rem,1.55vw,.86rem);line-height:1.45;max-width:68em}
+    .stats{display:grid;grid-template-columns:repeat(2,minmax(84px,auto));gap:8px}
+    .stat{padding:9px 10px;text-align:center;min-width:84px}.stat b{display:block;font-family:'VT323';font-size:2rem;line-height:1;color:white}.stat span{font-size:.62rem;color:#c8fff4}
+    .center-card{align-self:center;justify-self:center;max-width:590px;text-align:center;padding:18px;transition:.25s opacity,.25s transform}.center-card.hidden{opacity:0;transform:translateY(16px) scale(.98)}.center-card strong{color:white}
+    .bottom{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px}.instructions{padding:10px 12px;font-size:.67rem;line-height:1.45;color:#ecfffb;max-width:590px}
+    .controls{pointer-events:auto;display:flex;gap:10px;justify-content:center;align-items:end;flex-wrap:wrap}.controls button{color:var(--lime);font:700 .74rem 'Space Mono';padding:13px 15px;border-radius:999px;min-width:78px;text-transform:uppercase;touch-action:none}
+    .controls button:active,.controls button.active{background:var(--lime);color:#05070b;transform:translateY(2px);box-shadow:0 0 24px rgba(204,255,0,.5)}.right-actions{pointer-events:auto;display:flex;gap:10px;justify-content:flex-end}.small{min-width:72px!important;padding:12px!important}
+    .wind-dot{display:inline-block;width:.72em;height:.72em;border-radius:50%;margin:0 .25em;background:var(--lime);box-shadow:0 0 12px rgba(204,255,0,.8)}
+    @media(max-width:760px){.hud{padding:10px}.top{grid-template-columns:1fr}.stats{grid-template-columns:repeat(4,1fr)}.stat{min-width:0;padding:7px 3px}.bottom{grid-template-columns:1fr}.instructions{order:2;max-width:none;font-size:.6rem}.right-actions{justify-content:center}.controls button{min-width:72px;padding:12px 9px}h1{font-size:2.72rem}.subtitle{max-width:39em}}
+  </style>
+</head>
+<body>
+<canvas id="game" aria-label="Lantern Ribbon Harbor touch arcade game"></canvas>
+<div class="hud">
+  <div class="top">
+    <section class="title">
+      <h1>LANTERN RIBBON HARBOR</h1>
+      <p class="subtitle">Drag a ferry through tidal lanes, tow matching lanterns with a flowing ribbon, switch harbor color, and flare through fog bells before the tide meter empties.</p>
+    </section>
+    <section class="stats">
+      <div class="stat panel"><b id="score">0</b><span>score</span></div>
+      <div class="stat panel"><b id="delivered">0/24</b><span>lanterns</span></div>
+      <div class="stat panel"><b id="tide">100</b><span>tide</span></div>
+      <div class="stat panel"><b id="wind"><span class="wind-dot"></span>0</b><span>wind</span></div>
+    </section>
+  </div>
+  <section id="message" class="center-card panel">
+    <strong>Touch and drag the ferry.</strong><br>
+    Matching lanterns hook to your ribbon. Deliver them through same-color harbor gates. Fog bells must be dodged or flared.
+  </section>
+  <div class="bottom">
+    <section class="instructions panel">Mobile: drag anywhere to steer, tap SWITCH to change harbor color, tap FLARE to burn fog bells. Desktop: mouse drag or WASD/arrows, C switch, Space flare. Deliver 24 lanterns.</section>
+    <section class="controls">
+      <button id="switchBtn" aria-label="switch harbor color">Switch</button>
+      <button id="flareBtn" aria-label="flare fog bells">Flare</button>
+    </section>
+    <section class="right-actions">
+      <button id="soundBtn" class="small" aria-label="toggle sound">Sound Off</button>
+      <button id="restartBtn" class="small" aria-label="restart game">Restart</button>
+    </section>
+  </div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const ui = {score:$('score'),delivered:$('delivered'),tide:$('tide'),wind:$('wind'),message:$('message'),switch:$('switchBtn'),flare:$('flareBtn'),sound:$('soundBtn'),restart:$('restartBtn')};
+  const colors = [
+    {name:'cyan',hex:'#54f7ff'},
+    {name:'coral',hex:'#ff6a9e'},
+    {name:'amber',hex:'#ffd36a'}
+  ];
+  const state = {
+    w:0,h:0,dpr:1,last:0,time:0,mode:'ready',score:0,delivered:0,tide:100,color:0,combo:1,
+    ferry:{x:0,y:0,vx:0,vy:0,r:16},target:{x:0,y:0,active:false,id:null},keys:{},
+    lanterns:[],fog:[],particles:[],ripples:[],stars:[],ribbon:[],gates:[],flare:1,shake:0,msg:0,
+    stream:0,wind:0,audio:null,sound:false
+  };
+  const rand=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), dist=(a,b,c,d)=>Math.hypot(a-c,b-d);
+
+  function resize(){
+    state.dpr = Math.min(2, window.devicePixelRatio || 1);
+    state.w = innerWidth; state.h = innerHeight;
+    canvas.width = Math.floor(state.w * state.dpr); canvas.height = Math.floor(state.h * state.dpr);
+    canvas.style.width = state.w + 'px'; canvas.style.height = state.h + 'px';
+    ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
+    layoutGates();
+    state.stars = Array.from({length:100},()=>({x:Math.random()*state.w,y:Math.random()*state.h,a:Math.random(),r:rand(.4,2.2)}));
+    if(!state.ferry.x){ state.ferry.x=state.w*.5; state.ferry.y=state.h*.64; state.target.x=state.ferry.x; state.target.y=state.ferry.y; }
+  }
+
+  function layoutGates(){
+    const y = state.h * (state.w < 760 ? .22 : .2);
+    const span = Math.min(state.w * .72, 620);
+    state.gates = colors.map((c,i)=>({x:state.w*.5 + (i-1)*span*.34,y,color:i,w:Math.max(84,span*.22),pulse:0}));
+  }
+
+  function reset(){
+    state.time=0; state.last=performance.now(); state.mode='ready'; state.score=0; state.delivered=0; state.tide=100; state.color=0; state.combo=1; state.flare=1; state.shake=0; state.msg=0; state.stream=0; state.wind=0;
+    state.ferry={x:state.w*.5,y:state.h*.66,vx:0,vy:0,r:16}; state.target={x:state.ferry.x,y:state.ferry.y,active:false,id:null}; state.lanterns=[]; state.fog=[]; state.particles=[]; state.ripples=[]; state.ribbon=[];
+    layoutGates();
+    for(let i=0;i<9;i++) spawnLantern(true);
+    for(let i=0;i<5;i++) spawnFog(true);
+    show('<strong>Touch and drag the ferry.</strong><br>Hook same-color lanterns, guide them to same-color gates, and flare fog bells when crowded.', 7);
+    updateHud();
+  }
+
+  function start(){ if(state.mode==='won'||state.mode==='over') reset(); if(state.mode==='ready') state.mode='play'; ui.message.classList.add('hidden'); unlockAudio(); }
+  function show(html,sec=2){ ui.message.innerHTML=html; ui.message.classList.remove('hidden'); state.msg=sec; }
+  function laneY(){ return rand(state.h*.34,state.h*.82); }
+  function waterSpeed(){ return 55 + Math.min(90,state.time*2.2) + Math.sin(state.time*.9)*22; }
+
+  function spawnLantern(initial=false){
+    const side = initial ? (Math.random()<.5?-1:1) : -1;
+    const color = Math.floor(Math.random()*3);
+    state.lanterns.push({x:side<0?rand(-80,state.w*.2):rand(state.w*.8,state.w+80),y:laneY(),vx:side<0?rand(22,58):rand(-58,-22),vy:rand(-18,18),r:rand(10,14),color,hooked:false,phase:rand(0,9),life:0,score:false});
+  }
+
+  function spawnFog(initial=false){
+    state.fog.push({x:rand(state.w*.08,state.w*.92),y:initial?laneY():rand(-40,state.h*.2),vx:rand(-20,20),vy:rand(34,78),r:rand(15,22),phase:rand(0,9)});
+  }
+
+  function switchColor(){
+    start();
+    state.color=(state.color+1)%3;
+    for(const g of state.gates) g.pulse=.45;
+    ripple(state.ferry.x,state.ferry.y,colors[state.color].hex,90);
+    burst(state.ferry.x,state.ferry.y,colors[state.color].hex,22,1);
+    beep(420+state.color*150,.05,'triangle',.045);
+    show('Harbor tuned to '+colors[state.color].name+'. Hook matching lanterns for combo chains.', 1.2);
+    updateHud();
+  }
+
+  function flare(){
+    start();
+    if(state.flare < .98) return;
+    state.flare=0; state.shake=8;
+    ripple(state.ferry.x,state.ferry.y,'#ccff00',170);
+    let cleared=0;
+    for(let i=state.fog.length-1;i>=0;i--){
+      const f=state.fog[i], d=dist(state.ferry.x,state.ferry.y,f.x,f.y);
+      if(d<175){ burst(f.x,f.y,'#ccff00',26,1.1); state.fog.splice(i,1); cleared++; }
+      else { f.vx += (f.x-state.ferry.x)/(d||1)*170; f.vy += (f.y-state.ferry.y)/(d||1)*170; }
+    }
+    state.score += cleared * 14 * state.combo;
+    state.tide = clamp(state.tide + cleared*2, 0, 100);
+    beep(cleared?190:110,.08,'sawtooth',.05);
+    updateHud();
+  }
+
+  function pointerTarget(x,y){ state.target.x=clamp(x,40,state.w-40); state.target.y=clamp(y,state.h*.25,state.h-52); }
+  canvas.addEventListener('pointerdown', e=>{ e.preventDefault(); start(); state.target.active=true; state.target.id=e.pointerId; canvas.setPointerCapture(e.pointerId); pointerTarget(e.clientX,e.clientY); });
+  canvas.addEventListener('pointermove', e=>{ if(!state.target.active||e.pointerId!==state.target.id) return; e.preventDefault(); pointerTarget(e.clientX,e.clientY); });
+  canvas.addEventListener('pointerup', e=>{ if(e.pointerId!==state.target.id) return; state.target.active=false; state.target.id=null; });
+  canvas.addEventListener('pointercancel', ()=>{ state.target.active=false; state.target.id=null; });
+  ui.switch.addEventListener('pointerdown', e=>{ e.preventDefault(); switchColor(); });
+  ui.flare.addEventListener('pointerdown', e=>{ e.preventDefault(); flare(); });
+  ui.restart.addEventListener('pointerdown', e=>{ e.preventDefault(); reset(); start(); });
+  ui.sound.addEventListener('pointerdown', e=>{ e.preventDefault(); state.sound=!state.sound; ui.sound.textContent=state.sound?'Sound On':'Sound Off'; unlockAudio(); beep(560,.04,'sine',.04); });
+  window.addEventListener('keydown', e=>{ if(e.repeat) return; const k=e.key.toLowerCase(); state.keys[k]=true; if(['arrowleft','arrowright','arrowup','arrowdown','a','d','w','s'].includes(k)) start(); if(k==='c') switchColor(); if(k===' ') flare(); if(k==='r'){reset();start();} });
+  window.addEventListener('keyup', e=>{ state.keys[e.key.toLowerCase()]=false; });
+  window.addEventListener('resize', resize);
+
+  function unlockAudio(){ if(state.audio) return; const AC=window.AudioContext||window.webkitAudioContext; if(AC) state.audio=new AC(); }
+  function beep(freq,dur,type,vol){ if(!state.sound||!state.audio) return; const t=state.audio.currentTime,o=state.audio.createOscillator(),g=state.audio.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g).connect(state.audio.destination); o.start(t); o.stop(t+dur+.03); }
+  function burst(x,y,color,n=18,power=1){ for(let i=0;i<n;i++){ const a=rand(0,Math.PI*2),s=rand(55,220)*power; state.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.25,.72),max:.72,color,r:rand(2,5)}); } }
+  function ripple(x,y,color,max=120){ state.ripples.push({x,y,r:8,max,life:.55,color}); }
+
+  function update(dt){
+    state.msg -= dt; if(state.msg<0) ui.message.classList.add('hidden');
+    state.flare = Math.min(1, state.flare + dt*.18);
+    state.shake *= .88;
+    for(const g of state.gates) g.pulse=Math.max(0,g.pulse-dt);
+    state.wind = Math.sin(state.time*.72)*.72 + Math.sin(state.time*1.7)*.28;
+    if(state.mode==='play'){
+      state.time += dt; state.stream += dt*waterSpeed();
+      state.tide = clamp(state.tide - dt*(2.35 + state.fog.length*.13), 0, 100);
+      if(Math.random()<dt*(1.05+state.time*.012) && state.lanterns.length<13) spawnLantern();
+      if(Math.random()<dt*(.38+state.time*.005) && state.fog.length<8) spawnFog();
+      if(state.tide<=0){ state.mode='over'; show('<strong>THE TIDE WENT DARK.</strong><br>Switch colors earlier and save flare for fog clusters.', 9); beep(88,.2,'sawtooth',.05); }
+      if(state.delivered>=24){ state.mode='won'; state.score += Math.round(state.tide)*18; show('<strong>HARBOR LIT.</strong><br>The ribbon ferry delivered every signal before dawn.', 9); beep(760,.18,'triangle',.06); }
+    }
+    moveFerry(dt);
+    moveLanterns(dt);
+    moveFog(dt);
+    updateEffects(dt);
+    updateHud();
+  }
+
+  function moveFerry(dt){
+    let kx=(state.keys.arrowright||state.keys.d?1:0)-(state.keys.arrowleft||state.keys.a?1:0);
+    let ky=(state.keys.arrowdown||state.keys.s?1:0)-(state.keys.arrowup||state.keys.w?1:0);
+    if(kx||ky){ state.target.x=clamp(state.ferry.x+kx*180,40,state.w-40); state.target.y=clamp(state.ferry.y+ky*180,state.h*.25,state.h-52); }
+    const windPush = state.wind * 24;
+    const ax=(state.target.x-state.ferry.x)*8 + windPush;
+    const ay=(state.target.y-state.ferry.y)*8;
+    state.ferry.vx += ax*dt; state.ferry.vy += ay*dt;
+    state.ferry.vx *= Math.pow(.04,dt); state.ferry.vy *= Math.pow(.04,dt);
+    state.ferry.x = clamp(state.ferry.x + state.ferry.vx*dt, 34, state.w-34);
+    state.ferry.y = clamp(state.ferry.y + state.ferry.vy*dt, state.h*.24, state.h-42);
+    state.ribbon.unshift({x:state.ferry.x,y:state.ferry.y,color:state.color});
+    if(state.ribbon.length>34) state.ribbon.pop();
+  }
+
+  function moveLanterns(dt){
+    for(let i=state.lanterns.length-1;i>=0;i--){
+      const l=state.lanterns[i]; l.life+=dt; l.phase+=dt*3;
+      if(l.hooked){
+        const idx = Math.min(state.ribbon.length-1, 8 + state.lanterns.filter(v=>v.hooked).indexOf(l)*5);
+        const p = state.ribbon[idx] || state.ferry;
+        l.vx += (p.x-l.x)*6*dt; l.vy += (p.y-l.y)*6*dt;
+      }else{
+        l.vx += state.wind*16*dt;
+        if(l.color===state.color && dist(l.x,l.y,state.ferry.x,state.ferry.y)<86){
+          l.hooked=true; l.score=true; state.combo=Math.min(8,state.combo+1); state.score+=10*state.combo; burst(l.x,l.y,colors[l.color].hex,12,.65); beep(500+l.color*120,.04,'triangle',.035);
+        }
+      }
+      l.x += l.vx*dt; l.y += l.vy*dt; l.vx*=Math.pow(.42,dt); l.vy*=Math.pow(.42,dt);
+      for(const g of state.gates){
+        if(l.hooked && l.color===g.color && dist(l.x,l.y,g.x,g.y)<g.w*.55){
+          state.delivered++; state.score+=70*state.combo; state.tide=clamp(state.tide+3,0,100); g.pulse=.6;
+          burst(g.x,g.y,colors[l.color].hex,34,1.05); ripple(g.x,g.y,colors[l.color].hex,92); state.lanterns.splice(i,1); spawnLantern(); beep(640+l.color*95,.055,'triangle',.055); break;
+        }
+      }
+      if(!state.lanterns[i]) continue;
+      if(l.x<-140||l.x>state.w+140||l.y>state.h+140){ state.lanterns.splice(i,1); spawnLantern(); state.combo=1; }
+    }
+  }
+
+  function moveFog(dt){
+    for(let i=state.fog.length-1;i>=0;i--){
+      const f=state.fog[i]; f.phase+=dt*3; f.vx += state.wind*12*dt; f.x+=f.vx*dt; f.y+=f.vy*dt; f.vx*=Math.pow(.55,dt);
+      if(f.x<f.r||f.x>state.w-f.r) f.vx*=-1;
+      if(dist(f.x,f.y,state.ferry.x,state.ferry.y)<f.r+state.ferry.r+2){
+        state.tide=clamp(state.tide-12,0,100); state.combo=1; state.shake=9; burst(f.x,f.y,'#ffffff',18,.8); ripple(f.x,f.y,'#ffffff',70); state.fog.splice(i,1); spawnFog(); beep(135,.06,'square',.04); continue;
+      }
+      for(const l of state.lanterns){
+        if(l.hooked && dist(f.x,f.y,l.x,l.y)<f.r+l.r){
+          l.hooked=false; l.vx+=rand(-120,120); l.vy+=rand(80,160); state.combo=1; state.tide=clamp(state.tide-5,0,100); burst(l.x,l.y,'#dffcff',10,.55);
+        }
+      }
+      if(f.y>state.h+70){ state.fog.splice(i,1); spawnFog(); }
+    }
+  }
+
+  function updateEffects(dt){
+    for(let i=state.particles.length-1;i>=0;i--){ const p=state.particles[i]; p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=Math.pow(.18,dt); p.vy*=Math.pow(.18,dt); if(p.life<=0) state.particles.splice(i,1); }
+    for(let i=state.ripples.length-1;i>=0;i--){ const r=state.ripples[i]; r.life-=dt; r.r += (r.max-r.r)*dt*5.2; if(r.life<=0) state.ripples.splice(i,1); }
+  }
+
+  function updateHud(){
+    ui.score.textContent=Math.round(state.score);
+    ui.delivered.textContent=state.delivered+'/24';
+    ui.tide.textContent=Math.round(state.tide);
+    ui.wind.innerHTML='<span class="wind-dot"></span>'+Math.round(Math.abs(state.wind)*99);
+    ui.flare.textContent=state.flare>=.98?'Flare':'Flare '+Math.round(state.flare*100)+'%';
+  }
+
+  function draw(){
+    const sx=(Math.random()-.5)*state.shake, sy=(Math.random()-.5)*state.shake;
+    ctx.clearRect(0,0,state.w,state.h);
+    ctx.save(); ctx.translate(sx,sy);
+    drawBack(); drawWater(); drawGates(); drawRibbon();
+    for(const l of state.lanterns) drawLantern(l);
+    for(const f of state.fog) drawFog(f);
+    drawFerry();
+    for(const r of state.ripples) drawRipple(r);
+    for(const p of state.particles) drawParticle(p);
+    drawTarget();
+    ctx.restore();
+  }
+
+  function drawBack(){
+    const grad=ctx.createRadialGradient(state.w*.52,state.h*.12,20,state.w*.5,state.h*.54,Math.max(state.w,state.h));
+    grad.addColorStop(0,'#263f62'); grad.addColorStop(.45,'#071722'); grad.addColorStop(1,'#030408');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,state.w,state.h);
+    for(const s of state.stars){ s.a += .012; ctx.globalAlpha=.25+.45*Math.sin(s.a+state.time); ctx.fillStyle='#dffff7'; ctx.fillRect(s.x,s.y,s.r,s.r); }
+    ctx.globalAlpha=1;
+  }
+
+  function drawWater(){
+    ctx.save(); ctx.globalAlpha=.85;
+    for(let i=0;i<16;i++){
+      const y=state.h*.28+i*state.h*.045+Math.sin(state.time*1.2+i)*7;
+      ctx.beginPath();
+      for(let x=-40;x<state.w+60;x+=24){
+        const yy=y+Math.sin((x+state.stream*(i%2?-.35:.52))*.018+i)*7;
+        if(x===-40) ctx.moveTo(x,yy); else ctx.lineTo(x,yy);
+      }
+      ctx.strokeStyle=i%3===0?'rgba(84,247,255,.22)':'rgba(204,255,0,.09)';
+      ctx.lineWidth=i%3===0?2:1; ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawGates(){
+    for(const g of state.gates){
+      const c=colors[g.color].hex, active=g.color===state.color;
+      ctx.save(); ctx.translate(g.x,g.y);
+      ctx.shadowColor=c; ctx.shadowBlur=active?28:12;
+      ctx.strokeStyle=c; ctx.lineWidth=active?4:2; ctx.globalAlpha=active?1:.58;
+      roundRect(-g.w/2,-24,g.w,48,8); ctx.stroke();
+      ctx.fillStyle='rgba(0,0,0,.34)'; ctx.fill();
+      ctx.fillStyle=c; ctx.font='700 10px Space Mono'; ctx.textAlign='center'; ctx.fillText(colors[g.color].name,0,4);
+      if(g.pulse>0){ ctx.globalAlpha=g.pulse; ctx.beginPath(); ctx.arc(0,0,g.w*.48+(1-g.pulse)*45,0,Math.PI*2); ctx.stroke(); }
+      ctx.restore();
+    }
+  }
+
+  function drawRibbon(){
+    if(state.ribbon.length<2) return;
+    ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+    for(let pass=0;pass<2;pass++){
+      ctx.beginPath();
+      for(let i=0;i<state.ribbon.length;i++){
+        const p=state.ribbon[i]; if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y);
+      }
+      ctx.strokeStyle=pass?'rgba(204,255,0,.95)':'rgba(84,247,255,.18)';
+      ctx.lineWidth=pass?3:13; ctx.shadowColor=colors[state.color].hex; ctx.shadowBlur=pass?18:0; ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawFerry(){
+    const f=state.ferry, c=colors[state.color].hex;
+    ctx.save(); ctx.translate(f.x,f.y); ctx.rotate(Math.atan2(f.vy,f.vx||1)*.12);
+    ctx.shadowColor=c; ctx.shadowBlur=28;
+    ctx.fillStyle='rgba(3,4,8,.9)'; ctx.strokeStyle=c; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(0,-24); ctx.lineTo(28,8); ctx.lineTo(0,20); ctx.lineTo(-28,8); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#ccff00'; ctx.beginPath(); ctx.arc(0,2,6,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawLantern(l){
+    const c=colors[l.color].hex, bob=Math.sin(l.phase)*4;
+    ctx.save(); ctx.translate(l.x,l.y+bob);
+    ctx.shadowColor=c; ctx.shadowBlur=l.hooked?28:15;
+    ctx.fillStyle=c; ctx.globalAlpha=l.hooked?1:.85;
+    roundRect(-l.r*.72,-l.r,l.r*1.44,l.r*1.85,5); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.75)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='rgba(3,4,8,.62)'; ctx.fillRect(-l.r*.38,-2,l.r*.76,4);
+    if(l.hooked){ ctx.strokeStyle='rgba(204,255,0,.55)'; ctx.beginPath(); ctx.arc(0,0,l.r+7+Math.sin(state.time*8)*2,0,Math.PI*2); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  function drawFog(f){
+    ctx.save(); ctx.translate(f.x,f.y); ctx.rotate(f.phase*.2);
+    ctx.shadowColor='#e8fff8'; ctx.shadowBlur=18; ctx.strokeStyle='rgba(232,255,248,.82)'; ctx.lineWidth=2;
+    ctx.fillStyle='rgba(232,255,248,.12)';
+    ctx.beginPath();
+    for(let i=0;i<8;i++){ const a=i*Math.PI*2/8+Math.sin(f.phase)*.15, r=f.r*(.7+(i%2)*.36); const x=Math.cos(a)*r,y=Math.sin(a)*r; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#ccff00'; ctx.beginPath(); ctx.arc(0,0,3,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawRipple(r){
+    ctx.save(); ctx.globalAlpha=Math.max(0,r.life/.55); ctx.strokeStyle=r.color; ctx.shadowColor=r.color; ctx.shadowBlur=16; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,Math.PI*2); ctx.stroke(); ctx.restore();
+  }
+
+  function drawParticle(p){
+    ctx.save(); ctx.globalAlpha=Math.max(0,p.life/p.max); ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=12; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  function drawTarget(){
+    if(!state.target.active) return;
+    ctx.save(); ctx.globalAlpha=.6; ctx.strokeStyle='#ccff00'; ctx.lineWidth=1.5; ctx.setLineDash([4,8]);
+    ctx.beginPath(); ctx.arc(state.target.x,state.target.y,24,0,Math.PI*2); ctx.stroke(); ctx.restore();
+  }
+
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+  }
+
+  function frame(now){
+    const dt=Math.min(.033,(now-state.last)/1000||0); state.last=now;
+    update(dt); draw(); requestAnimationFrame(frame);
+  }
+
+  resize(); reset(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
