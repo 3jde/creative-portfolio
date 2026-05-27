@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Moon Glyph Weaver | Daily Mini Game 2026-05-27</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--lime:#ccff00;--ink:#020309;--cyan:#56f4ff;--rose:#ff5f9e;--gold:#ffd86a;--violet:#9f8cff;--panel:rgba(3,7,15,.78)}
+    html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--lime);font-family:'Space Mono',monospace;text-transform:uppercase;touch-action:none;overscroll-behavior:none}
+    #game{position:fixed;inset:0;width:100vw;height:100vh;display:block;background:radial-gradient(circle at 50% 18%,#211842 0,#071622 48%,#020309 100%);cursor:crosshair}
+    .hud{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:clamp(10px,2.5vw,24px);pointer-events:none}
+    .top{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start}
+    .title,.panel,.controls button{border:1px solid rgba(204,255,0,.72);background:var(--panel);box-shadow:0 0 30px rgba(86,244,255,.12),inset 0 0 22px rgba(204,255,0,.06);backdrop-filter:blur(10px)}
+    .title{padding:12px 16px;max-width:850px}
+    h1{font-family:'VT323',monospace;font-size:clamp(2.4rem,6.7vw,5.6rem);font-weight:400;line-height:.86;letter-spacing:0;text-shadow:0 0 18px rgba(204,255,0,.55)}
+    .subtitle{margin-top:8px;color:#e8fffb;font-size:clamp(.64rem,1.55vw,.86rem);line-height:1.45;max-width:70em}
+    .stats{display:grid;grid-template-columns:repeat(2,minmax(84px,auto));gap:8px}
+    .stat{padding:9px 10px;text-align:center;min-width:84px}.stat b{display:block;font-family:'VT323';font-size:2rem;line-height:1;color:white}.stat span{font-size:.62rem;color:#c8fff4}
+    .center-card{align-self:center;justify-self:center;max-width:610px;text-align:center;padding:18px;transition:.25s opacity,.25s transform}.center-card.hidden{opacity:0;transform:translateY(16px) scale(.98)}.center-card strong{color:white}
+    .bottom{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px}.instructions{padding:10px 12px;font-size:.67rem;line-height:1.45;color:#ecfffb;max-width:610px}
+    .controls{pointer-events:auto;display:flex;gap:10px;justify-content:center;align-items:end;flex-wrap:wrap}.controls button{color:var(--lime);font:700 .74rem 'Space Mono';padding:13px 15px;border-radius:999px;min-width:78px;text-transform:uppercase;touch-action:none}
+    .controls button:active,.controls button.active{background:var(--lime);color:#05070b;transform:translateY(2px);box-shadow:0 0 24px rgba(204,255,0,.5)}.right-actions{pointer-events:auto;display:flex;gap:10px;justify-content:flex-end}.small{min-width:72px!important;padding:12px!important}
+    .phase-dot{display:inline-block;width:.72em;height:.72em;border-radius:50%;margin:0 .25em;background:var(--lime);box-shadow:0 0 12px rgba(204,255,0,.8)}
+    @media(max-width:760px){.hud{padding:10px}.top{grid-template-columns:1fr}.stats{grid-template-columns:repeat(4,1fr)}.stat{min-width:0;padding:7px 3px}.bottom{grid-template-columns:1fr}.instructions{order:2;max-width:none;font-size:.6rem}.right-actions{justify-content:center}.controls button{min-width:72px;padding:12px 9px}h1{font-size:2.74rem}.subtitle{max-width:39em}}
+  </style>
+</head>
+<body>
+<canvas id="game" aria-label="Moon Glyph Weaver touch drawing arcade game"></canvas>
+<div class="hud">
+  <div class="top">
+    <section class="title">
+      <h1>MOON GLYPH WEAVER</h1>
+      <p class="subtitle">Drag a live moon thread through falling glyphs. Tune the thread color, catch matching marks in the shown order, and pulse away broken runes before the weave tears.</p>
+    </section>
+    <section class="stats">
+      <div class="stat panel"><b id="score">0</b><span>score</span></div>
+      <div class="stat panel"><b id="woven">0/27</b><span>woven</span></div>
+      <div class="stat panel"><b id="tear">0</b><span>tear</span></div>
+      <div class="stat panel"><b id="phase"><span class="phase-dot"></span>1</b><span>phase</span></div>
+    </section>
+  </div>
+  <section id="message" class="center-card panel">
+    <strong>Touch and drag to draw the thread.</strong><br>
+    Cross matching glyphs in the order shown by the orbit. Wrong catches raise tear; pulse clears cracked runes.
+  </section>
+  <div class="bottom">
+    <section class="instructions panel">Mobile: drag anywhere to weave, tap TUNE to change thread color, tap PULSE to repel cracked runes. Desktop: mouse drag or WASD/arrows, C tune, Space pulse. Weave 27 glyphs.</section>
+    <section class="controls">
+      <button id="tuneBtn" aria-label="tune thread color">Tune</button>
+      <button id="pulseBtn" aria-label="pulse cracked runes">Pulse</button>
+    </section>
+    <section class="right-actions">
+      <button id="soundBtn" class="small" aria-label="toggle sound">Sound Off</button>
+      <button id="restartBtn" class="small" aria-label="restart game">Restart</button>
+    </section>
+  </div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const ui = {score:$('score'),woven:$('woven'),tear:$('tear'),phase:$('phase'),message:$('message'),tune:$('tuneBtn'),pulse:$('pulseBtn'),sound:$('soundBtn'),restart:$('restartBtn')};
+  const palette = [{name:'cyan',hex:'#56f4ff'},{name:'rose',hex:'#ff5f9e'},{name:'gold',hex:'#ffd86a'}];
+  const marks = ['<>','[]','//','xx','oo','++'];
+  const state = {w:0,h:0,dpr:1,last:0,time:0,mode:'ready',score:0,woven:0,tear:0,phase:0,need:[],needIndex:0,pulse:1,shake:0,msg:0,sound:false,audio:null,pointer:false,pointerId:null,brush:{x:0,y:0,vx:0,vy:0},target:{x:0,y:0},keys:{},thread:[],glyphs:[],cracks:[],particles:[],ripples:[],stars:[]};
+  const rand=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), dist=(a,b,c,d)=>Math.hypot(a-c,b-d);
+
+  function resize(){
+    state.dpr = Math.min(2, window.devicePixelRatio || 1);
+    state.w = innerWidth; state.h = innerHeight;
+    canvas.width = Math.floor(state.w * state.dpr); canvas.height = Math.floor(state.h * state.dpr);
+    canvas.style.width = state.w + 'px'; canvas.style.height = state.h + 'px';
+    ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
+    state.stars = Array.from({length:110},()=>({x:Math.random()*state.w,y:Math.random()*state.h,a:Math.random(),r:rand(.4,2.2)}));
+    if(!state.brush.x){ state.brush.x=state.target.x=state.w*.5; state.brush.y=state.target.y=state.h*.68; }
+  }
+
+  function reset(){
+    state.time=0; state.last=performance.now(); state.mode='ready'; state.score=0; state.woven=0; state.tear=0; state.phase=0; state.needIndex=0; state.pulse=1; state.shake=0; state.msg=0;
+    state.brush={x:state.w*.5,y:state.h*.68,vx:0,vy:0}; state.target={x:state.brush.x,y:state.brush.y};
+    state.thread=[]; state.glyphs=[]; state.cracks=[]; state.particles=[]; state.ripples=[]; makePattern();
+    for(let i=0;i<10;i++) spawnGlyph(true);
+    for(let i=0;i<4;i++) spawnCrack(true);
+    show('<strong>Touch and drag to draw the thread.</strong><br>Catch the orbit sequence. Tune color before crossing a glyph.', 7);
+    updateHud();
+  }
+
+  function makePattern(){
+    state.need = Array.from({length:5},(_,i)=>(state.phase+i)%3);
+  }
+  function start(){ if(state.mode==='won'||state.mode==='over') reset(); if(state.mode==='ready') state.mode='play'; ui.message.classList.add('hidden'); unlockAudio(); }
+  function show(html,sec=2){ ui.message.innerHTML=html; ui.message.classList.remove('hidden'); state.msg=sec; }
+  function spawnGlyph(initial=false){
+    const color = Math.floor(Math.random()*3);
+    const x = initial ? rand(50,state.w-50) : rand(38,state.w-38);
+    const y = initial ? rand(state.h*.2,state.h*.82) : rand(-90,-20);
+    state.glyphs.push({x,y,vx:rand(-24,24),vy:rand(42,82),r:rand(13,18),color,mark:marks[Math.floor(Math.random()*marks.length)],spin:rand(0,9),caught:false});
+  }
+  function spawnCrack(initial=false){
+    state.cracks.push({x:initial?rand(40,state.w-40):rand(40,state.w-40),y:initial?rand(state.h*.18,state.h*.78):rand(-80,-20),vx:rand(-18,18),vy:rand(52,95),r:rand(16,24),spin:rand(0,8)});
+  }
+  function tune(){
+    start(); state.phase=(state.phase+1)%3; makePattern();
+    ripple(state.brush.x,state.brush.y,palette[state.phase].hex,110); burst(state.brush.x,state.brush.y,palette[state.phase].hex,24,.85);
+    beep(430+state.phase*145,.05,'triangle',.045); show('Thread tuned to '+palette[state.phase].name+'. Match the first orbit glyph for bonus chains.',1.2); updateHud();
+  }
+  function pulse(){
+    start(); if(state.pulse<.98) return; state.pulse=0; state.shake=8; let hits=0;
+    ripple(state.brush.x,state.brush.y,'#ccff00',180);
+    for(let i=state.cracks.length-1;i>=0;i--){
+      const c=state.cracks[i], d=dist(c.x,c.y,state.brush.x,state.brush.y);
+      if(d<185){ burst(c.x,c.y,'#ccff00',26,1); state.cracks.splice(i,1); hits++; }
+      else { c.vx+=(c.x-state.brush.x)/(d||1)*220; c.vy+=(c.y-state.brush.y)/(d||1)*220; }
+    }
+    state.score+=hits*18; state.tear=clamp(state.tear-hits*3,0,100); beep(hits?190:110,.08,'sawtooth',.05); updateHud();
+  }
+  function target(x,y){ state.target.x=clamp(x,28,state.w-28); state.target.y=clamp(y,state.h*.18,state.h-36); }
+  canvas.addEventListener('pointerdown', e=>{ e.preventDefault(); start(); state.pointer=true; state.pointerId=e.pointerId; canvas.setPointerCapture(e.pointerId); target(e.clientX,e.clientY); });
+  canvas.addEventListener('pointermove', e=>{ if(!state.pointer||e.pointerId!==state.pointerId) return; e.preventDefault(); target(e.clientX,e.clientY); });
+  canvas.addEventListener('pointerup', e=>{ if(e.pointerId!==state.pointerId) return; state.pointer=false; state.pointerId=null; });
+  canvas.addEventListener('pointercancel', ()=>{ state.pointer=false; state.pointerId=null; });
+  ui.tune.addEventListener('pointerdown', e=>{ e.preventDefault(); tune(); });
+  ui.pulse.addEventListener('pointerdown', e=>{ e.preventDefault(); pulse(); });
+  ui.restart.addEventListener('pointerdown', e=>{ e.preventDefault(); reset(); start(); });
+  ui.sound.addEventListener('pointerdown', e=>{ e.preventDefault(); state.sound=!state.sound; ui.sound.textContent=state.sound?'Sound On':'Sound Off'; unlockAudio(); beep(560,.04,'sine',.04); });
+  window.addEventListener('keydown', e=>{ if(e.repeat) return; const k=e.key.toLowerCase(); state.keys[k]=true; if(['arrowleft','arrowright','arrowup','arrowdown','a','d','w','s'].includes(k)) start(); if(k==='c') tune(); if(k===' ') pulse(); if(k==='r'){ reset(); start(); } });
+  window.addEventListener('keyup', e=>{ state.keys[e.key.toLowerCase()]=false; });
+  window.addEventListener('resize', resize);
+
+  function unlockAudio(){ if(state.audio) return; const AC=window.AudioContext||window.webkitAudioContext; if(AC) state.audio=new AC(); }
+  function beep(freq,dur,type,vol){ if(!state.sound||!state.audio) return; const t=state.audio.currentTime,o=state.audio.createOscillator(),g=state.audio.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g).connect(state.audio.destination); o.start(t); o.stop(t+dur+.03); }
+  function burst(x,y,color,n=18,power=1){ for(let i=0;i<n;i++){ const a=rand(0,Math.PI*2),s=rand(55,230)*power; state.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.25,.72),max:.72,color,r:rand(2,5)}); } }
+  function ripple(x,y,color,max=120){ state.ripples.push({x,y,r:8,max,life:.56,color}); }
+
+  function update(dt){
+    state.msg-=dt; if(state.msg<0) ui.message.classList.add('hidden');
+    state.pulse=Math.min(1,state.pulse+dt*.18); state.shake*=.88;
+    const kx=(state.keys.arrowright||state.keys.d?1:0)-(state.keys.arrowleft||state.keys.a?1:0);
+    const ky=(state.keys.arrowdown||state.keys.s?1:0)-(state.keys.arrowup||state.keys.w?1:0);
+    if(kx||ky){ target(state.target.x+kx*260*dt,state.target.y+ky*260*dt); }
+    const ax=(state.target.x-state.brush.x)*12, ay=(state.target.y-state.brush.y)*12;
+    state.brush.vx=(state.brush.vx+ax*dt)*Math.pow(.035,dt); state.brush.vy=(state.brush.vy+ay*dt)*Math.pow(.035,dt);
+    state.brush.x+=state.brush.vx*dt; state.brush.y+=state.brush.vy*dt;
+    state.thread.unshift({x:state.brush.x,y:state.brush.y,color:state.phase,life:1}); if(state.thread.length>46) state.thread.pop();
+    for(const p of state.thread) p.life-=dt*.28;
+    if(state.mode==='play'){
+      state.time+=dt; state.tear=clamp(state.tear+dt*(1.45+state.cracks.length*.18),0,100);
+      if(Math.random()<dt*(1.15+state.time*.014)&&state.glyphs.length<14) spawnGlyph();
+      if(Math.random()<dt*(.38+state.time*.006)&&state.cracks.length<8) spawnCrack();
+      if(state.tear>=100){ state.mode='over'; show('<strong>THE WEAVE TORE.</strong><br>Follow the orbit order and pulse cracked runes sooner.',9); beep(90,.2,'sawtooth',.05); }
+      if(state.woven>=27){ state.mode='won'; state.score+=Math.round(100-state.tear)*18; show('<strong>MOON ARCHIVE WOVEN.</strong><br>Every glyph is threaded into a clean night signal.',9); beep(760,.18,'triangle',.06); }
+    }
+    moveGlyphs(dt); moveCracks(dt); updateEffects(dt); updateHud();
+  }
+  function threadHit(x,y,r){
+    for(let i=0;i<Math.min(state.thread.length,32);i++){
+      const p=state.thread[i]; if(dist(x,y,p.x,p.y)<r+12) return p;
+    }
+    return null;
+  }
+  function moveGlyphs(dt){
+    for(let i=state.glyphs.length-1;i>=0;i--){
+      const g=state.glyphs[i]; g.spin+=dt*3; g.x+=g.vx*dt+Math.sin(state.time+g.spin)*12*dt; g.y+=g.vy*dt;
+      const hit=threadHit(g.x,g.y,g.r);
+      if(hit&&state.mode==='play'){
+        const needed=state.need[state.needIndex];
+        if(g.color===state.phase&&g.color===needed){
+          state.woven++; state.needIndex=(state.needIndex+1)%state.need.length; if(state.needIndex===0){ state.phase=(state.phase+1)%3; makePattern(); state.score+=90; }
+          state.score+=55+state.needIndex*10; state.tear=clamp(state.tear-2.5,0,100); burst(g.x,g.y,palette[g.color].hex,28,1); ripple(g.x,g.y,palette[g.color].hex,80); state.glyphs.splice(i,1); spawnGlyph(); beep(520+g.color*120,.055,'triangle',.05);
+        }else{
+          state.tear=clamp(state.tear+9,0,100); state.score=Math.max(0,state.score-12); state.shake=7; burst(g.x,g.y,'#ffffff',12,.65); g.vx+=rand(-160,160); g.vy+=110; beep(140,.06,'square',.035);
+        }
+      }
+      if(g.y>state.h+80){ state.glyphs.splice(i,1); spawnGlyph(); state.tear=clamp(state.tear+2,0,100); }
+    }
+  }
+  function moveCracks(dt){
+    for(let i=state.cracks.length-1;i>=0;i--){
+      const c=state.cracks[i]; c.spin+=dt*4; c.x+=c.vx*dt; c.y+=c.vy*dt; c.vx*=Math.pow(.62,dt);
+      if(c.x<c.r||c.x>state.w-c.r) c.vx*=-1;
+      if(dist(c.x,c.y,state.brush.x,state.brush.y)<c.r+15){ state.tear=clamp(state.tear+13,0,100); state.shake=9; burst(c.x,c.y,'#eaffff',18,.8); state.cracks.splice(i,1); spawnCrack(); beep(115,.06,'square',.04); continue; }
+      if(c.y>state.h+70){ state.cracks.splice(i,1); spawnCrack(); }
+    }
+  }
+  function updateEffects(dt){
+    for(let i=state.particles.length-1;i>=0;i--){ const p=state.particles[i]; p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=Math.pow(.18,dt); p.vy*=Math.pow(.18,dt); if(p.life<=0) state.particles.splice(i,1); }
+    for(let i=state.ripples.length-1;i>=0;i--){ const r=state.ripples[i]; r.life-=dt; r.r+=(r.max-r.r)*dt*5.2; if(r.life<=0) state.ripples.splice(i,1); }
+  }
+  function updateHud(){
+    ui.score.textContent=Math.round(state.score); ui.woven.textContent=state.woven+'/27'; ui.tear.textContent=Math.round(state.tear);
+    ui.phase.innerHTML='<span class="phase-dot" style="background:'+palette[state.phase].hex+';box-shadow:0 0 12px '+palette[state.phase].hex+'"></span>'+(state.needIndex+1);
+    ui.pulse.textContent=state.pulse>=.98?'Pulse':'Pulse '+Math.round(state.pulse*100)+'%';
+  }
+  function draw(){
+    const sx=(Math.random()-.5)*state.shake, sy=(Math.random()-.5)*state.shake;
+    ctx.clearRect(0,0,state.w,state.h); ctx.save(); ctx.translate(sx,sy);
+    drawBack(); drawOrbit(); drawThread();
+    for(const g of state.glyphs) drawGlyph(g);
+    for(const c of state.cracks) drawCrack(c);
+    for(const r of state.ripples) drawRipple(r);
+    for(const p of state.particles) drawParticle(p);
+    drawBrush(); ctx.restore();
+  }
+  function drawBack(){
+    ctx.fillStyle='#020309'; ctx.fillRect(0,0,state.w,state.h);
+    const grad=ctx.createRadialGradient(state.w*.5,state.h*.18,20,state.w*.5,state.h*.52,Math.max(state.w,state.h)*.76);
+    grad.addColorStop(0,'rgba(159,140,255,.25)'); grad.addColorStop(.42,'rgba(86,244,255,.08)'); grad.addColorStop(1,'rgba(2,3,9,0)');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,state.w,state.h);
+    for(const s of state.stars){ const tw=.25+.75*Math.sin(state.time*1.7+s.a*9)**2; ctx.fillStyle='rgba(232,255,251,'+(.15+s.a*.55*tw)+')'; ctx.beginPath(); ctx.arc(s.x,s.y,s.r*tw,0,Math.PI*2); ctx.fill(); }
+    ctx.strokeStyle='rgba(204,255,0,.08)'; ctx.lineWidth=1;
+    for(let y=state.h*.18;y<state.h;y+=42){ ctx.beginPath(); ctx.moveTo(0,y+Math.sin(state.time+y*.01)*8); ctx.lineTo(state.w,y+Math.cos(state.time+y*.01)*8); ctx.stroke(); }
+  }
+  function drawOrbit(){
+    const cx=state.w*.5, cy=state.h*(state.w<760?.36:.32), rad=Math.min(state.w*.34,190);
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(state.time*.28);
+    ctx.strokeStyle='rgba(204,255,0,.3)'; ctx.lineWidth=2; ctx.setLineDash([8,12]); ctx.beginPath(); ctx.arc(0,0,rad,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+    for(let i=0;i<state.need.length;i++){ const a=-Math.PI/2+i*Math.PI*2/state.need.length; const c=palette[state.need[i]].hex; ctx.fillStyle=c; ctx.globalAlpha=i===state.needIndex?1:.42; ctx.shadowColor=c; ctx.shadowBlur=i===state.needIndex?22:8; ctx.beginPath(); ctx.arc(Math.cos(a)*rad,Math.sin(a)*rad,i===state.needIndex?14:9,0,Math.PI*2); ctx.fill(); }
+    ctx.restore(); ctx.globalAlpha=1; ctx.shadowBlur=0;
+  }
+  function drawThread(){
+    if(state.thread.length<2) return;
+    for(let i=0;i<state.thread.length-1;i++){ const a=state.thread[i], b=state.thread[i+1], c=palette[a.color].hex; ctx.strokeStyle=c; ctx.globalAlpha=Math.max(0,a.life)*(.9-i/state.thread.length*.65); ctx.lineWidth=10*(1-i/state.thread.length)+2; ctx.shadowColor=c; ctx.shadowBlur=18; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); }
+    ctx.globalAlpha=1; ctx.shadowBlur=0;
+  }
+  function drawGlyph(g){
+    const c=palette[g.color].hex; ctx.save(); ctx.translate(g.x,g.y); ctx.rotate(Math.sin(g.spin)*.35);
+    ctx.shadowColor=c; ctx.shadowBlur=20; ctx.strokeStyle=c; ctx.lineWidth=2; ctx.fillStyle='rgba(3,7,15,.82)';
+    ctx.beginPath(); for(let i=0;i<6;i++){ const a=-Math.PI/2+i*Math.PI*2/6; const r=i%2?g.r*.72:g.r*1.15; const x=Math.cos(a)*r,y=Math.sin(a)*r; i?ctx.lineTo(x,y):ctx.moveTo(x,y); } ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#ffffff'; ctx.font='700 13px Space Mono'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(g.mark,0,1); ctx.restore();
+  }
+  function drawCrack(c){
+    ctx.save(); ctx.translate(c.x,c.y); ctx.rotate(c.spin); ctx.strokeStyle='rgba(235,255,255,.9)'; ctx.fillStyle='rgba(255,255,255,.08)'; ctx.shadowColor='#ffffff'; ctx.shadowBlur=16; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(0,0,c.r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-c.r*.45,-c.r*.2); ctx.lineTo(-3,3); ctx.lineTo(c.r*.35,-c.r*.38); ctx.moveTo(-2,4); ctx.lineTo(c.r*.28,c.r*.46); ctx.stroke(); ctx.restore();
+  }
+  function drawBrush(){
+    const c=palette[state.phase].hex; ctx.save(); ctx.translate(state.brush.x,state.brush.y); ctx.shadowColor=c; ctx.shadowBlur=24;
+    ctx.fillStyle=c; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='#020309'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,7,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='rgba(204,255,0,.7)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(0,0,24+Math.sin(state.time*6)*3,0,Math.PI*2); ctx.stroke(); ctx.restore();
+  }
+  function drawRipple(r){ ctx.globalAlpha=Math.max(0,r.life/.56); ctx.strokeStyle=r.color; ctx.lineWidth=3; ctx.shadowColor=r.color; ctx.shadowBlur=18; ctx.beginPath(); ctx.arc(r.x,r.y,r.r,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1; ctx.shadowBlur=0; }
+  function drawParticle(p){ ctx.globalAlpha=Math.max(0,p.life/p.max); ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=14; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; ctx.shadowBlur=0; }
+  function loop(now){ const dt=Math.min(.033,(now-state.last)/1000||.016); state.last=now; update(dt); draw(); requestAnimationFrame(loop); }
+  resize(); reset(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
