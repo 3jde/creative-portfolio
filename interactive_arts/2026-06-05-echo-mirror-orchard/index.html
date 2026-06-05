@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ECHO MIRROR ORCHARD | ONE ZEN</title>
+  <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --lime: #ccff00;
+      --pink: #ff4fd8;
+      --cyan: #41f7ff;
+      --violet: #8c6bff;
+      --amber: #ffd166;
+      --ink: #030408;
+      --panel: rgba(7, 10, 20, 0.82);
+    }
+    html, body { margin: 0; min-height: 100%; background: radial-gradient(circle at 50% -10%, #1f2341 0%, var(--ink) 45%, #000 100%); color: var(--lime); font-family: 'Space Mono', monospace; text-transform: uppercase; overflow: hidden; touch-action: none; }
+    body::before { content: ''; position: fixed; inset: 0; pointer-events: none; background: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size: 28px 28px; mask-image: radial-gradient(circle, #000 35%, transparent 82%); }
+    .shell { position: relative; width: 100vw; height: 100dvh; min-height: 560px; display: grid; grid-template-rows: auto 1fr auto; padding: clamp(12px, 2.6vw, 28px); gap: 12px; }
+    header, footer { position: relative; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .brand { color: var(--lime); text-decoration: none; border: 1px dashed var(--lime); padding: 8px 12px; background: rgba(0,0,0,.6); }
+    h1 { margin: 0; font-family: 'VT323', monospace; font-weight: 400; font-size: clamp(2.2rem, 8vw, 5.4rem); letter-spacing: .03em; text-shadow: 0 0 18px rgba(204,255,0,.48); }
+    .hud { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .chip { border: 1px solid rgba(204,255,0,.7); background: var(--panel); padding: 8px 10px; min-width: 92px; box-shadow: 0 0 18px rgba(204,255,0,.08) inset; }
+    .chip strong { display: block; font-family: 'VT323', monospace; font-size: 1.65rem; line-height: .9; color: #fff; }
+    .stage { position: relative; z-index: 2; min-height: 0; border: 2px solid var(--lime); background: linear-gradient(180deg, rgba(204,255,0,.08), rgba(255,79,216,.04)), #05060b; box-shadow: 0 0 0 6px rgba(204,255,0,.04), 0 22px 70px rgba(0,0,0,.5); overflow: hidden; }
+    canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+    .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: radial-gradient(circle, rgba(0,0,0,.72), rgba(0,0,0,.9)); text-align: center; transition: opacity .28s ease; }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+    .card { max-width: 760px; border: 1px dashed var(--lime); background: rgba(0,0,0,.78); padding: clamp(18px, 4vw, 34px); box-shadow: 0 0 40px rgba(65,247,255,.13); }
+    .card h2 { font-family: 'VT323', monospace; font-size: clamp(2.2rem, 7vw, 4.2rem); font-weight: 400; margin: 0 0 12px; color: #fff; }
+    .card p { margin: 10px auto; line-height: 1.55; max-width: 620px; }
+    button { font-family: 'Space Mono', monospace; text-transform: uppercase; border: 1px solid var(--lime); color: var(--ink); background: var(--lime); padding: 12px 16px; font-weight: 700; cursor: pointer; box-shadow: 0 0 18px rgba(204,255,0,.24); }
+    button.secondary { background: transparent; color: var(--lime); }
+    button:active { transform: translateY(2px) scale(.98); }
+    .controls { z-index: 5; display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: stretch; }
+    .hint { border-left: 4px solid var(--lime); background: var(--panel); padding: 10px 12px; line-height: 1.35; font-size: .82rem; }
+    .comboGlow { animation: flash .28s ease; }
+    @keyframes flash { 0% { filter: brightness(1); } 45% { filter: brightness(1.9) saturate(1.8); } 100% { filter: brightness(1); } }
+    @media (max-width: 720px) {
+      .shell { min-height: 100dvh; padding: 10px; gap: 9px; }
+      header { align-items: flex-start; }
+      .brand { font-size: .74rem; padding: 7px 9px; }
+      .hud { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
+      .chip { min-width: 0; font-size: .68rem; padding: 7px; }
+      .chip strong { font-size: 1.35rem; }
+      .controls { grid-template-columns: 1fr 1fr; }
+      .hint { grid-column: 1 / -1; order: 3; font-size: .72rem; }
+      button { padding: 11px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <a class="brand" href="../../playground.html">&lt; PLAYGROUND</a>
+      <h1>Echo Mirror Orchard</h1>
+      <div class="hud" aria-live="polite">
+        <div class="chip">Harvest<strong id="score">0/24</strong></div>
+        <div class="chip">Stability<strong id="stability">100%</strong></div>
+        <div class="chip">Combo<strong id="combo">x1</strong></div>
+      </div>
+    </header>
+
+    <section class="stage" id="stage">
+      <canvas id="game" aria-label="Echo Mirror Orchard game canvas"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="card">
+          <h2>Route the singing fruit.</h2>
+          <p>Tap or drag orchard mirrors to flip / and \. Falling echo-fruit bounces through them. Deliver each color to the matching lantern basket at the bottom.</p>
+          <p>Touch controls: drag across tiles to flip mirrors, tap <b>Shift Baskets</b> to rotate basket colors, tap <b>Pulse</b> to clear one dangerous static fruit. Desktop: mouse, arrow keys, Space, R.</p>
+          <button id="startBtn">Start Harvest</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="controls">
+      <div class="hint">Goal: harvest 24 matching fruit before static drains the orchard. Watch the preview glow on each mirror: feedback is instant, so quick touch swipes are safe.</div>
+      <button id="shiftBtn" class="secondary">Shift Baskets</button>
+      <button id="pulseBtn">Pulse</button>
+    </footer>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const stage = document.getElementById('stage');
+    const overlay = document.getElementById('overlay');
+    const scoreEl = document.getElementById('score');
+    const stabilityEl = document.getElementById('stability');
+    const comboEl = document.getElementById('combo');
+    const startBtn = document.getElementById('startBtn');
+    const shiftBtn = document.getElementById('shiftBtn');
+    const pulseBtn = document.getElementById('pulseBtn');
+
+    const colors = [
+      { name: 'cyan', hex: '#41f7ff' },
+      { name: 'pink', hex: '#ff4fd8' },
+      { name: 'amber', hex: '#ffd166' }
+    ];
+    const grid = { cols: 7, rows: 7, top: 58, bottomPad: 74, left: 0, size: 64 };
+    let mirrors = [];
+    let fruit = [];
+    let particles = [];
+    let basketShift = 0;
+    let score = 0;
+    let stability = 100;
+    let combo = 1;
+    let running = false;
+    let last = 0;
+    let spawnTimer = 0;
+    let pulseReady = true;
+    let touchedTiles = new Set();
+    let shake = 0;
+
+    function resetMirrors() {
+      mirrors = Array.from({ length: grid.rows }, (_, y) => Array.from({ length: grid.cols }, (_, x) => ({
+        slash: (x + y) % 2 === 0,
+        hot: 0
+      })));
+    }
+
+    function fit() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const rect = stage.getBoundingClientRect();
+      canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(320, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const w = rect.width;
+      const h = rect.height;
+      grid.size = Math.floor(Math.min((w - 34) / grid.cols, (h - grid.top - grid.bottomPad - 18) / grid.rows));
+      grid.left = (w - grid.cols * grid.size) / 2;
+    }
+
+    function start() {
+      resetMirrors();
+      fruit = [];
+      particles = [];
+      basketShift = 0;
+      score = 0;
+      stability = 100;
+      combo = 1;
+      running = true;
+      last = performance.now();
+      spawnTimer = 0;
+      pulseReady = true;
+      updateHud();
+      overlay.classList.add('hidden');
+      requestAnimationFrame(loop);
+    }
+
+    function spawnFruit() {
+      const lane = Math.floor(Math.random() * grid.cols);
+      const colorIndex = Math.floor(Math.random() * colors.length);
+      const isStatic = Math.random() < Math.min(.12 + score * .003, .24);
+      fruit.push({
+        x: grid.left + (lane + .5) * grid.size,
+        y: grid.top - 18,
+        vx: 0,
+        vy: 92 + Math.min(score * 2.3, 58),
+        colorIndex,
+        static: isStatic,
+        lastCell: '',
+        spin: Math.random() * 6,
+        r: Math.max(10, grid.size * .19)
+      });
+    }
+
+    function tileFromPoint(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      const tx = Math.floor((x - grid.left) / grid.size);
+      const ty = Math.floor((y - grid.top) / grid.size);
+      if (tx < 0 || tx >= grid.cols || ty < 0 || ty >= grid.rows) return null;
+      return { tx, ty, key: `${tx},${ty}` };
+    }
+
+    function flipTile(t) {
+      if (!t || touchedTiles.has(t.key)) return;
+      touchedTiles.add(t.key);
+      const m = mirrors[t.ty][t.tx];
+      m.slash = !m.slash;
+      m.hot = 1;
+      burst(grid.left + (t.tx + .5) * grid.size, grid.top + (t.ty + .5) * grid.size, '#ccff00', 8, 1.6);
+    }
+
+    function pointerDown(e) { e.preventDefault(); touchedTiles.clear(); flipTile(tileFromPoint(e.clientX, e.clientY)); canvas.setPointerCapture?.(e.pointerId); }
+    function pointerMove(e) { if (e.buttons || e.pressure > 0) flipTile(tileFromPoint(e.clientX, e.clientY)); }
+    function pointerUp() { touchedTiles.clear(); }
+
+    function shiftBaskets() {
+      basketShift = (basketShift + 1) % colors.length;
+      stage.classList.add('comboGlow');
+      setTimeout(() => stage.classList.remove('comboGlow'), 280);
+      burst(canvas.clientWidth / 2, canvas.clientHeight - 42, '#ccff00', 18, 2.2);
+    }
+
+    function pulse() {
+      if (!pulseReady || !running) return;
+      pulseReady = false;
+      const target = fruit.find(f => f.static) || fruit[0];
+      if (target) {
+        burst(target.x, target.y, '#ffffff', 26, 3.2);
+        fruit = fruit.filter(f => f !== target);
+      }
+      pulseBtn.textContent = 'Pulse Charging';
+      setTimeout(() => { pulseReady = true; pulseBtn.textContent = 'Pulse'; }, 4200);
+    }
+
+    function basketColorAt(col) { return (col + basketShift) % colors.length; }
+
+    function update(dt) {
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnFruit();
+        spawnTimer = Math.max(.62, 1.18 - score * .012);
+      }
+      mirrors.flat().forEach(m => { m.hot = Math.max(0, m.hot - dt * 2.8); });
+      particles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; p.vy += 34 * dt; });
+      particles = particles.filter(p => p.life > 0);
+      shake = Math.max(0, shake - dt * 16);
+
+      for (const f of fruit) {
+        f.x += f.vx * dt;
+        f.y += f.vy * dt;
+        f.spin += dt * 5;
+        const tx = Math.floor((f.x - grid.left) / grid.size);
+        const ty = Math.floor((f.y - grid.top) / grid.size);
+        const key = `${tx},${ty}`;
+        if (tx >= 0 && tx < grid.cols && ty >= 0 && ty < grid.rows && key !== f.lastCell) {
+          f.lastCell = key;
+          const m = mirrors[ty][tx];
+          const speed = Math.hypot(f.vx, f.vy) || 120;
+          if (m.slash) { const old = f.vx; f.vx = -f.vy; f.vy = -old; }
+          else { const old = f.vx; f.vx = f.vy; f.vy = old; }
+          const scale = speed / (Math.hypot(f.vx, f.vy) || 1);
+          f.vx *= scale; f.vy *= scale;
+          m.hot = 1;
+          burst(f.x, f.y, colors[f.colorIndex].hex, 5, 1);
+        }
+        if (f.x < grid.left + 8) { f.x = grid.left + 8; f.vx = Math.abs(f.vx); f.lastCell = ''; }
+        if (f.x > grid.left + grid.cols * grid.size - 8) { f.x = grid.left + grid.cols * grid.size - 8; f.vx = -Math.abs(f.vx); f.lastCell = ''; }
+        if (f.y < grid.top - 26) { f.y = grid.top - 26; f.vy = Math.abs(f.vy); f.lastCell = ''; }
+      }
+
+      const bottom = grid.top + grid.rows * grid.size + 16;
+      for (const f of [...fruit]) {
+        if (f.y > bottom) {
+          const col = Math.max(0, Math.min(grid.cols - 1, Math.floor((f.x - grid.left) / grid.size)));
+          const targetColor = basketColorAt(col % colors.length);
+          const ok = !f.static && f.colorIndex === targetColor;
+          if (ok) {
+            score += 1;
+            combo = Math.min(9, combo + 1);
+            burst(f.x, bottom, colors[f.colorIndex].hex, 24 + combo * 2, 2.6);
+            if (combo > 3) stage.classList.add('comboGlow'), setTimeout(() => stage.classList.remove('comboGlow'), 280);
+          } else {
+            stability -= f.static ? 16 : 9;
+            combo = 1;
+            shake = 8;
+            burst(f.x, bottom, f.static ? '#ffffff' : '#ff4fd8', 20, 2.3);
+          }
+          fruit = fruit.filter(v => v !== f);
+          updateHud();
+        }
+      }
+      if (score >= 24) end(true);
+      if (stability <= 0) end(false);
+    }
+
+    function burst(x, y, color, count, power) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = (40 + Math.random() * 90) * power;
+        particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: .32 + Math.random() * .42, color, r: 1.5 + Math.random() * 3 });
+      }
+    }
+
+    function updateHud() {
+      scoreEl.textContent = `${score}/24`;
+      stabilityEl.textContent = `${Math.max(0, Math.round(stability))}%`;
+      comboEl.textContent = `x${combo}`;
+    }
+
+    function end(won) {
+      running = false;
+      overlay.querySelector('h2').textContent = won ? 'Orchard in harmony.' : 'The echoes scattered.';
+      overlay.querySelector('p').innerHTML = won ? 'You tuned 24 fruit into the right lantern baskets. Try again for a smoother combo chain.' : 'Static overwhelmed the mirror orchard. Flip earlier, use Pulse on white static fruit, and rotate baskets when a lane is wrong.';
+      startBtn.textContent = won ? 'Play Again' : 'Restart Harvest';
+      overlay.classList.remove('hidden');
+    }
+
+    function draw() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      ctx.save();
+      ctx.clearRect(0, 0, w, h);
+      if (shake) ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, '#0b1028'); g.addColorStop(1, '#040406');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(204,255,0,.14)'; ctx.lineWidth = 1;
+      for (let x = grid.left; x <= grid.left + grid.cols * grid.size + .5; x += grid.size) line(x, grid.top, x, grid.top + grid.rows * grid.size);
+      for (let y = grid.top; y <= grid.top + grid.rows * grid.size + .5; y += grid.size) line(grid.left, y, grid.left + grid.cols * grid.size, y);
+
+      for (let y = 0; y < grid.rows; y++) for (let x = 0; x < grid.cols; x++) {
+        const m = mirrors[y][x];
+        const x0 = grid.left + x * grid.size, y0 = grid.top + y * grid.size, pad = grid.size * .22;
+        ctx.save();
+        ctx.shadowBlur = 8 + m.hot * 22; ctx.shadowColor = m.hot ? '#ccff00' : '#41f7ff';
+        ctx.strokeStyle = m.hot ? '#ccff00' : 'rgba(65,247,255,.72)'; ctx.lineWidth = Math.max(3, grid.size * .055); ctx.lineCap = 'round';
+        if (m.slash) line(x0 + grid.size - pad, y0 + pad, x0 + pad, y0 + grid.size - pad);
+        else line(x0 + pad, y0 + pad, x0 + grid.size - pad, y0 + grid.size - pad);
+        ctx.restore();
+      }
+
+      const basketY = grid.top + grid.rows * grid.size + 28;
+      for (let c = 0; c < grid.cols; c++) {
+        const color = colors[basketColorAt(c % colors.length)].hex;
+        const x = grid.left + c * grid.size + grid.size * .12;
+        ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.strokeStyle = color; ctx.lineWidth = 2;
+        roundedRect(x, basketY, grid.size * .76, 31, 8, true, true);
+        ctx.shadowBlur = 16; ctx.shadowColor = color; ctx.fillStyle = color; ctx.fillRect(x + 8, basketY + 21, grid.size * .76 - 16, 3); ctx.shadowBlur = 0;
+      }
+
+      for (const f of fruit) drawFruit(f);
+      for (const p of particles) {
+        ctx.globalAlpha = Math.max(0, p.life * 2.2);
+        ctx.fillStyle = p.color; ctx.shadowBlur = 12; ctx.shadowColor = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      }
+
+      ctx.fillStyle = 'rgba(204,255,0,.82)'; ctx.font = '14px Space Mono, monospace'; ctx.textAlign = 'center';
+      ctx.fillText('TAP / DRAG MIRRORS TO ROUTE COLORS', w / 2, 30);
+      ctx.restore();
+    }
+
+    function drawFruit(f) {
+      const color = f.static ? '#ffffff' : colors[f.colorIndex].hex;
+      ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.spin);
+      ctx.shadowBlur = f.static ? 24 : 18; ctx.shadowColor = color;
+      ctx.fillStyle = color; ctx.strokeStyle = '#05060b'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = i / 6 * Math.PI * 2;
+        const rr = f.r * (i % 2 ? .72 : 1.1);
+        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.fillStyle = '#05060b'; ctx.beginPath(); ctx.arc(0, 0, f.r * .32, 0, Math.PI * 2); ctx.fill();
+      if (f.static) { ctx.strokeStyle = '#ff4fd8'; ctx.lineWidth = 2; line(-f.r, -f.r, f.r, f.r); line(f.r, -f.r, -f.r, f.r); }
+      ctx.restore();
+    }
+
+    function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+    function roundedRect(x, y, width, height, radius, fill, stroke) {
+      ctx.beginPath(); ctx.moveTo(x + radius, y); ctx.arcTo(x + width, y, x + width, y + height, radius); ctx.arcTo(x + width, y + height, x, y + height, radius); ctx.arcTo(x, y + height, x, y, radius); ctx.arcTo(x, y, x + width, y, radius); ctx.closePath(); if (fill) ctx.fill(); if (stroke) ctx.stroke();
+    }
+
+    function loop(now) {
+      if (!running) return;
+      const dt = Math.min(.033, (now - last) / 1000 || .016);
+      last = now;
+      update(dt); draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', () => { fit(); draw(); });
+    canvas.addEventListener('pointerdown', pointerDown, { passive: false });
+    canvas.addEventListener('pointermove', pointerMove, { passive: false });
+    canvas.addEventListener('pointerup', pointerUp);
+    canvas.addEventListener('pointercancel', pointerUp);
+    shiftBtn.addEventListener('click', shiftBaskets);
+    pulseBtn.addEventListener('click', pulse);
+    startBtn.addEventListener('click', start);
+    window.addEventListener('keydown', e => {
+      if (e.key.toLowerCase() === 'r') start();
+      if (e.key === ' ') { e.preventDefault(); pulse(); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') shiftBaskets();
+    });
+    fit(); resetMirrors(); draw();
+  </script>
+</body>
+</html>
