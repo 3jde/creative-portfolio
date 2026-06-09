@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GENERATIVE GRAPHICS | ONE ZEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --neon: #ccff00; --bg: #000000; }
+    body { background-color: var(--bg); color: var(--neon); font-family: 'Space Mono', monospace; text-transform: uppercase; }
+    
+    .top-nav { 
+      display: flex; justify-content: space-between; align-items: center; 
+      padding: 20px 4vw; border-bottom: 2px dashed var(--neon); 
+      position: sticky; top: 0; background: var(--bg); z-index: 100;
+    }
+    .nav-logo { font-family: 'VT323', monospace; font-size: 2rem; text-decoration: none; color: var(--neon); }
+    .nav-menu { display: flex; gap: 20px; }
+    .nav-menu a { 
+      color: var(--neon); text-decoration: none; padding: 5px 15px; 
+      border: 1px solid transparent; transition: 0.2s;
+    }
+    .nav-menu a:hover, .nav-menu a.active { background: var(--neon); color: var(--bg); border-color: var(--neon); }
+    .nav-menu a::before { content: '< '; }
+    .nav-menu a::after { content: ' >'; }
+
+    .header-section { padding: 8vh 4vw; border-bottom: 2px dashed var(--neon); }
+    .header-section h1 { font-family: 'VT323', monospace; font-size: clamp(3rem, 8vw, 6rem); font-weight: normal; margin-bottom: 20px; }
+    .header-section h1::before { content: '(SYS.03) '; color: var(--bg); background: var(--neon); padding: 0 10px; margin-right: 20px; }
+    .header-section p { max-width: 600px; line-height: 1.6; border-left: 4px solid var(--neon); padding-left: 20px; }
+
+    .daily-grid { padding: 4vw; display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 40px; }
+    .day-card { border: 1px solid var(--neon); padding: 30px; position: relative; transition: 0.3s; background: var(--bg); }
+    .day-card::before { content: '+'; position: absolute; top: -10px; left: -10px; background: var(--bg); padding: 0 5px; }
+    .day-card::after { content: '+'; position: absolute; bottom: -10px; right: -10px; background: var(--bg); padding: 0 5px; }
+    .day-card:hover { background: var(--neon); color: var(--bg); transform: translate(5px, -5px); box-shadow: -5px 5px 0 0 rgba(204,255,0,0.3); }
+    .day-card:hover .art-link { border-color: var(--bg); color: var(--bg); }
+    .day-card:hover .art-link:hover { background: var(--bg); color: var(--neon); }
+    .day-card:hover .day-desc { color: var(--bg); }
+
+    .day-date { font-family: 'VT323', monospace; font-size: 2rem; margin-bottom: 15px; border-bottom: 1px dashed inherit; padding-bottom: 10px; }
+    .day-desc { font-size: 0.85rem; line-height: 1.6; margin-bottom: 20px; transition: 0.3s; }
+    .day-desc strong { color: inherit; }
+    
+    .day-links { display: flex; flex-direction: column; gap: 10px; }
+    .art-link { 
+      padding: 10px; border: 1px solid var(--neon); color: var(--neon); 
+      text-decoration: none; text-align: center; font-size: 0.8rem; transition: 0.2s; 
+    }
+    .art-link:hover { background: var(--neon); color: var(--bg); }
+
+    @media (max-width: 768px) {
+      .top-nav { flex-direction: column; gap: 20px; align-items: flex-start; }
+      .nav-menu { flex-wrap: wrap; gap: 15px; }
+      .header-section h1::before { display: block; width: max-content; margin-bottom: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    <a href="index.html" class="nav-logo">ONE_ZEN_</a>
+    <div class="nav-menu">
+      <a href="generative.html">CODE ART</a>
+      <a href="digital.html">DIGITAL ART</a>
+      <a href="generative_graphics.html" class="active">GENERATIVE GRAPHICS</a>
+      <a href="playground.html">PLAYGROUND</a>
+    </div>
+  </nav>
+
+  <header class="header-section">
+    <h1>GENERATIVE GRAPHICS</h1>
+    <p>DAILY ALGORITHMIC DESIGN EXPLORATIONS.<br>
+    ========================================<br>
+    Code-driven visual systems blending modern typography, spatial constraints, and fluid mathematics.</p>
+  </header>
+
+  <div class="daily-grid" id="daily-gallery">
+    <div class="day-card">
+      <div class="day-date">2026.06.10 // MAGNETIC EXPANSION</div>
+      <div class="day-desc">
+        <strong>SWARM & GRAVITY EXPLORATIONS:</strong><br><br>
+        1. <strong>ASYMMETRIC FLUX</strong> - Flow fields constrained by unbalanced typographic weight.<br><br>
+        2. <strong>CORE OVERLAP</strong> - Extreme typographic scale intersecting with physical node gravity.<br><br>
+        3. <strong>SWISS GRID DYNAMICS</strong> - Rational framework constraining fluid, chaotic particle networks.
+      </div>
+      <div class="day-links">
+        <a href="interactive_arts/2026-06-10-magnetic-expansion/draft1.html" class="art-link" target="_blank">[ DRAFT 01 : ASYMMETRIC ]</a>
+        <a href="interactive_arts/2026-06-10-magnetic-expansion/draft2.html" class="art-link" target="_blank">[ DRAFT 02 : CORE OVERLAP ]</a>
+        <a href="interactive_arts/2026-06-10-magnetic-expansion/draft3.html" class="art-link" target="_blank">[ DRAFT 03 : SWISS GRID ]</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
