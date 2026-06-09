@@ -6,9 +6,9 @@ function setup(){
 }
 function reset(){
   nodes=[];
-  for(let i=0; i<150; i++){
+  for(let i=0; i<200; i++){
     nodes.push({
-      p: createVector(random(width/2, width), random(height/2, height)),
+      p: createVector(random(width), random(height)),
       v: p5.Vector.random2D(),
       h: random(80, 160) // Cyber greens to cyans
     });
@@ -19,9 +19,6 @@ function draw(){
   pulse *= 0.9;
   
   let target = createVector(mouseX, mouseY);
-  // Optional: clamp target to the quadrant if mouse is outside
-  target.x = max(target.x, width/2);
-  target.y = max(target.y, height/2);
   
   for(let i=0; i<nodes.length; i++){
     let n = nodes[i];
@@ -34,10 +31,10 @@ function draw(){
     n.v.limit(4);
     n.p.add(n.v);
     
-    // Constrain to bottom right quadrant
-    if(n.p.x < width/2) { n.p.x = width/2; n.v.x *= -1; }
+    // Constrain to the full window
+    if(n.p.x < 0) { n.p.x = 0; n.v.x *= -1; }
     if(n.p.x > width)   { n.p.x = width;   n.v.x *= -1; }
-    if(n.p.y < height/2){ n.p.y = height/2;n.v.y *= -1; }
+    if(n.p.y < 0){ n.p.y = 0;n.v.y *= -1; }
     if(n.p.y > height)  { n.p.y = height;  n.v.y *= -1; }
   }
   
@@ -45,10 +42,10 @@ function draw(){
   for(let i=0; i<nodes.length; i++){
     for(let j=i+1; j<nodes.length; j++){
       let d = p5.Vector.dist(nodes[i].p, nodes[j].p);
-      if(d < 80){
-        let alpha = map(d, 0, 80, 70, 0);
+      if(d < 85){
+        let alpha = map(d, 0, 85, 70, 0);
         stroke((nodes[i].h + frameCount*0.3) % 360, 90, 100, alpha);
-        strokeWeight(map(d, 0, 80, 2, 0.2));
+        strokeWeight(map(d, 0, 85, 2, 0.2));
         line(nodes[i].p.x, nodes[i].p.y, nodes[j].p.x, nodes[j].p.y);
       }
     }
@@ -60,12 +57,6 @@ function draw(){
     circle(n.p.x, n.p.y, 4 + sin(frameCount*0.06 + n.h)*2);
   }
   blendMode(BLEND);
-  
-  // Draw quadrant borders for design aesthetic
-  stroke(255, 20);
-  strokeWeight(1);
-  line(width/2, 0, width/2, height);
-  line(0, height/2, width, height/2);
 }
 function keyPressed(){ if(key===' ') pulse=800; }
 function doubleClicked(){ reset(); }

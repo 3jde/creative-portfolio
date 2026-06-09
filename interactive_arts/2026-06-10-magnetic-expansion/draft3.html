@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crowd - System 13</title>
   <style>
     body { margin: 0; background: #0a0a0c; color: #fff; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; overflow: hidden; }
@@ -22,6 +23,13 @@
     .number { font-size: 11vw; font-weight: normal; margin: 0; line-height: 0.8; color: #ccff00; }
     h2 { font-size: 1.2vw; font-weight: bold; letter-spacing: 0.1em; margin: 0 0 15px 0; }
     p { font-size: 0.9vw; max-width: 22vw; line-height: 1.6; color: #888; margin: 0; }
+    
+    @media (max-width: 768px) {
+      h1 { font-size: 18vw; }
+      .number { font-size: 18vw; }
+      h2 { font-size: 3vw; }
+      p { font-size: 2.5vw; max-width: 60vw; }
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
 </head>
@@ -36,7 +44,7 @@
     <div class="bottom-left">
       <div>
         <h2>SWARM DYNAMICS</h2>
-        <p>Experiment No. 13 explores the delicate balance between attraction and repulsion in a constrained quadrant. The particle network exists only in the bottom-right space, reacting to cursor mass. Drag to gather, Space to pulse.</p>
+        <p>Experiment No. 13 explores the balance between attraction and repulsion across an unrestricted canvas. The typography remains strictly anchored to a grid system while the fluid network flows freely beneath it. Drag to gather, Space to pulse.</p>
       </div>
     </div>
   </div>
