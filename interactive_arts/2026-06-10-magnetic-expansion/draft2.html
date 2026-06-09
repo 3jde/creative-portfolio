@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pulse & Gravity</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;700&family=Space+Mono&display=swap');
+    body { margin: 0; background: #000; color: #fff; font-family: 'Space Grotesk', sans-serif; overflow: hidden; }
+    canvas { position: absolute; top: 0; left: 0; z-index: 1; }
+    .content { 
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; 
+      pointer-events: none; display: flex; flex-direction: column; justify-content: center; 
+      align-items: center; text-align: center; mix-blend-mode: difference; color: #fff; 
+    }
+    h2 { font-family: 'Space Mono', monospace; font-size: 1.2vw; letter-spacing: 0.6em; margin: 0 0 10px 0; font-weight: normal; }
+    h1 { font-size: 14vw; font-weight: 700; line-height: 0.85; margin: 0; letter-spacing: -0.04em; }
+    .bottom-text { position: absolute; bottom: 6vh; font-family: 'Space Mono', monospace; font-size: 0.85vw; max-width: 40vw; line-height: 1.6; opacity: 0.7; letter-spacing: 0.1em; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+</head>
+<body>
+  <div class="content">
+    <h2>GENERATIVE KINETICS</h2>
+    <h1>PULSE<br>GRAVITY</h1>
+    <div class="bottom-text">
+      CENTRALIZED FORCE FIELD. INTERACTION TRIGGERS A KINETIC RESPONSE WITHIN THE NETWORK.<br>
+      DRAG TO GATHER // SPACE TO PULSE
+    </div>
+  </div>
+  <script src="draft2.js"></script>
+</body>
+</html>
