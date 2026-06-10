@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEON ROTOR DROP | Daily Game</title>
+<style>
+  body {
+    margin: 0; padding: 0; overflow: hidden; background: #050510;
+    font-family: 'Courier New', Courier, monospace; color: #fff;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  #score-container { position: absolute; top: 30px; left: 30px; }
+  #score { font-size: 48px; font-weight: bold; color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.8); line-height: 1; }
+  #score-label { font-size: 14px; color: #aaa; letter-spacing: 2px; }
+  #instructions {
+    position: absolute; bottom: 50px; width: 100%; text-align: center;
+    font-size: 16px; color: #aaa; opacity: 0.8; letter-spacing: 1px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+  #game-over {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; display: none; background: rgba(5,5,16,0.95);
+    padding: 50px; border: 2px solid #ff00aa; border-radius: 20px;
+    box-shadow: 0 0 30px rgba(255,0,170,0.4);
+    pointer-events: auto; min-width: 300px;
+  }
+  #game-over h1 { margin: 0 0 10px 0; font-size: 40px; color: #ff00aa; text-shadow: 0 0 15px #ff00aa; }
+  #game-over p { margin: 0 0 40px 0; font-size: 24px; color: #fff; }
+  #restart-btn {
+    background: transparent; color: #00e5ff; border: 2px solid #00e5ff; 
+    padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: pointer; 
+    border-radius: 8px; text-transform: uppercase; transition: 0.2s;
+    font-family: inherit; letter-spacing: 2px;
+  }
+  #restart-btn:hover { background: #00e5ff; color: #000; box-shadow: 0 0 20px #00e5ff; }
+  #restart-btn:active { transform: scale(0.95); }
+  .floating-text {
+    position: absolute; font-size: 28px; font-weight: bold;
+    pointer-events: none; animation: floatUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  @keyframes floatUp {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+    50% { transform: translate(-50%, -100%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -150%) scale(1); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="ui">
+  <div id="score-container">
+    <div id="score-label">SIGNALS CAUGHT</div>
+    <div id="score">0</div>
+  </div>
+  <div id="instructions">DRAG TO ROTATE & MATCH COLORS</div>
+  <div id="game-over">
+    <h1>CORE BREACH</h1>
+    <p>SCORE: <span id="final-score">0</span></p>
+    <button id="restart-btn">REBOOT</button>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const gameOverScreen = document.getElementById('game-over');
+  const finalScoreEl = document.getElementById('final-score');
+  const restartBtn = document.getElementById('restart-btn');
+  const uiContainer = document.getElementById('ui');
+  const instructions = document.getElementById('instructions');
+
+  let width, height, centerX, centerY;
+  
+  const colors = {
+    pink: '#ff00aa',
+    cyan: '#00e5ff'
+  };
+
+  let gameState = 'start'; // start, playing, gameover
+  let score = 0;
+  let rotorAngle = 0;
+  let drops = [];
+  let particles = [];
+  let shake = 0;
+  
+  let dropSpeedBase = 3;
+  let spawnRateBase = 100; // frames between spawns
+  let frameCount = 0;
+  
+  let isDragging = false;
+  let startDragX = 0;
+  let startRotorAngle = 0;
+
+  const ROTOR_RADIUS = 50;
+
+  function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    centerX = width / 2;
+    centerY = height / 2;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Input Handling
+  function handleDown(x) {
+    if (gameState === 'gameover') return;
+    if (gameState === 'start') {
+      gameState = 'playing';
+      instructions.style.display = 'none';
+    }
+    isDragging = true;
+    startDragX = x;
+    startRotorAngle = rotorAngle;
+  }
+  
+  function handleMove(x) {
+    if (!isDragging || gameState !== 'playing') return;
+    const dx = x - startDragX;
+    // Map horizontal drag directly to rotation. 
+    // Sensitivity: 1 pixel = 0.015 radians.
+    rotorAngle = startRotorAngle + dx * 0.015;
+  }
+
+  function handleUp() {
+    isDragging = false;
+  }
+
+  // Mouse events
+  window.addEventListener('mousedown', (e) => { if(e.target !== restartBtn) handleDown(e.clientX); });
+  window.addEventListener('mousemove', (e) => handleMove(e.clientX));
+  window.addEventListener('mouseup', handleUp);
+
+  // Touch events
+  window.addEventListener('touchstart', (e) => { if(e.target !== restartBtn) handleDown(e.touches[0].clientX); }, {passive: false});
+  window.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // prevent scrolling
+    handleMove(e.touches[0].clientX);
+  }, {passive: false});
+  window.addEventListener('touchend', handleUp);
+
+  restartBtn.addEventListener('click', resetGame);
+
+  function resetGame() {
+    gameState = 'playing';
+    score = 0;
+    scoreEl.innerText = score;
+    drops = [];
+    particles = [];
+    rotorAngle = 0;
+    shake = 0;
+    frameCount = 0;
+    dropSpeedBase = 3;
+    spawnRateBase = 90;
+    gameOverScreen.style.display = 'none';
+    instructions.style.display = 'none';
+  }
+
+  function spawnDrop() {
+    // Determine edge: 0=top, 1=right, 2=bottom, 3=left
+    const edge = Math.floor(Math.random() * 4);
+    let x, y;
+    const margin = 20;
+    
+    if (edge === 0) { x = Math.random() * width; y = -margin; }
+    else if (edge === 1) { x = width + margin; y = Math.random() * height; }
+    else if (edge === 2) { x = Math.random() * width; y = height + margin; }
+    else { x = -margin; y = Math.random() * height; }
+
+    // Calculate velocity towards center
+    const angleToCenter = Math.atan2(centerY - y, centerX - x);
+    
+    // Slight variation in speed
+    const speed = dropSpeedBase + Math.random() * 2 + (score * 0.05);
+    
+    drops.push({
+      x: x,
+      y: y,
+      vx: Math.cos(angleToCenter) * speed,
+      vy: Math.sin(angleToCenter) * speed,
+      color: Math.random() > 0.5 ? colors.pink : colors.cyan,
+      radius: 8 + Math.random() * 4,
+      trail: []
+    });
+  }
+
+  function spawnParticles(x, y, color) {
+    for (let i = 0; i < 20; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 6;
+      particles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1.0,
+        decay: 0.02 + Math.random() * 0.03,
+        color: color,
+        size: Math.random() * 4 + 2
+      });
+    }
+  }
+
+  function showFloatingText(text, x, y, color) {
+    const el = document.createElement('div');
+    el.className = 'floating-text';
+    el.innerText = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.color = color;
+    el.style.textShadow = '0 0 10px ' + color;
+    uiContainer.appendChild(el);
+    setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 1000);
+  }
+
+  function drawRotor() {
+    ctx.lineWidth = 15;
+    
+    // Pink Half (from rotorAngle to rotorAngle + PI)
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, ROTOR_RADIUS, rotorAngle, rotorAngle + Math.PI);
+    ctx.strokeStyle = colors.pink;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = colors.pink;
+    ctx.stroke();
+
+    // Cyan Half (from rotorAngle + PI to rotorAngle + 2PI)
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, ROTOR_RADIUS, rotorAngle + Math.PI, rotorAngle + Math.PI * 2);
+    ctx.strokeStyle = colors.cyan;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = colors.cyan;
+    ctx.stroke();
+    
+    // Reset shadow
+    ctx.shadowBlur = 0;
+    
+    // Draw inner core
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, ROTOR_RADIUS - 15, 0, Math.PI * 2);
+    ctx.fillStyle = '#111';
+    ctx.fill();
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function update() {
+    requestAnimationFrame(update);
+
+    // Trail effect clear
+    ctx.fillStyle = 'rgba(5, 5, 16, 0.25)';
+    ctx.fillRect(0, 0, width, height);
+
+    if (gameState === 'start') {
+      drawRotor();
+      return;
+    }
+
+    ctx.save();
+    if (shake > 0) {
+      const sx = (Math.random() - 0.5) * shake;
+      const sy = (Math.random() - 0.5) * shake;
+      ctx.translate(sx, sy);
+      shake *= 0.9;
+      if (shake < 0.5) shake = 0;
+    }
+
+    if (gameState === 'playing') {
+      frameCount++;
+      const currentSpawnRate = Math.max(20, spawnRateBase - score * 1.5);
+      if (frameCount >= currentSpawnRate) {
+        spawnDrop();
+        frameCount = 0;
+      }
+    }
+
+    // Update & Draw Drops
+    for (let i = drops.length - 1; i >= 0; i--) {
+      let d = drops[i];
+      d.x += d.vx;
+      d.y += d.vy;
+      
+      // Add to trail
+      d.trail.push({x: d.x, y: d.y});
+      if (d.trail.length > 5) d.trail.shift();
+
+      // Draw trail
+      if (d.trail.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(d.trail[0].x, d.trail[0].y);
+        for(let j=1; j<d.trail.length; j++){
+          ctx.lineTo(d.trail[j].x, d.trail[j].y);
+        }
+        ctx.strokeStyle = d.color;
+        ctx.lineWidth = d.radius;
+        ctx.lineCap = 'round';
+        ctx.globalAlpha = 0.4;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+      }
+
+      // Draw drop
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2);
+      ctx.fillStyle = d.color;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = d.color;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Collision detection
+      const dist = Math.hypot(d.x - centerX, d.y - centerY);
+      if (dist < ROTOR_RADIUS + d.radius) {
+        // Calculate collision angle
+        const dropAngle = Math.atan2(d.y - centerY, d.x - centerX);
+        const rAngle = ((rotorAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        const relativeAngle = ((dropAngle - rAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        
+        // 0 to PI is Pink, PI to 2PI is Cyan
+        let hitColor = (relativeAngle < Math.PI) ? colors.pink : colors.cyan;
+
+        if (hitColor === d.color) {
+          // Success!
+          score++;
+          scoreEl.innerText = score;
+          shake = 5; // small shake
+          spawnParticles(d.x, d.y, d.color);
+          showFloatingText('+1', d.x, d.y - 20, d.color);
+          drops.splice(i, 1);
+        } else {
+          // Failure
+          if (gameState === 'playing') {
+            gameState = 'gameover';
+            shake = 20; // huge shake
+            spawnParticles(d.x, d.y, hitColor);
+            spawnParticles(centerX, centerY, '#fff'); // core explosion
+            finalScoreEl.innerText = score;
+            setTimeout(() => {
+              gameOverScreen.style.display = 'block';
+            }, 500);
+          }
+          drops.splice(i, 1);
+        }
+      }
+    }
+
+    // Update & Draw Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      let p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+      p.vx *= 0.95; // friction
+      p.vy *= 0.95;
+      
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+      } else {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+    drawRotor();
+    ctx.restore();
+  }
+
+  // Start loop
+  requestAnimationFrame(update);
+</script>
+</body>
+</html>
