@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GAMES | ONE ZEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --neon: #ccff00; --bg: #000000; }
+    body { background-color: var(--bg); color: var(--neon); font-family: 'Space Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+    
+    .header { display: flex; justify-content: space-between; align-items: flex-start; padding: 40px; }
+    .logo { font-family: 'VT323', monospace; font-size: 3rem; line-height: 1; text-decoration: none; color: var(--neon); }
+    .logo:hover { background: var(--neon); color: var(--bg); }
+    .sys-info { text-align: right; font-size: 0.8rem; line-height: 1.5; }
+
+    .content { padding: 0 40px 80px 40px; max-width: 1200px; margin: 0 auto; }
+    h1.page-title { font-family: 'VT323', monospace; font-size: 5rem; margin-bottom: 40px; border-bottom: 2px dashed var(--neon); padding-bottom: 20px; }
+
+    .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
+    
+    .game-card {
+      border: 1px solid var(--neon);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      color: var(--neon);
+      transition: all 0.2s;
+      background: rgba(0,0,0,0.5);
+    }
+    .game-card:hover { background: var(--neon); color: var(--bg); transform: translateY(-5px); }
+    .game-date { font-size: 0.8rem; margin-bottom: 10px; opacity: 0.8; }
+    .game-title { font-family: 'VT323', monospace; font-size: 2.5rem; margin-bottom: 10px; line-height: 1; }
+    .game-desc { font-size: 0.9rem; flex-grow: 1; }
+
+    .footer { display: flex; justify-content: space-between; font-size: 0.8rem; border-top: 1px dashed var(--neon); padding: 20px 40px; margin-top: auto; }
+    .footer a { color: var(--neon); }
+    .footer a:hover { background: var(--neon); color: var(--bg); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a href="index.html" class="logo">O_ZEN<br>SYS.V1</a>
+    <div class="sys-info">
+      > STATUS: ONLINE<br>
+      > MODULE: GAMES<br>
+      > DIR: /GAMES
+    </div>
+  </div>
+  
+  <div class="content">
+    <h1 class="page-title">// MINI GAMES INTERFACE</h1>
+    <div class="game-grid">
+      <a href="games/2026-06-12-neon-deflector.html" class="game-card">
+        <div class="game-date">2026.06.12</div>
+        <div class="game-title">NEON DEFLECTOR</div>
+        <div class="game-desc">A physics-based swipe arcade game. Draw neon tethers to deflect the core and collect data nodes. Mobile touch supported.</div>
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>// END OF MODULE</div>
+    <div><a href="mailto:t_wangzheng@suda.edu.cn">T_WANGZHENG@SUDA.EDU.CN</a></div>
+  </div>
+</body>
+</html>
