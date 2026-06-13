@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Art 2026-05-16 Alt</title>
+  <style>
+    :root { color-scheme: dark; --bg: #0b0d12; --fg: #f7f4eb; --muted: #a8adba; --line: #2a2f3a; --accent: #f5c542; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 18% 8%, #17223e 0, transparent 34%), var(--bg); color: var(--fg); font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 54px; }
+    h1 { margin: 0 0 8px; font-size: clamp(30px, 7vw, 76px); line-height: .95; letter-spacing: 0; }
+    p { margin: 0; color: var(--muted); max-width: 760px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 30px; }
+    a { display: grid; min-height: 260px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; color: inherit; text-decoration: none; background: linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02)); overflow: hidden; position: relative; }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    a::before { content: ""; position: absolute; inset: 0; opacity: .8; background: var(--preview); transform: scale(1.05); transition: transform .35s ease; }
+    a:hover::before { transform: scale(1); }
+    span { position: relative; z-index: 1; }
+    .tag { align-self: start; color: var(--accent); font-size: 13px; font-weight: 700; }
+    .title { align-self: end; font-size: 23px; line-height: 1.05; font-weight: 760; }
+    .meta { display: block; margin-top: 8px; font-size: 13px; color: #d8d2c4; font-weight: 500; line-height: 1.35; }
+    .starry { --preview: radial-gradient(circle at 64% 20%, #f8e36d 0 4%, transparent 5%), radial-gradient(circle at 22% 28%, #f0d35c 0 3%, transparent 4%), conic-gradient(from 30deg at 45% 45%, #153b75, #2457a6, #f4c95d, #123264, #153b75); }
+    .wave { --preview: radial-gradient(circle at 82% 24%, #f6efe1 0 8%, transparent 9%), repeating-radial-gradient(ellipse at 20% 70%, #173a66 0 10px, #e9dfca 11px 13px, #1c77a5 14px 26px); }
+    .mondrian { --preview: linear-gradient(90deg, transparent 0 32%, #111 32% 36%, transparent 36%), linear-gradient(0deg, transparent 0 42%, #111 42% 47%, transparent 47%), linear-gradient(135deg, #f0eadc 0 35%, #d8232a 35% 53%, #f3d130 53% 70%, #1168b1 70%); }
+    footer { margin-top: 26px; color: var(--muted); font-size: 14px; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } a { min-height: 190px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>名画再生成<br>备选方案</h1>
+    <p>2026-05-16 alternative set. 从静态世界名画出发，把构图、笔触、光线和象征改造成可交互的生成式动态艺术。</p>
+    <section class="grid" aria-label="art sketches">
+      <a class="starry" href="starry.html"><span class="tag">Van Gogh</span><span class="title">星夜引力场<span class="meta">鼠标/触摸牵引星云，按空格切换夜风强度</span></span></a>
+      <a class="wave" href="wave.html"><span class="tag">Hokusai</span><span class="title">巨浪触摸谱<span class="meta">拖动制造浪峰，点击重置潮汐</span></span></a>
+      <a class="mondrian" href="mondrian.html"><span class="tag">Mondrian</span><span class="title">构图城市节拍<span class="meta">指针重排网格，按键触发色块节奏</span></span></a>
+    </section>
+    <footer>建议手机横屏体验；每个 sketch 都有不同的来源、交互模型和运动语言。</footer>
+  </main>
+</body>
+</html>

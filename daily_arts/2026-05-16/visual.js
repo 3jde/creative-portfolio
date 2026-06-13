@@ -1,0 +1,5 @@
+let pts=[]; const N=1100;
+function setup(){createCanvas(windowWidth,windowHeight); pixelDensity(1); colorMode(HSB,360,100,100,1); reset();}
+function reset(){pts=[]; for(let i=0;i<N;i++) pts.push({x:random(width),y:random(height),a:random(TAU),s:random(.4,2.2),h:random(190,315)}); background(245,80,5);}
+function draw(){blendMode(BLEND); noStroke(); fill(245,80,4,.08); rect(0,0,width,height); blendMode(ADD); const t=frameCount*.006; for(const p of pts){let dx=(mouseX||width/2)-p.x,dy=(mouseY||height/2)-p.y,d=sqrt(dx*dx+dy*dy)+1; let swirl=atan2(dy,dx)+sin(d*.018-t*4)*1.5; p.a+=sin(p.x*.006+t)+cos(p.y*.007-t)*.045 + 90/d; p.x+=cos(p.a)*p.s + cos(swirl)*min(2.8,140/d); p.y+=sin(p.a)*p.s + sin(swirl)*min(2.8,140/d); if(p.x<0)p.x=width;if(p.x>width)p.x=0;if(p.y<0)p.y=height;if(p.y>height)p.y=0; stroke((p.h+frameCount*.18)%360,90,100,.38); strokeWeight(p.s*1.2); point(p.x,p.y);} }
+function mousePressed(){reset()} function touchStarted(){reset(); return false} function windowResized(){resizeCanvas(windowWidth,windowHeight); reset();}

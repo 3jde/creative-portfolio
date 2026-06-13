@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch A: Cyberpunk Cityscape</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #000; }</style>
+</head>
+<body>
+  <script>
+    let bgs = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      for(let i=0; i<100; i++) {
+        bgs.push({x: random(-width, width), y: random(0, height), z: random(-800, 200), w: random(20, 80), h: random(100, 600), c: random(['#ff00ff', '#00ffff', '#ffff00', '#111'])});
+      }
+    }
+    function draw() {
+      background(10, 10, 20);
+      rotateY(frameCount * 0.002);
+      for(let b of bgs) {
+        push();
+        translate(b.x, height/2 - b.h/2, b.z);
+        fill(b.c);
+        noStroke();
+        ambientMaterial(b.c);
+        if(random(1) > 0.98) fill(255);
+        box(b.w, b.h, b.w);
+        pop();
+      }
+    }
+  </script>
+</body>
+</html>

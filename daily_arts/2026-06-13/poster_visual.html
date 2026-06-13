@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Poster A: Visual Impact</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; background: #000; color: #fff; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script>
+    const cols = 40;
+    const rows = 25;
+    let grid = [];
+    let cellW, cellH;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      cellW = width / cols;
+      cellH = height / rows;
+      textAlign(CENTER, CENTER);
+      textSize(cellH * 0.8);
+      textFont('monospace');
+      
+      for (let i = 0; i < cols; i++) {
+        grid[i] = [];
+        for (let j = 0; j < rows; j++) {
+          grid[i][j] = {
+            char: random(['0', '1', '-', '+', '/', '\\', ' ']),
+            flipOffset: random(100),
+            flipSpeed: random(0.01, 0.05)
+          };
+        }
+      }
+    }
+
+    function draw() {
+      background(0);
+      let time = millis() * 0.001;
+      
+      for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+          let cell = grid[i][j];
+          let x = i * cellW;
+          let y = j * cellH;
+          
+          let d = dist(mouseX, mouseY, x + cellW/2, y + cellH/2);
+          let wave = sin(time * 2 - d * 0.01) * 0.5 + 0.5;
+          
+          if (sin(time * cell.flipSpeed * 10 + cell.flipOffset) > 0.9 || d < 50) {
+            cell.char = random(['0', '1', 'O', 'X', '#', '.', ' ']);
+          }
+          
+          push();
+          translate(x + cellW/2, y + cellH/2);
+          
+          if (wave > 0.8) {
+            fill(255);
+            rectMode(CENTER);
+            rect(0, 0, cellW * 0.9, cellH * 0.9);
+            fill(0);
+          } else {
+            fill(255);
+          }
+          
+          text(cell.char, 0, 0);
+          pop();
+        }
+      }
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      cellW = width / cols;
+      cellH = height / rows;
+    }
+  </script>
+</body>
+</html>

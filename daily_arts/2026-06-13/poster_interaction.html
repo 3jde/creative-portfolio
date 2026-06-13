@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Poster B: Interaction</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; background: #000; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script>
+    const chars = ['█', '▓', '▒', '░', ' '];
+    let numCells = 50;
+    let size;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      size = min(width, height) / numCells;
+      textFont('monospace');
+      textSize(size);
+      textAlign(CENTER, CENTER);
+      noCursor();
+    }
+
+    function draw() {
+      background(0);
+      
+      let mx = constrain(mouseX, 0, width);
+      let my = constrain(mouseY, 0, height);
+      
+      for (let x = 0; x < width; x += size) {
+        for (let y = 0; y < height; y += size) {
+          let d = dist(x, y, mx, my);
+          let maxD = dist(0, 0, width, height);
+          
+          let index = floor(map(d, 0, maxD * 0.5, 0, chars.length));
+          index = constrain(index, 0, chars.length - 1);
+          
+          // Noise factor
+          let n = noise(x * 0.01, y * 0.01, frameCount * 0.05);
+          if (n > 0.7) index = floor(random(chars.length));
+          
+          fill(255);
+          text(chars[index], x + size/2, y + size/2);
+        }
+      }
+      
+      // Cursor block
+      fill(255);
+      rect(mx - size/2, my - size/2, size, size);
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      size = min(width, height) / numCells;
+    }
+  </script>
+</body>
+</html>

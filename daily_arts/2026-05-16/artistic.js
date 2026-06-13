@@ -1,0 +1,4 @@
+let seed=7,palette=['#0f172a','#b45309','#0369a1','#a7f3d0','#fb7185','#f8fafc'];
+function setup(){createCanvas(windowWidth,windowHeight); noLoop();}
+function draw(){randomSeed(seed); background('#f2eee7'); noStroke(); for(let i=0;i<26;i++){let x=random(width), y=random(height), w=random(50,260), h=random(20,180); fill(color(random(palette)+'cc')); rect(x,y,w,h,random(2,28));} stroke('#241c15'); strokeWeight(1); noFill(); for(let r=40;r<min(width,height)*.8;r+=28){arc(width*.5,height*.52,r,r*random(.55,1.35),random(TAU),random(TAU));} noStroke(); fill('#0f172a'); textFont('Georgia'); textSize(min(width,height)*.07); textAlign(CENTER,CENTER); text('QUIET FIELD',width/2,height*.48); textSize(14); text('generative composition / restrained palette / spatial rhythm',width/2,height*.56);}
+function mousePressed(){seed++; redraw()} function touchStarted(){seed++; redraw(); return false} function windowResized(){resizeCanvas(windowWidth,windowHeight); redraw();}

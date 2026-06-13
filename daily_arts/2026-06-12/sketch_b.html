@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Interactive Skyline Builder</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #f0f0f0; }</style>
+</head>
+<body>
+  <script>
+    let buildings = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+    }
+    function draw() {
+      background(240);
+      orbitControl();
+      directionalLight(255, 255, 255, 0.5, 1, -0.5);
+      ambientLight(100);
+      
+      push();
+      translate(-width/2, height/2, 0);
+      fill(200);
+      box(width*2, 10, 1000);
+      pop();
+
+      for(let b of buildings) {
+        push();
+        translate(b.x, height/2 - b.h/2, b.z);
+        fill(150, 180, 220);
+        box(b.w, b.h, b.d);
+        pop();
+      }
+      
+      if(mouseIsPressed) {
+        buildings.push({x: mouseX - width/2, z: mouseY - height/2, w: random(20,50), d: random(20,50), h: random(50, 300)});
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Poster C: Artistic Quality</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; background: #000; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script>
+    let modules = [];
+    const size = 60;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      let cols = ceil(width / size);
+      let rows = ceil(height / size);
+      
+      for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+          modules.push({
+            x: i * size,
+            y: j * size,
+            state: random() > 0.5 ? 0 : 1,
+            targetState: 0,
+            transition: 0,
+            delay: random(100)
+          });
+        }
+      }
+    }
+
+    function draw() {
+      background(0);
+      
+      if (frameCount % 120 === 0) {
+        for (let m of modules) {
+          if (random() > 0.8) {
+            m.targetState = m.state === 0 ? 1 : 0;
+            m.transition = 0;
+          }
+        }
+      }
+      
+      rectMode(CENTER);
+      
+      for (let m of modules) {
+        push();
+        translate(m.x + size/2, m.y + size/2);
+        
+        if (m.state !== m.targetState) {
+          m.transition += 0.05;
+          if (m.transition >= 1) {
+            m.state = m.targetState;
+            m.transition = 1;
+          }
+        }
+        
+        let rotX = lerp(0, PI, m.transition);
+        if (m.state === 1 && m.targetState === 1) rotX = PI;
+        if (m.state === 0 && m.targetState === 0) rotX = 0;
+        
+        scale(1, cos(rotX));
+        
+        if (cos(rotX) > 0) {
+          stroke(255);
+          noFill();
+          rect(0, 0, size * 0.8, size * 0.8);
+          fill(255);
+          rect(0, 0, size * 0.2, size * 0.2);
+        } else {
+          fill(255);
+          noStroke();
+          rect(0, 0, size * 0.8, size * 0.8);
+          fill(0);
+          rect(0, 0, size * 0.2, size * 0.2);
+        }
+        pop();
+      }
+    }
+
+    function windowResized() {
+      setup();
+    }
+  </script>
+</body>
+</html>
