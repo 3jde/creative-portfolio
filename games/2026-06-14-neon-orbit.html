@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON ORBIT | MINI GAMES</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+    :root { 
+      --neon-player: #00ffff;
+      --neon-danger: #ff0044;
+      --neon-point: #ccff00;
+      --bg: #050505; 
+      --ui: #ffffff;
+    }
+    body { 
+      background-color: var(--bg); 
+      color: var(--ui); 
+      font-family: 'Space Mono', monospace; 
+      overflow: hidden; 
+      width: 100vw; 
+      height: 100vh;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.2rem;
+      text-shadow: 0 0 5px var(--ui);
+    }
+    .score-display {
+      font-family: 'VT323', monospace;
+      font-size: 2.5rem;
+      color: var(--neon-point);
+      text-shadow: 0 0 10px var(--neon-point);
+    }
+    #center-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-family: 'VT323', monospace;
+    }
+    #center-text h1 {
+      font-size: 4rem;
+      margin-bottom: 10px;
+      color: var(--neon-player);
+      text-shadow: 0 0 15px var(--neon-player);
+      letter-spacing: 5px;
+    }
+    #center-text p {
+      font-size: 1.5rem;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .hidden { display: none !important; }
+    
+    #controls-hint {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      text-align: center;
+      left: 0;
+      color: #888;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="ui-layer">
+    <div class="top-bar">
+      <div class="back-btn"><a href="../games.html" style="color:var(--ui); text-decoration:none;">&lt; BACK</a></div>
+      <div class="score-display">SCORE: <span id="score">0</span></div>
+    </div>
+    <div id="center-text">
+      <h1 id="title">NEON ORBIT</h1>
+      <p id="instruction">TAP / CLICK TO START<br><br>TAP TO SWITCH ORBITS<br>COLLECT YELLOW / DODGE RED</p>
+    </div>
+    <div id="controls-hint">Mobile & Desktop Touch Supported</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const centerText = document.getElementById('center-text');
+    const titleEl = document.getElementById('title');
+    const instructionEl = document.getElementById('instruction');
+
+    let width, height, cx, cy;
+    let baseRadius;
+    let innerRadius, outerRadius;
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      cx = width / 2;
+      cy = height / 2;
+      baseRadius = Math.min(width, height) * 0.35;
+      innerRadius = baseRadius * 0.6;
+      outerRadius = baseRadius;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Game state
+    let state = 'start'; // start, play, over
+    let score = 0;
+    let lastTime = 0;
+    let gameSpeed = 1;
+    let screenShakeTime = 0;
+
+    // Entities
+    let player = {
+      angle: 0,
+      orbit: 0, // 0 = inner, 1 = outer
+      targetOrbit: 0,
+      currentRadius: innerRadius,
+      size: 10,
+      color: '#00ffff'
+    };
+
+    let obstacles = [];
+    let collectibles = [];
+    let particles = [];
+    let trail = [];
+
+    function resetGame() {
+      score = 0;
+      scoreEl.innerText = score;
+      gameSpeed = 1;
+      player.angle = 0;
+      player.orbit = 0;
+      player.targetOrbit = 0;
+      player.currentRadius = innerRadius;
+      obstacles = [];
+      collectibles = [];
+      particles = [];
+      trail = [];
+      state = 'play';
+      centerText.classList.add('hidden');
+    }
+
+    function gameOver() {
+      state = 'over';
+      screenShakeTime = 20;
+      titleEl.innerText = 'SYSTEM FAILURE';
+      titleEl.style.color = '#ff0044';
+      titleEl.style.textShadow = '0 0 15px #ff0044';
+      instructionEl.innerHTML = `SCORE: ${score}<br><br>TAP TO REBOOT`;
+      centerText.classList.remove('hidden');
+      createExplosion(cx + Math.cos(player.angle) * player.currentRadius, cy + Math.sin(player.angle) * player.currentRadius, player.color, 40);
+    }
+
+    function createExplosion(x, y, color, count) {
+      for(let i=0; i<count; i++) {
+        particles.push({
+          x: x, y: y,
+          vx: (Math.random() - 0.5) * 10,
+          vy: (Math.random() - 0.5) * 10,
+          life: 1,
+          decay: Math.random() * 0.02 + 0.02,
+          color: color,
+          size: Math.random() * 4 + 2
+        });
+      }
+    }
+
+    function spawnEntity() {
+      if(state !== 'play') return;
+      let isObstacle = Math.random() > 0.3; // 70% chance obstacle, 30% collectible
+      let orbitLevel = Math.random() > 0.5 ? 0 : 1;
+      let angle = player.angle + Math.PI + (Math.random() * Math.PI/2);
+      
+      if(isObstacle) {
+        obstacles.push({
+          angle: angle,
+          orbit: orbitLevel,
+          size: 12,
+          color: '#ff0044',
+          speed: (Math.random() * 0.01 + 0.01) * (Math.random()>0.5?1:-1)
+        });
+      } else {
+        collectibles.push({
+          angle: angle,
+          orbit: orbitLevel,
+          size: 8,
+          color: '#ccff00',
+          speed: 0,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    // Input handling
+    function handleInput(e) {
+      e.preventDefault(); // Prevent double firing and scrolling
+      if(e.type === 'touchstart' && e.touches.length > 1) return; // Only handle single tap
+
+      if(state === 'start' || state === 'over') {
+        // Debounce slightly to prevent accidental double-tap restarting instantly
+        if(state === 'over' && screenShakeTime > 0) return; 
+        resetGame();
+      } else if (state === 'play') {
+        player.targetOrbit = player.targetOrbit === 0 ? 1 : 0;
+      }
+    }
+
+    window.addEventListener('mousedown', handleInput);
+    window.addEventListener('touchstart', handleInput, {passive: false});
+
+    let spawnTimer = 0;
+
+    function update(dt) {
+      if(state === 'play') {
+        gameSpeed += dt * 0.00005; // Slowly increase difficulty
+        
+        // Update player
+        player.angle += 0.03 * gameSpeed;
+        
+        // Smooth orbit transition
+        let targetRadius = player.targetOrbit === 0 ? innerRadius : outerRadius;
+        player.currentRadius += (targetRadius - player.currentRadius) * 0.2;
+        player.orbit = player.currentRadius > (innerRadius + outerRadius)/2 ? 1 : 0;
+
+        // Trail
+        trail.push({x: Math.cos(player.angle) * player.currentRadius, y: Math.sin(player.angle) * player.currentRadius, life: 1});
+        if(trail.length > 15) trail.shift();
+
+        // Spawn logic
+        spawnTimer += dt;
+        if(spawnTimer > 1000 / gameSpeed) {
+          spawnEntity();
+          spawnTimer = 0;
+        }
+
+        // Update obstacles
+        for(let i = obstacles.length - 1; i >= 0; i--) {
+          let obs = obstacles[i];
+          obs.angle += obs.speed * gameSpeed;
+          
+          // Collision
+          let pX = cx + Math.cos(player.angle) * player.currentRadius;
+          let pY = cy + Math.sin(player.angle) * player.currentRadius;
+          let r = obs.orbit === 0 ? innerRadius : outerRadius;
+          let oX = cx + Math.cos(obs.angle) * r;
+          let oY = cy + Math.sin(obs.angle) * r;
+          
+          let dist = Math.hypot(pX - oX, pY - oY);
+          if(dist < player.size + obs.size) {
+            gameOver();
+          }
+
+          // Cleanup far behind
+          if(player.angle - obs.angle > Math.PI * 1.5) {
+            obstacles.splice(i, 1);
+          }
+        }
+
+        // Update collectibles
+        for(let i = collectibles.length - 1; i >= 0; i--) {
+          let col = collectibles[i];
+          col.phase += 0.1;
+          
+          // Collision
+          let pX = cx + Math.cos(player.angle) * player.currentRadius;
+          let pY = cy + Math.sin(player.angle) * player.currentRadius;
+          let r = col.orbit === 0 ? innerRadius : outerRadius;
+          let oX = cx + Math.cos(col.angle) * r;
+          let oY = cy + Math.sin(col.angle) * r;
+          
+          let dist = Math.hypot(pX - oX, pY - oY);
+          if(dist < player.size + col.size * 2) {
+            score += 10;
+            scoreEl.innerText = score;
+            createExplosion(oX, oY, col.color, 15);
+            collectibles.splice(i, 1);
+            continue;
+          }
+
+          if(player.angle - col.angle > Math.PI * 1.5) {
+            collectibles.splice(i, 1);
+          }
+        }
+      }
+
+      // Update particles
+      for(let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if(p.life <= 0) particles.splice(i, 1);
+      }
+
+      // Update trail decay
+      for(let i = 0; i < trail.length; i++) {
+        trail[i].life -= 0.05;
+      }
+      trail = trail.filter(t => t.life > 0);
+
+      if(screenShakeTime > 0) screenShakeTime--;
+    }
+
+    function draw() {
+      // Screen shake
+      let dx = 0, dy = 0;
+      if(screenShakeTime > 0) {
+        dx = (Math.random() - 0.5) * 10;
+        dy = (Math.random() - 0.5) * 10;
+      }
+
+      // Clear with slight trail effect
+      ctx.fillStyle = `rgba(5, 5, 5, ${state === 'play' ? 0.3 : 1.0})`;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(dx, dy);
+
+      // Draw Orbits
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy, outerRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Glow effect
+      ctx.globalCompositeOperation = 'lighter';
+
+      // Draw Collectibles
+      for(let col of collectibles) {
+        let r = col.orbit === 0 ? innerRadius : outerRadius;
+        let x = cx + Math.cos(col.angle) * r;
+        let y = cy + Math.sin(col.angle) * r;
+        ctx.fillStyle = col.color;
+        ctx.shadowColor = col.color;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        let scale = 1 + Math.sin(col.phase) * 0.2;
+        ctx.arc(x, y, col.size * scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw Obstacles
+      for(let obs of obstacles) {
+        let r = obs.orbit === 0 ? innerRadius : outerRadius;
+        let x = cx + Math.cos(obs.angle) * r;
+        let y = cy + Math.sin(obs.angle) * r;
+        ctx.fillStyle = obs.color;
+        ctx.shadowColor = obs.color;
+        ctx.shadowBlur = 15;
+        
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(obs.angle);
+        ctx.beginPath();
+        ctx.moveTo(-obs.size, -obs.size);
+        ctx.lineTo(obs.size, 0);
+        ctx.lineTo(-obs.size, obs.size);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Draw Trail
+      if(state === 'play') {
+        ctx.beginPath();
+        if(trail.length > 0) ctx.moveTo(cx + trail[0].x, cy + trail[0].y);
+        for(let i=1; i<trail.length; i++) {
+          ctx.lineTo(cx + trail[i].x - cx + cx, cy + trail[i].y - cy + cy); // just coordinates
+        }
+        ctx.strokeStyle = player.color;
+        ctx.lineWidth = 4;
+        ctx.shadowColor = player.color;
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+      }
+
+      // Draw Player
+      if(state === 'play') {
+        let pX = cx + Math.cos(player.angle) * player.currentRadius;
+        let pY = cy + Math.sin(player.angle) * player.currentRadius;
+        ctx.fillStyle = player.color;
+        ctx.shadowColor = player.color;
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.arc(pX, pY, player.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(pX, pY, player.size * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw Particles
+      for(let p of particles) {
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 10;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+
+      ctx.restore();
+    }
+
+    function loop(timestamp) {
+      let dt = timestamp - lastTime;
+      lastTime = timestamp;
+      if (dt > 100) dt = 16; // Prevent huge jumps if tab was inactive
+
+      update(dt);
+      draw();
+
+      requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
