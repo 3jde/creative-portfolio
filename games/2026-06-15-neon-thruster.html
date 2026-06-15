@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON THRUSTER | ONE ZEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { width: 100%; height: 100%; background: #000; overflow: hidden; touch-action: none; font-family: 'VT323', monospace; }
+    #gameCanvas { display: block; width: 100%; height: 100%; }
+    #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: #fff; text-shadow: 0 0 10px #0ff; }
+    .hidden { display: none !important; }
+    #titleScreen { background: rgba(0,0,0,0.8); width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; cursor: pointer; }
+    h1 { font-size: 4rem; color: #0ff; margin-bottom: 10px; text-shadow: 0 0 20px #0ff, 0 0 40px #0ff; }
+    p.inst { font-size: 1.5rem; margin-bottom: 30px; animation: blink 1s infinite alternate; }
+    .btn { background: transparent; border: 2px solid #0ff; color: #0ff; padding: 15px 30px; font-size: 1.5rem; font-family: inherit; cursor: pointer; transition: all 0.2s; text-shadow: 0 0 10px #0ff; box-shadow: 0 0 10px #0ff, inset 0 0 10px #0ff; }
+    .btn:hover { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; text-shadow: none; }
+    #scoreDisplay { position: absolute; top: 20px; left: 20px; font-size: 2.5rem; color: #fff; text-shadow: 0 0 10px #fff; z-index: 10; }
+    #gameOverScreen { background: rgba(0,0,0,0.8); width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; }
+    h2 { font-size: 3rem; color: #f0f; margin-bottom: 10px; text-shadow: 0 0 20px #f0f; }
+    .final-score { font-size: 2rem; margin-bottom: 30px; }
+    @keyframes blink { from { opacity: 1; } to { opacity: 0.3; } }
+    .back-btn { position: absolute; top: 20px; right: 20px; border: 1px solid #fff; color: #fff; text-decoration: none; padding: 5px 10px; font-size: 1.2rem; pointer-events: auto; opacity: 0.5; }
+    .back-btn:hover { opacity: 1; background: #fff; color: #000; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="scoreDisplay" class="hidden">0</div>
+  <a href="../games.html" class="back-btn">EXIT</a>
+  
+  <div id="ui">
+    <div id="titleScreen">
+      <h1>NEON THRUSTER</h1>
+      <p class="inst">HOLD TOUCH to thrust up.<br>RELEASE to fall.<br>Avoid the neon walls.</p>
+      <button class="btn" id="startBtn">START SYSTEM</button>
+    </div>
+    
+    <div id="gameOverScreen" class="hidden">
+      <h2>SYSTEM FAILURE</h2>
+      <div class="final-score" id="finalScoreText">SCORE: 0</div>
+      <button class="btn" id="restartBtn">REBOOT</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let cw, ch;
+    function resize() {
+      cw = canvas.width = window.innerWidth;
+      ch = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Game state
+    let state = 'start'; // start, play, over
+    let score = 0;
+    let frame = 0;
+    let difficultySpeed = 4;
+    let shakeAmount = 0;
+
+    // Input
+    let isThrusting = false;
+    function handlePointerDown(e) { if(state === 'play') isThrusting = true; }
+    function handlePointerUp(e) { isThrusting = false; }
+    
+    // UI Elements
+    const titleScreen = document.getElementById('titleScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const finalScoreText = document.getElementById('finalScoreText');
+    
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('restartBtn').addEventListener('click', startGame);
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+    
+    class Player {
+      constructor() {
+        this.x = cw * 0.2;
+        this.y = ch / 2;
+        this.size = 15;
+        this.vy = 0;
+        this.gravity = 0.25;
+        this.thrust = -0.5;
+        this.color = '#0ff';
+      }
+      update() {
+        if (isThrusting) {
+          this.vy += this.thrust;
+          // Spawn thruster particles
+          if(Math.random() < 0.6) {
+            particles.push(new Particle(this.x, this.y + this.size, (Math.random()-0.5)*2, Math.random()*2+2, '#0ff', 30));
+          }
+        }
+        this.vy += this.gravity;
+        // terminal velocity
+        if(this.vy > 10) this.vy = 10;
+        if(this.vy < -10) this.vy = -10;
+        
+        this.y += this.vy;
+        
+        // Boundaries
+        if (this.y < 0) { this.y = 0; this.vy = 0; }
+        if (this.y > ch) die();
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        // Tilt based on velocity
+        ctx.rotate(this.vy * 0.05);
+        
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        // Draw a neat little ship/triangle shape
+        ctx.moveTo(this.size, 0);
+        ctx.lineTo(-this.size, this.size * 0.7);
+        ctx.lineTo(-this.size * 0.5, 0);
+        ctx.lineTo(-this.size, -this.size * 0.7);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Thrust glow
+        if(isThrusting) {
+          ctx.shadowBlur = 20;
+          ctx.fillStyle = '#f0f';
+          ctx.beginPath();
+          ctx.arc(-this.size * 1.2, 0, 5 + Math.random()*3, 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    class Wall {
+      constructor() {
+        this.x = cw;
+        this.width = 60;
+        this.gap = Math.max(150, ch * 0.25 - (score * 2)); // gap shrinks as score goes up
+        this.topHeight = Math.random() * (ch - this.gap - 100) + 50;
+        this.bottomY = this.topHeight + this.gap;
+        this.passed = false;
+        this.color = '#f0f';
+      }
+      update() {
+        this.x -= difficultySpeed;
+        if (!this.passed && this.x + this.width < player.x) {
+          this.passed = true;
+          score++;
+          scoreDisplay.innerText = score;
+          difficultySpeed += 0.05;
+          // Success particle burst
+          for(let i=0; i<10; i++) {
+            particles.push(new Particle(player.x, player.y, (Math.random()-0.5)*5, (Math.random()-0.5)*5, '#0ff', 40));
+          }
+        }
+      }
+      draw() {
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+        ctx.fillStyle = 'rgba(255, 0, 255, 0.2)';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2;
+        
+        // Top wall
+        ctx.fillRect(this.x, 0, this.width, this.topHeight);
+        ctx.strokeRect(this.x, 0, this.width, this.topHeight);
+        
+        // Bottom wall
+        ctx.fillRect(this.x, this.bottomY, this.width, ch - this.bottomY);
+        ctx.strokeRect(this.x, this.bottomY, this.width, ch - this.bottomY);
+      }
+      checkCollision(p) {
+        // Simple AABB vs Circle-ish
+        const px = p.x;
+        const py = p.y;
+        const s = p.size * 0.8; // slightly forgiving hitbox
+        
+        if (px + s > this.x && px - s < this.x + this.width) {
+          if (py - s < this.topHeight || py + s > this.bottomY) {
+            return true;
+          }
+        }
+        return false;
+      }
+    }
+
+    class Particle {
+      constructor(x, y, vx, vy, color, life) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+        this.color = color; this.life = life; this.maxLife = life;
+        this.size = Math.random() * 3 + 1;
+      }
+      update() {
+        this.x += this.vx; this.y += this.vy;
+        this.life--;
+      }
+      draw() {
+        ctx.globalAlpha = this.life / this.maxLife;
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+    let player;
+    let walls = [];
+    let particles = [];
+    let starfield = [];
+
+    function initStars() {
+      starfield = [];
+      for(let i=0; i<100; i++) {
+        starfield.push({
+          x: Math.random() * cw,
+          y: Math.random() * ch,
+          size: Math.random() * 2,
+          speed: Math.random() * 2 + 0.5
+        });
+      }
+    }
+
+    function drawStars() {
+      ctx.fillStyle = '#fff';
+      ctx.shadowBlur = 0;
+      starfield.forEach(s => {
+        s.x -= s.speed * (difficultySpeed/4);
+        if(s.x < 0) { s.x = cw; s.y = Math.random() * ch; }
+        ctx.globalAlpha = s.size / 2;
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+      });
+      ctx.globalAlpha = 1.0;
+    }
+
+    function startGame() {
+      titleScreen.classList.add('hidden');
+      gameOverScreen.classList.add('hidden');
+      scoreDisplay.classList.remove('hidden');
+      state = 'play';
+      score = 0;
+      scoreDisplay.innerText = score;
+      difficultySpeed = 4;
+      frame = 0;
+      player = new Player();
+      walls = [];
+      particles = [];
+      isThrusting = false;
+      initStars();
+    }
+
+    function die() {
+      if(state === 'over') return;
+      state = 'over';
+      shakeAmount = 20;
+      // Death explosion
+      for(let i=0; i<50; i++) {
+        particles.push(new Particle(player.x, player.y, (Math.random()-0.5)*15, (Math.random()-0.5)*15, '#fff', 60));
+        particles.push(new Particle(player.x, player.y, (Math.random()-0.5)*10, (Math.random()-0.5)*10, '#f0f', 50));
+      }
+      setTimeout(() => {
+        scoreDisplay.classList.add('hidden');
+        gameOverScreen.classList.remove('hidden');
+        finalScoreText.innerText = `SCORE: ${score}`;
+      }, 1000);
+    }
+
+    function loop() {
+      requestAnimationFrame(loop);
+      
+      // Clear with trailing effect for motion blur
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(0, 0, cw, ch);
+      
+      // Screen shake
+      let shakeX = 0; let shakeY = 0;
+      if (shakeAmount > 0) {
+        shakeX = (Math.random() - 0.5) * shakeAmount;
+        shakeY = (Math.random() - 0.5) * shakeAmount;
+        shakeAmount *= 0.9;
+        if(shakeAmount < 0.5) shakeAmount = 0;
+      }
+      
+      ctx.save();
+      ctx.translate(shakeX, shakeY);
+
+      drawStars();
+
+      if (state === 'play' || state === 'over') {
+        // Spawn walls
+        if (state === 'play' && frame % Math.max(60, 150 - score*2) === 0) {
+          walls.push(new Wall());
+        }
+
+        // Update and draw walls
+        for (let i = walls.length - 1; i >= 0; i--) {
+          let w = walls[i];
+          if(state === 'play') w.update();
+          w.draw();
+          if (state === 'play' && w.checkCollision(player)) {
+            die();
+          }
+          if (w.x + w.width < 0) {
+            walls.splice(i, 1);
+          }
+        }
+
+        // Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          let p = particles[i];
+          p.update();
+          p.draw();
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        // Player
+        if (state === 'play') {
+          player.update();
+          player.draw();
+        }
+      }
+      ctx.restore();
+      frame++;
+    }
+
+    initStars();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
