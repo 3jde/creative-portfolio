@@ -28,11 +28,22 @@
       color: var(--neon);
       transition: all 0.2s;
       background: rgba(0,0,0,0.5);
+      position: relative;
     }
     .game-card:hover { background: var(--neon); color: var(--bg); transform: translateY(-5px); }
     .game-date { font-size: 0.8rem; margin-bottom: 10px; opacity: 0.8; }
     .game-title { font-family: 'VT323', monospace; font-size: 2.5rem; margin-bottom: 10px; line-height: 1; }
-    .game-desc { font-size: 0.9rem; flex-grow: 1; }
+    .game-desc { font-size: 0.9rem; flex-grow: 1; margin-bottom: 15px; }
+
+    .card-leaderboard {
+      border-top: 1px dashed var(--neon);
+      padding-top: 10px;
+      font-size: 0.8rem;
+    }
+    .game-card:hover .card-leaderboard { border-color: var(--bg); }
+    .card-leaderboard-title { margin-bottom: 5px; opacity: 0.8; }
+    .card-leaderboard-list { list-style: none; }
+    .card-leaderboard-list li { display: flex; justify-content: space-between; margin-bottom: 2px; }
 
     .footer { display: flex; justify-content: space-between; font-size: 0.8rem; border-top: 1px dashed var(--neon); padding: 20px 40px; margin-top: auto; }
     .footer a { color: var(--neon); }
@@ -108,40 +119,53 @@
           <button class="logout-btn" onclick="logoutPlayer()">LOGOUT</button>
         </div>
       </div>
-      
-      <div class="leaderboard-section">
-        <h2>// TOP OPERATORS (GLOBAL SCORE)</h2>
-        <ul class="leaderboard-list" id="leaderboard-list">
-          <li>LOADING DATA...</li>
-        </ul>
-      </div>
     </div>
 
     <div class="game-grid">
-      <a href="games/2026-06-16-neon-sling.html" class="game-card">
+      <a href="games/2026-06-16-neon-sling.html" class="game-card" data-game-id="neon-sling">
         <div class="game-date">2026.06.16</div>
         <div class="game-title">NEON SLING</div>
         <div class="game-desc">Slingshot your neon core to capture drifting targets. Drag anywhere and release to launch in a zero-gravity void. Chain hits to build your score! Mobile touch supported.</div>
+        <div class="card-leaderboard">
+          <div class="card-leaderboard-title">// TOP 3</div>
+          <ul class="card-leaderboard-list"><li>NO RECORDS</li></ul>
+        </div>
       </a>
-      <a href="games/2026-06-15-neon-thruster.html" class="game-card">
+      <a href="games/2026-06-15-neon-thruster.html" class="game-card" data-game-id="neon-thruster">
         <div class="game-date">2026.06.15</div>
         <div class="game-title">NEON THRUSTER</div>
         <div class="game-desc">A physics-based gravity navigation game. Hold touch to fire your thrusters and steer through neon gates. Perfect your momentum to survive.</div>
+        <div class="card-leaderboard">
+          <div class="card-leaderboard-title">// TOP 3</div>
+          <ul class="card-leaderboard-list"><li>NO RECORDS</li></ul>
+        </div>
       </a>
-      <a href="games/2026-06-14-neon-orbit.html" class="game-card">
+      <a href="games/2026-06-14-neon-orbit.html" class="game-card" data-game-id="neon-orbit">
         <div class="game-date">2026.06.14</div>
         <div class="game-title">NEON ORBIT</div>
         <div class="game-desc">A fast-paced circular dodge game. Tap to switch between inner and outer orbits, collect data nodes, and evade incoming red spikes.</div>
+        <div class="card-leaderboard">
+          <div class="card-leaderboard-title">// TOP 3</div>
+          <ul class="card-leaderboard-list"><li>NO RECORDS</li></ul>
+        </div>
       </a>
-      <a href="games/2026-06-13-neon-wall-bounce.html" class="game-card">
+      <a href="games/2026-06-13-neon-wall-bounce.html" class="game-card" data-game-id="neon-wall-bounce">
         <div class="game-date">2026.06.13</div>
         <div class="game-title">NEON WALL BOUNCE</div>
         <div class="game-desc">Slide up the canyon walls and dodge spikes. A one-touch vertical infinite climber with neon aesthetics. Tap to jump across.</div>
+        <div class="card-leaderboard">
+          <div class="card-leaderboard-title">// TOP 3</div>
+          <ul class="card-leaderboard-list"><li>NO RECORDS</li></ul>
+        </div>
       </a>
-      <a href="games/2026-06-12-neon-deflector.html" class="game-card">
+      <a href="games/2026-06-12-neon-deflector.html" class="game-card" data-game-id="neon-deflector">
         <div class="game-date">2026.06.12</div>
         <div class="game-title">NEON DEFLECTOR</div>
         <div class="game-desc">A physics-based swipe arcade game. Draw neon tethers to deflect the core and collect data nodes. Mobile touch supported.</div>
+        <div class="card-leaderboard">
+          <div class="card-leaderboard-title">// TOP 3</div>
+          <ul class="card-leaderboard-list"><li>NO RECORDS</li></ul>
+        </div>
       </a>
     </div>
   </div>
@@ -153,7 +177,7 @@
 
   <script>
     const STORAGE_KEY_PLAYER = 'o_zen_current_player';
-    const STORAGE_KEY_SCORES = 'o_zen_global_scores';
+    const STORAGE_KEY_SCORES = 'o_zen_game_scores';
 
     function initDashboard() {
       const currentPlayer = localStorage.getItem(STORAGE_KEY_PLAYER);
@@ -165,7 +189,7 @@
         document.getElementById('login-form').style.display = 'block';
         document.getElementById('player-profile').style.display = 'none';
       }
-      updateLeaderboard();
+      updateLeaderboards();
     }
 
     function loginPlayer() {
@@ -182,28 +206,35 @@
       initDashboard();
     }
 
-    function updateLeaderboard() {
-      const scoresData = JSON.parse(localStorage.getItem(STORAGE_KEY_SCORES) || '{}');
-      const scoresArray = Object.keys(scoresData).map(name => ({ name, score: scoresData[name] }));
-      scoresArray.sort((a, b) => b.score - a.score);
+    function updateLeaderboards() {
+      const allScores = JSON.parse(localStorage.getItem(STORAGE_KEY_SCORES) || '{}');
       
-      const top3 = scoresArray.slice(0, 3);
-      const listEl = document.getElementById('leaderboard-list');
-      listEl.innerHTML = '';
-      
-      if (top3.length === 0) {
-        listEl.innerHTML = '<li>NO RECORDS FOUND</li>';
-      } else {
-        top3.forEach((entry, index) => {
-          const li = document.createElement('li');
-          li.innerHTML = `<span>#${index + 1} ${entry.name}</span> <span>${entry.score} PTS</span>`;
-          listEl.appendChild(li);
-        });
-      }
+      const cards = document.querySelectorAll('.game-card');
+      cards.forEach(card => {
+        const gameId = card.getAttribute('data-game-id');
+        const listEl = card.querySelector('.card-leaderboard-list');
+        
+        const gameScores = allScores[gameId] || {};
+        const scoresArray = Object.keys(gameScores).map(name => ({ name, score: gameScores[name] }));
+        scoresArray.sort((a, b) => b.score - a.score);
+        
+        const top3 = scoresArray.slice(0, 3);
+        listEl.innerHTML = '';
+        
+        if (top3.length === 0) {
+          listEl.innerHTML = '<li>NO RECORDS</li>';
+        } else {
+          top3.forEach((entry, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>#${index + 1} ${entry.name}</span> <span>${entry.score} PTS</span>`;
+            listEl.appendChild(li);
+          });
+        }
+      });
     }
 
     window.addEventListener('load', initDashboard);
-    window.addEventListener('focus', updateLeaderboard);
+    window.addEventListener('focus', updateLeaderboards);
   </script>
 </body>
 </html>
