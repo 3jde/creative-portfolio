@@ -37,6 +37,50 @@
     .footer { display: flex; justify-content: space-between; font-size: 0.8rem; border-top: 1px dashed var(--neon); padding: 20px 40px; margin-top: auto; }
     .footer a { color: var(--neon); }
     .footer a:hover { background: var(--neon); color: var(--bg); }
+
+    /* Player Dashboard Styles */
+    .player-dashboard {
+      border: 1px solid var(--neon);
+      padding: 20px;
+      margin-bottom: 40px;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .login-section, .leaderboard-section { flex: 1; min-width: 300px; }
+    .login-section input {
+      background: transparent;
+      border: 1px solid var(--neon);
+      color: var(--neon);
+      padding: 10px;
+      font-family: 'Space Mono', monospace;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    .login-section button {
+      background: var(--neon); color: var(--bg); border: none; padding: 10px 20px; font-family: 'Space Mono', monospace; cursor: pointer; font-weight: bold;
+    }
+    .login-section button:hover { background: #fff; }
+    .leaderboard-section h2 {
+      font-family: 'VT323', monospace; font-size: 2rem; margin-bottom: 15px; border-bottom: 1px dashed var(--neon); padding-bottom: 5px;
+    }
+    .leaderboard-list { list-style: none; }
+    .leaderboard-list li {
+      display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 1.1rem;
+    }
+    .player-info { font-size: 1.2rem; margin-bottom: 15px; }
+    .logout-btn {
+      background: transparent !important;
+      border: 1px solid var(--neon) !important;
+      color: var(--neon) !important;
+      padding: 5px 10px !important;
+      font-size: 0.8rem !important;
+    }
+    .logout-btn:hover { background: var(--neon) !important; color: var(--bg) !important; }
   </style>
 </head>
 <body>
@@ -51,6 +95,28 @@
   
   <div class="content">
     <h1 class="page-title">// MINI GAMES INTERFACE</h1>
+    
+    <div class="player-dashboard">
+      <div class="login-section" id="login-section">
+        <div id="login-form">
+          <p style="margin-bottom: 10px;">> PLAYER IDENTIFICATION REQUIRED</p>
+          <input type="text" id="player-name-input" placeholder="ENTER NAME / INITIALS" maxlength="10">
+          <button onclick="loginPlayer()">LOGIN</button>
+        </div>
+        <div id="player-profile" style="display: none;">
+          <div class="player-info">> WELCOME, <span id="current-player-name"></span></div>
+          <button class="logout-btn" onclick="logoutPlayer()">LOGOUT</button>
+        </div>
+      </div>
+      
+      <div class="leaderboard-section">
+        <h2>// TOP OPERATORS (GLOBAL SCORE)</h2>
+        <ul class="leaderboard-list" id="leaderboard-list">
+          <li>LOADING DATA...</li>
+        </ul>
+      </div>
+    </div>
+
     <div class="game-grid">
       <a href="games/2026-06-16-neon-sling.html" class="game-card">
         <div class="game-date">2026.06.16</div>
@@ -84,5 +150,60 @@
     <div>// END OF MODULE</div>
     <div><a href="mailto:t_wangzheng@suda.edu.cn">T_WANGZHENG@SUDA.EDU.CN</a></div>
   </div>
+
+  <script>
+    const STORAGE_KEY_PLAYER = 'o_zen_current_player';
+    const STORAGE_KEY_SCORES = 'o_zen_global_scores';
+
+    function initDashboard() {
+      const currentPlayer = localStorage.getItem(STORAGE_KEY_PLAYER);
+      if (currentPlayer) {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('player-profile').style.display = 'block';
+        document.getElementById('current-player-name').innerText = currentPlayer;
+      } else {
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('player-profile').style.display = 'none';
+      }
+      updateLeaderboard();
+    }
+
+    function loginPlayer() {
+      const nameInput = document.getElementById('player-name-input').value.trim().toUpperCase();
+      if (nameInput) {
+        localStorage.setItem(STORAGE_KEY_PLAYER, nameInput);
+        initDashboard();
+      }
+    }
+
+    function logoutPlayer() {
+      localStorage.removeItem(STORAGE_KEY_PLAYER);
+      document.getElementById('player-name-input').value = '';
+      initDashboard();
+    }
+
+    function updateLeaderboard() {
+      const scoresData = JSON.parse(localStorage.getItem(STORAGE_KEY_SCORES) || '{}');
+      const scoresArray = Object.keys(scoresData).map(name => ({ name, score: scoresData[name] }));
+      scoresArray.sort((a, b) => b.score - a.score);
+      
+      const top3 = scoresArray.slice(0, 3);
+      const listEl = document.getElementById('leaderboard-list');
+      listEl.innerHTML = '';
+      
+      if (top3.length === 0) {
+        listEl.innerHTML = '<li>NO RECORDS FOUND</li>';
+      } else {
+        top3.forEach((entry, index) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span>#${index + 1} ${entry.name}</span> <span>${entry.score} PTS</span>`;
+          listEl.appendChild(li);
+        });
+      }
+    }
+
+    window.addEventListener('load', initDashboard);
+    window.addEventListener('focus', updateLeaderboard);
+  </script>
 </body>
 </html>

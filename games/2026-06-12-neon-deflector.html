@@ -181,6 +181,14 @@
         triggerShake(20);
         spawnParticles(core.x, height, ACCENT, 40);
         updateDOM();
+        
+        // Save High Score
+        const currentPlayer = localStorage.getItem('o_zen_current_player');
+        if (currentPlayer && score > 0) {
+            let scoresData = JSON.parse(localStorage.getItem('o_zen_global_scores') || '{}');
+            scoresData[currentPlayer] = Math.max((scoresData[currentPlayer] || 0), score);
+            localStorage.setItem('o_zen_global_scores', JSON.stringify(scoresData));
+        }
       }
     }
 
