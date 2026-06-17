@@ -1,146 +1,130 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>ONE ZEN | TERMINAL</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --neon: #ccff00; --bg: #000000; }
-    body { background-color: var(--bg); color: var(--neon); font-family: 'Space Mono', monospace; overflow: hidden; }
-    #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
-    
-    #ui-layer {
-      position: relative; z-index: 10; pointer-events: none; height: 100vh;
-      display: flex; flex-direction: column; justify-content: space-between; padding: 40px;
-    }
-
-    .header { display: flex; justify-content: space-between; align-items: flex-start; }
-    .logo { font-family: 'VT323', monospace; font-size: 3rem; line-height: 1; }
-    .sys-info { text-align: right; font-size: 0.8rem; line-height: 1.5; }
-
-    .center-title {
-      flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
-      text-align: center; pointer-events: auto;
-    }
-    .center-title h1 {
-      font-family: 'VT323', monospace; font-size: clamp(4rem, 12vw, 10rem); 
-      font-weight: normal; letter-spacing: -2px; margin-bottom: 20px;
-      border: 2px solid var(--neon); padding: 20px 60px;
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(5px);
-    }
-    .center-title h1:hover { background: var(--neon); color: var(--bg); cursor: crosshair; }
-
-    .nav-links { pointer-events: auto; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
-    .nav-links a {
-      color: var(--neon); text-decoration: none; font-size: 1rem; padding: 10px 20px;
-      border: 1px dashed var(--neon); background: rgba(0,0,0,0.8); transition: all 0.2s;
-    }
-    .nav-links a::before { content: '( '; }
-    .nav-links a::after { content: ' )'; }
-    .nav-links a:hover { background: var(--neon); color: var(--bg); border-style: solid; }
-
-    .footer { display: flex; justify-content: space-between; font-size: 0.8rem; border-top: 1px dashed var(--neon); padding-top: 20px; }
-    .footer a { color: var(--neon); pointer-events: auto; }
-    .footer a:hover { background: var(--neon); color: var(--bg); }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ONE ZEN 的互动系统、生成艺术、浏览器游戏与摄像头实时影像作品集。">
+  <title>ONE ZEN | Interactive Systems</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/site.css">
 </head>
-<body>
-  <div id="canvas-container"></div>
-  <div id="ui-layer">
-    <div class="header">
-      <div class="logo">O_ZEN<br>SYS.V1</div>
-      <div class="sys-info">
-        > STATUS: ONLINE<br>
-        > THEME: BRUTALIST_NEON<br>
-        > DATE: 2026.03.22
-      </div>
-    </div>
-    
-    <div class="center-title">
-      <h1>(ONE ZEN)</h1>
-      <div class="nav-links">
-        <a href="generative.html">CODE ART</a>
-        <a href="digital.html">DIGITAL ART</a>
-        <a href="generative_graphics.html">GENERATIVE GRAPHICS</a>
-        <a href="playground.html">PLAYGROUND</a>
-        <a href="games.html">GAMES</a>
-      </div>
-    </div>
+<body data-view="all">
+  <div class="site-shell">
+    <header class="site-header">
+      <nav class="nav" aria-label="主导航">
+        <a class="brand" href="index.html">
+          <strong>ONE ZEN</strong>
+          <span>Interactive Systems / Digital Media Art</span>
+        </a>
+        <div class="nav-links">
+          <a class="active" href="index.html">首页</a>
+          <a href="generative.html">生成艺术</a>
+          <a href="digital.html">交互影像</a>
+          <a href="playground.html">游戏实验</a>
+          <a class="primary-link" href="#archive">作品库</a>
+        </div>
+      </nav>
+    </header>
 
-    <div class="footer">
-      <div>// END OF TEST PAGE NUMBER 01 AES</div>
-      <div><a href="mailto:t_wangzheng@suda.edu.cn">T_WANGZHENG@SUDA.EDU.CN</a></div>
-    </div>
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <h1 id="hero-title">Interactive <span>Systems</span></h1>
+          <div class="hero-summary">
+            <p>ONE ZEN 是面向生成艺术、实时影像、浏览器游戏和人机交互实验的个人作品集。这里保留完整旧作品，同时通过统一目录管理精选、归档和新增项目。</p>
+            <p>作品以代码为媒介，关注规则、感知、动作反馈、视觉系统和可玩的叙事结构。</p>
+          </div>
+          <div class="hero-actions">
+            <a class="button primary" href="#selected">查看精选作品</a>
+            <a class="button" href="playground.html">进入游戏实验</a>
+          </div>
+        </div>
+
+        <div class="hero-stage" aria-label="可交互生成背景">
+          <canvas data-hero-canvas></canvas>
+          <div class="stage-panel">
+            <div class="stage-label">
+              <span>LIVE FIELD</span>
+              <span>POINTER REACTIVE</span>
+            </div>
+            <p>移动鼠标或手指会改变场域中心。这个首页背景是代码原生生成，不依赖静态截图。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section compact" aria-labelledby="system-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">CATALOG SYSTEM</p>
+            <h2 id="system-title">统一作品目录</h2>
+            <p class="section-lede">新增、隐藏或精选作品都集中在 <code>assets/work-catalog.js</code>。页面结构会自动读取目录，避免以后维护多个重复 HTML 列表。</p>
+          </div>
+          <div class="section-actions">
+            <a class="button" href="WORKS_GUIDE.md">维护说明</a>
+          </div>
+        </div>
+        <div class="stats-grid" data-stats></div>
+      </section>
+
+      <section class="section" id="selected" aria-labelledby="selected-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">SELECTED WORKS</p>
+            <h2 id="selected-title">精选项目</h2>
+            <p class="section-lede">首页只展示最适合作为专业入口的项目，其余作品进入归档，保留但不干扰第一印象。</p>
+          </div>
+          <div class="section-actions">
+            <a class="button" href="#archive">打开完整作品库</a>
+          </div>
+        </div>
+        <div class="feature-grid" data-featured data-limit="6"></div>
+      </section>
+
+      <section class="section" id="archive" aria-labelledby="archive-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">PROJECT ARCHIVE</p>
+            <h2 id="archive-title">作品库</h2>
+            <p class="section-lede">用筛选和搜索快速定位作品。这个区域适合后续继续扩展为完整档案系统。</p>
+          </div>
+        </div>
+        <div class="archive-tools">
+          <div class="filter-group" aria-label="作品筛选">
+            <button class="filter-button active" type="button" data-filter="all">全部</button>
+            <button class="filter-button" type="button" data-filter="generative">生成艺术</button>
+            <button class="filter-button" type="button" data-filter="camera">交互影像</button>
+            <button class="filter-button" type="button" data-filter="game">游戏</button>
+          </div>
+          <input class="search-box" type="search" data-search placeholder="搜索作品、标签或技术">
+        </div>
+        <div class="archive-grid" data-archive data-view="all"></div>
+        <div class="empty-state" data-empty>没有找到匹配的作品。</div>
+      </section>
+
+      <section class="section" aria-labelledby="maintenance-title">
+        <div class="maintenance">
+          <div>
+            <p class="section-kicker">FUTURE EDITING</p>
+            <h2 id="maintenance-title">以后怎么增删</h2>
+            <p class="section-lede">旧作品文件继续保留，新的专业入口只读作品目录。需要隐藏不合适作品时，不删文件，只在目录里设为不发布。</p>
+          </div>
+          <div class="note-panel">
+            <h3>维护原则</h3>
+            <p>新增项目：把作品放进 <code>interactive_arts/</code>，再在 <code>assets/work-catalog.js</code> 增加一个对象。</p>
+            <p>隐藏项目：在对应对象里加入 <code>published: false</code>。精选项目：设置 <code>featured: true</code>。</p>
+            <p>分类字段 <code>section</code> 使用 <code>generative</code>、<code>camera</code>、<code>game</code> 三类，页面会自动归档。</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>ONE ZEN / Digital Media Art / Soochow University</span>
+      <a href="mailto:t_wangzheng@suda.edu.cn">t_wangzheng@suda.edu.cn</a>
+    </footer>
   </div>
 
-  <script>
-    let cols, rows;
-    let scl = 30; 
-    let symbols = ['+', 'x', 'o', '·', 'O', '□', '■', '::', '//'];
-    let grid = [];
-
-    function setup() {
-      let canvas = createCanvas(windowWidth, windowHeight);
-      canvas.parent('canvas-container');
-      cols = ceil(width / scl);
-      rows = ceil(height / scl);
-      textAlign(CENTER, CENTER);
-      textSize(scl * 0.6);
-      textFont('monospace');
-      
-      for (let i = 0; i < cols; i++) {
-        grid[i] = [];
-        for (let j = 0; j < rows; j++) {
-          grid[i][j] = {
-            char: random(symbols),
-            isNeonBg: random() > 0.85
-          };
-        }
-      }
-    }
-
-    function draw() {
-      background(0);
-      for (let i = 0; i < cols; i++) {
-        for (let j = 0; j < rows; j++) {
-          let x = i * scl;
-          let y = j * scl;
-          let cell = grid[i][j];
-          let d = dist(mouseX, mouseY, x + scl/2, y + scl/2);
-          
-          if (d < scl * 2) {
-            if (frameCount % 5 === 0) cell.char = random(symbols);
-          }
-          
-          if (cell.isNeonBg) {
-            if (d < scl * 3) {
-              fill(0); rect(x, y, scl, scl);
-              fill('#ccff00'); text(cell.char, x + scl/2, y + scl/2);
-            } else {
-              fill('#ccff00'); rect(x, y, scl, scl);
-              fill(0); text(cell.char, x + scl/2, y + scl/2);
-            }
-          } else {
-            if (d < scl * 3) {
-              fill('#ccff00'); rect(x, y, scl, scl);
-              fill(0); text(cell.char, x + scl/2, y + scl/2);
-            } else {
-              fill('#ccff00'); text(cell.char, x + scl/2, y + scl/2);
-            }
-          }
-        }
-      }
-    }
-
-    function windowResized() {
-      resizeCanvas(windowWidth, windowHeight);
-      cols = ceil(width / scl);
-      rows = ceil(height / scl);
-      setup();
-    }
-  </script>
+  <script src="assets/work-catalog.js"></script>
+  <script src="assets/site.js"></script>
 </body>
 </html>

@@ -1,250 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PLAYGROUND | ONE ZEN</title>
+  <meta name="description" content="ONE ZEN 的浏览器游戏、可玩互动项目、触控实验和 HTML5 玩法原型。">
+  <title>游戏实验 | ONE ZEN</title>
   <link rel="icon" href="data:,">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --neon: #ccff00; --bg: #000000; }
-    body { background-color: var(--bg); color: var(--neon); font-family: 'Space Mono', monospace; text-transform: uppercase; }
-    
-    .top-nav { 
-      display: flex; justify-content: space-between; align-items: center; 
-      padding: 20px 4vw; border-bottom: 2px dashed var(--neon); 
-      position: sticky; top: 0; background: var(--bg); z-index: 100;
-    }
-    .nav-logo { font-family: 'VT323', monospace; font-size: 2rem; text-decoration: none; color: var(--neon); }
-    .nav-menu { display: flex; gap: 20px; }
-    .nav-menu a { 
-      color: var(--neon); text-decoration: none; padding: 5px 15px; 
-      border: 1px solid transparent; transition: 0.2s;
-    }
-    .nav-menu a:hover, .nav-menu a.active { background: var(--neon); color: var(--bg); border-color: var(--neon); }
-    .nav-menu a::before { content: '< '; }
-    .nav-menu a::after { content: ' >'; }
-
-    .header-section { padding: 8vh 4vw; border-bottom: 2px dashed var(--neon); }
-    .header-section h1 { font-family: 'VT323', monospace; font-size: clamp(3rem, 8vw, 6rem); font-weight: normal; margin-bottom: 20px; }
-    .header-section h1::before { content: '(ERROR 404) '; color: var(--bg); background: var(--neon); padding: 0 10px; margin-right: 20px; }
-    .header-section p { max-width: 600px; line-height: 1.6; border-left: 4px solid var(--neon); padding-left: 20px; }
-
-    .games-grid { padding: 4vw; display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 40px; }
-    .game-card { 
-      border: 1px solid var(--neon); padding: 40px 30px; position: relative; 
-      transition: 0.3s; background: var(--bg); display: flex; flex-direction: column; 
-      align-items: center; text-align: center; height: 100%;
-    }
-    .game-card::before { content: '+'; position: absolute; top: -10px; left: -10px; background: var(--bg); padding: 0 5px; }
-    .game-card::after { content: '+'; position: absolute; bottom: -10px; right: -10px; background: var(--bg); padding: 0 5px; }
-    .game-card:hover { background: var(--neon); color: var(--bg); transform: translate(5px, -5px); box-shadow: -5px 5px 0 0 rgba(204,255,0,0.3); cursor: crosshair; }
-    
-    .status-badge { display: inline-block; padding: 5px 12px; border: 1px dashed var(--neon); font-size: 0.75rem; margin-bottom: 20px; animation: blink 2s infinite; }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-    .game-card:hover .status-badge { border-color: var(--bg); }
-    
-    .game-title { font-family: 'VT323', monospace; font-size: 2.5rem; margin-bottom: 15px; }
-    .game-desc { font-size: 0.85rem; line-height: 1.6; }
-
-    @media (max-width: 768px) {
-      .top-nav { flex-direction: column; gap: 20px; align-items: flex-start; }
-      .nav-menu { flex-wrap: wrap; gap: 15px; }
-      .header-section h1::before { display: block; width: max-content; margin-bottom: 10px; }
-      .games-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+  <link rel="stylesheet" href="assets/site.css">
 </head>
-<body>
+<body data-view="game">
+  <div class="site-shell">
+    <header class="site-header">
+      <nav class="nav" aria-label="主导航">
+        <a class="brand" href="index.html">
+          <strong>ONE ZEN</strong>
+          <span>Games / Playable Systems</span>
+        </a>
+        <div class="nav-links">
+          <a href="index.html">首页</a>
+          <a href="generative.html">生成艺术</a>
+          <a href="digital.html">交互影像</a>
+          <a class="active" href="playground.html">游戏实验</a>
+        </div>
+      </nav>
+    </header>
 
-  <nav class="top-nav">
-    <a href="index.html" class="nav-logo">ONE_ZEN_</a>
-    <div class="nav-menu">
-      <a href="generative.html">CODE ART</a>
-      <a href="digital.html">DIGITAL ART</a>
-      <a href="playground.html" class="active">PLAYGROUND</a>
-    </div>
-  </nav>
+    <main>
+      <section class="page-title">
+        <p class="section-kicker">PLAYGROUND</p>
+        <h1>游戏实验</h1>
+        <p>这里集中浏览器游戏和可玩的互动系统。新的游戏项目只需要加入作品目录，就会自动出现在本页和首页作品库中。</p>
+      </section>
 
-  <header class="header-section">
-    <h1>PLAYGROUND</h1>
-    <p>INDIE GAMES & INTERACTIVE LAB.<br>
-    ========================================<br>
-    Web-based interactive game projects exploring the infinite possibilities of rules, narratives, and code.</p>
-  </header>
+      <section class="section compact" aria-labelledby="game-featured-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">PLAYABLE WORKS</p>
+            <h2 id="game-featured-title">可玩项目</h2>
+          </div>
+        </div>
+        <div class="archive-tools">
+          <div class="filter-group">
+            <button class="filter-button active" type="button" data-filter="game">游戏</button>
+          </div>
+          <input class="search-box" type="search" data-search placeholder="搜索玩法、输入方式或技术">
+        </div>
+        <div class="archive-grid" data-archive data-view="game"></div>
+        <div class="empty-state" data-empty>没有找到匹配的游戏项目。</div>
+      </section>
+    </main>
 
-  <div class="games-grid">
-
-    <a href="interactive_arts/2026-06-10-neon-rotor-drop/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-06-10 ]</div>
-        <div class="game-title">NEON ROTOR DROP</div>
-        <div class="game-desc">A touch-first orbital match arcade game: drag horizontally to rotate the core, catch matching drops, trigger satisfying combos, and survive the accelerating neon barrage.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-06-05-echo-mirror-orchard/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-06-05 ]</div>
-        <div class="game-title">ECHO MIRROR ORCHARD</div>
-        <div class="game-desc">A touch-first mirror-routing arcade puzzle: tap or drag neon mirrors to bounce colored echo-fruit into matching lantern baskets, rotate basket colors, pulse static away, and harvest 24 signals before stability collapses.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-27-moon-glyph-weaver/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-27 ]</div>
-        <div class="game-title">MOON GLYPH WEAVER</div>
-        <div class="game-desc">A touch-first drawing arcade game: drag a live moon thread through falling glyphs, tune the thread color, follow the orbit sequence, pulse cracked runes away, and weave 27 marks before the night tears.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-25-lantern-ribbon-harbor/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-25 ]</div>
-        <div class="game-title">LANTERN RIBBON HARBOR</div>
-        <div class="game-desc">A touch-first tidal swerve arcade game: drag a ferry through flowing lanes, tow matching lanterns with a neon ribbon, switch harbor color, flare fog bells, and deliver 24 lights before the tide goes dark.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-22-orbit-petal-foundry/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-22 ]</div>
-        <div class="game-title">ORBIT PETAL FOUNDRY</div>
-        <div class="game-desc">A touch-first tilt-tray arcade game: drag to roll colored sparks into matching petal sockets, rotate the socket ring, pulse slag away, and forge 21 luminous petals before heat overruns the foundry.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-20-tide-glass-switchboard/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-20 ]</div>
-        <div class="game-title">TIDE GLASS SWITCHBOARD</div>
-        <div class="game-desc">A touch-first orbital switchboard arcade game: hold left/right to steer a glass receiver, switch colors to catch matching tide signals, pulse static away, and tune 26 buoys before stability floods.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-17-magnet-mural-market/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-17 ]</div>
-        <div class="game-title">MAGNET MURAL MARKET</div>
-        <div class="game-desc">A touch-first magnetic brush arcade game: drag through matching pigments, switch paint colors, pulse solvent bubbles away, and stamp a neon night-market mural before closing time.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-16-orbit-noodle-diner/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-16 ]</div>
-        <div class="game-title">ORBIT NOODLE DINER</div>
-        <div class="game-desc">A touch-first slingshot diner arcade game: drag-launch a broth comet, rotate neon chopsticks, season-match ingredient orders, pulse burnt peppers away, and serve five cosmic bowls before the soup cools.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-14-echo-reef-pinball/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-14 ]</div>
-        <div class="game-title">ECHO REEF PINBALL</div>
-        <div class="game-desc">A touch-first ricochet arcade game: drag-launch a moon pearl, hold left/right to rotate mirrored coral flippers, swap colors, pulse ink mines away, and bloom 12 neon reef chords.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-13-mirror-moth-switchyard/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-13 ]</div>
-        <div class="game-title">MIRROR MOTH SWITCHYARD</div>
-        <div class="game-desc">A touch-first mirrored lantern arcade game: drag one lantern while its twin moves opposite, swap colors to catch matching moths, pulse away static burrs, and weave 30 signals before stability cracks.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-13-orbit-ink/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-13 ]</div>
-        <div class="game-title">ORBIT INK CARTOGRAPHER</div>
-        <div class="game-desc">A touch-first orbit arcade game: hold left/right to rotate twin ink moons, swap their palette, catch matching glyphs, dodge thorns, and map 24 constellations before stability spills.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-11-signal-bloom-switchboard/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-11 ]</div>
-        <div class="game-title">SIGNAL BLOOM SWITCHBOARD</div>
-        <div class="game-desc">A touch-first radial tuning arcade game: drag an orbital receiver, retune its color, catch matching signal seeds, pulse static shards away, and bloom 18 circuits before stability cracks.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-10-lumen-koi-courier/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-10 ]</div>
-        <div class="game-title">LUMEN KOI COURIER</div>
-        <div class="game-desc">A touch-first current-drawing arcade game: drag to steer a moonlit koi through lantern gates, tap pulse ripples to scatter ink blooms, and deliver 12 glowing letters before the tide fades.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-10-dream-ruins-dash/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ PORTFOLIO 2026-05-10 ]</div>
-        <div class="game-title">DREAM RUINS DASH</div>
-        <div class="game-desc">A polished touch-first dream platformer: collect echo shards across floating ruins, spend a single air dash between landings, and open the waking gate before the dream collapses.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-09-orbit-orchard/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-09 ]</div>
-        <div class="game-title">ORBIT ORCHARD</div>
-        <div class="game-desc">A touch-first gravity garden arcade game: drag a pulse seed to bend colored fireflies into matching flowers, flip pull/push, bloom nine beds, and repel eclipse moths.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-07-comet-loom/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-07 ]</div>
-        <div class="game-title">COMET LOOM</div>
-        <div class="game-desc">A touch-first arcade puzzle: drag a temporary neon ribbon to bounce falling comet seeds into matching moon wells while deflecting eclipse stones.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/2026-05-06-neon-rooftop-hop/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-06 ]</div>
-        <div class="game-title">NEON ROOFTOP HOP</div>
-        <div class="game-desc">A touch-first platform jumper: chain rooftop jumps with coyote time and jump buffering, collect signal shards, dodge spike glitches, and race the rising fog.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/cyber_maze/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ LIVE TEST 01 ]</div>
-        <div class="game-title">CYBER MAZE V2.0</div>
-        <div class="game-desc">A cyberpunk 3D gravity rolling ball maze built with WebGL and p5.js, featuring local high scores and physics-based tilt controls.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/cyber_runner.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ SECTOR 7 LIVE ]</div>
-        <div class="game-title">RIFT RUNNER</div>
-        <div class="game-desc">A cyberpunk pixel 2D platformer with moving platforms, stompable bots, lasers, crushers, springs, a switch bridge, breakable walls, coins, shards, and a locked neon gate.</div>
-      </div>
-    </a>
-
-
-    <a href="interactive_arts/2026-05-05-prism-tide/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ DAILY 2026-05-05 ]</div>
-        <div class="game-title">PRISM TIDE GARDEN</div>
-        <div class="game-desc">A touch-first color shepherding arcade toy: drag a gravity prism, pulse drifting seeds into matching gates, skim reefs for combo glow, and dodge eclipse thorns.</div>
-      </div>
-    </a>
-
-    <a href="interactive_arts/tank_battle/index.html" style="text-decoration: none; color: inherit;">
-      <div class="game-card">
-        <div class="status-badge">[ LOCAL TEST 03 ]</div>
-        <div class="game-title">NEON TANK GRID</div>
-        <div class="game-desc">A 2D arcade tank battle with arrow-key movement, space-bar shells, destructible cover, repair cells, enemy waves, and tactical neon combat.</div>
-      </div>
-    </a>
+    <footer class="site-footer">
+      <span>ONE ZEN / Games and Playable Systems</span>
+      <a href="index.html">返回首页</a>
+    </footer>
   </div>
 
+  <script src="assets/work-catalog.js"></script>
+  <script src="assets/site.js"></script>
 </body>
 </html>

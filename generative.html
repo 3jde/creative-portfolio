@@ -1,273 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CODE ART | ONE ZEN</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --neon: #ccff00; --bg: #000000; }
-    body { background-color: var(--bg); color: var(--neon); font-family: 'Space Mono', monospace; text-transform: uppercase; }
-    
-    .top-nav { 
-      display: flex; justify-content: space-between; align-items: center; 
-      padding: 20px 4vw; border-bottom: 2px dashed var(--neon); 
-      position: sticky; top: 0; background: var(--bg); z-index: 100;
-    }
-    .nav-logo { font-family: 'VT323', monospace; font-size: 2rem; text-decoration: none; color: var(--neon); }
-    .nav-menu { display: flex; gap: 20px; }
-    .nav-menu a { 
-      color: var(--neon); text-decoration: none; padding: 5px 15px; 
-      border: 1px solid transparent; transition: 0.2s;
-    }
-    .nav-menu a:hover, .nav-menu a.active { background: var(--neon); color: var(--bg); border-color: var(--neon); }
-    .nav-menu a::before { content: '< '; }
-    .nav-menu a::after { content: ' >'; }
-
-    .header-section { padding: 8vh 4vw; border-bottom: 2px dashed var(--neon); }
-    .header-section h1 { font-family: 'VT323', monospace; font-size: clamp(3rem, 8vw, 6rem); font-weight: normal; margin-bottom: 20px; }
-    .header-section h1::before { content: '(ERROR 404) '; color: var(--bg); background: var(--neon); padding: 0 10px; margin-right: 20px; }
-    .header-section p { max-width: 600px; line-height: 1.6; border-left: 4px solid var(--neon); padding-left: 20px; }
-
-    .daily-grid { padding: 4vw; display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 40px; }
-    .day-card { border: 1px solid var(--neon); padding: 30px; position: relative; transition: 0.3s; background: var(--bg); }
-    .day-card::before { content: '+'; position: absolute; top: -10px; left: -10px; background: var(--bg); padding: 0 5px; }
-    .day-card::after { content: '+'; position: absolute; bottom: -10px; right: -10px; background: var(--bg); padding: 0 5px; }
-    .day-card:hover { background: var(--neon); color: var(--bg); transform: translate(5px, -5px); box-shadow: -5px 5px 0 0 rgba(204,255,0,0.3); }
-    .day-card:hover .art-link { border-color: var(--bg); color: var(--bg); }
-    .day-card:hover .art-link:hover { background: var(--bg); color: var(--neon); }
-    .day-card:hover .day-desc { color: var(--bg); }
-
-    .day-date { font-family: 'VT323', monospace; font-size: 2rem; margin-bottom: 15px; border-bottom: 1px dashed inherit; padding-bottom: 10px; }
-    .day-desc { font-size: 0.85rem; line-height: 1.6; margin-bottom: 20px; transition: 0.3s; }
-    .day-desc strong { color: inherit; }
-    
-    .day-links { display: flex; flex-direction: column; gap: 10px; }
-    .art-link { 
-      padding: 10px; border: 1px solid var(--neon); color: var(--neon); 
-      text-decoration: none; text-align: center; font-size: 0.8rem; transition: 0.2s; 
-    }
-    .art-link:hover { background: var(--neon); color: var(--bg); }
-
-    @media (max-width: 768px) {
-      .top-nav { flex-direction: column; gap: 20px; align-items: flex-start; }
-      .nav-menu { flex-wrap: wrap; gap: 15px; }
-      .header-section h1::before { display: block; width: max-content; margin-bottom: 10px; }
-    }
-  </style>
+  <meta name="description" content="ONE ZEN 的生成艺术、每日实验、粒子系统、文本系统和 p5.js 互动作品归档。">
+  <title>生成艺术 | ONE ZEN</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/site.css">
 </head>
-<body>
+<body data-view="generative">
+  <div class="site-shell">
+    <header class="site-header">
+      <nav class="nav" aria-label="主导航">
+        <a class="brand" href="index.html">
+          <strong>ONE ZEN</strong>
+          <span>Generative Art Archive</span>
+        </a>
+        <div class="nav-links">
+          <a href="index.html">首页</a>
+          <a class="active" href="generative.html">生成艺术</a>
+          <a href="digital.html">交互影像</a>
+          <a href="playground.html">游戏实验</a>
+        </div>
+      </nav>
+    </header>
 
-  <nav class="top-nav">
-    <a href="index.html" class="nav-logo">ONE_ZEN_</a>
-    <div class="nav-menu">
-      <a href="generative.html" class="active">CODE ART</a>
-      <a href="digital.html">GENERATION&INTERACTION</a>
-      <a href="playground.html">PLAYGROUND</a>
-    </div>
-  </nav>
+    <main>
+      <section class="page-title">
+        <p class="section-kicker">GENERATIVE SYSTEMS</p>
+        <h1>生成艺术</h1>
+        <p>这里保留每日生成实验、粒子系统、文本互动、视觉场域和动态海报。以后可以通过作品目录把成熟作品提升为精选，把练习保留为归档。</p>
+      </section>
 
-  <header class="header-section">
-    <h1>CODE&ART</h1>
-    <p>DAILY INTERACTIVE GENERATIVE ART LAB.<br>
-    ========================================<br>
-    An algorithmic playground co-created by me and AI. Exploring [Visual Effects], [Interactive Logic], and [Digital Style].</p>
-  </header>
+      <section class="section compact" aria-labelledby="generative-featured-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">CURATED LAYER</p>
+            <h2 id="generative-featured-title">推荐入口</h2>
+            <p class="section-lede">优先展示更适合公开呈现的生成艺术项目。</p>
+          </div>
+        </div>
+        <div class="feature-grid" data-featured data-view="generative" data-limit="3"></div>
+      </section>
 
-  <div class="daily-grid" id="daily-gallery">
-    <div class="day-card">
-      <div class="day-date">2026.06.09 // MASTERPIECE RECONSTRUCTION</div>
-      <div class="day-desc">
-        <strong>DYNAMIC RECONSTRUCTION OF CLASSIC ART:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - The Scream (Munch). Flow field particle system driven by Perlin noise.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - Composition VIII (Kandinsky). Physical bouncing geometry with magnetic repel.<br><br>
-        3. <strong>ARTISTIC QUALITY</strong> - Water Lilies (Monet). Generative Impressionist brushwork & light reflection.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-06-09/visual.html" class="art-link" target="_blank">[ PLAY 01 : VISUAL IMPACT ]</a>
-        <a href="interactive_arts/2026-06-09/interactive.html" class="art-link" target="_blank">[ PLAY 02 : INTERACTIVE ]</a>
-        <a href="interactive_arts/2026-06-09/artistic.html" class="art-link" target="_blank">[ PLAY 03 : ARTISTIC ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.05.13 // MAGNETIC CROWD</div>
-      <div class="day-desc">
-        <strong>NOVEL INTERACTION:</strong><br><br>
-        Touch / mouse physics system. Drag to attract the crowd, release to repel, press space for a pulse, double click to reset.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-05-13/interactive.html" class="art-link" target="_blank">[ PLAY 02 : INTERACTIVE ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.05.08 // SIGNAL BLOOM</div>
-      <div class="day-desc">
-        <strong>GENERATIVE UI SIGNALS:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - WebGL particle mandala with luminous radial motion.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - Touch gravity network with elastic node forces.<br><br>
-        3. <strong>ARTISTIC QUALITY</strong> - Quiet machine composition balancing color, rhythm, and negative space.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-05-08/visual.html" class="art-link" target="_blank">[ PLAY 01 : VISUAL IMPACT ]</a>
-        <a href="interactive_arts/2026-05-08/interactive.html" class="art-link" target="_blank">[ PLAY 02 : INTERACTIVE ]</a>
-        <a href="interactive_arts/2026-05-08/artistic.html" class="art-link" target="_blank">[ PLAY 03 : ARTISTIC ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.04.26 // DAILY EXPLORATION</div>
-      <div class="day-desc">
-        <strong>DYNAMIC SYSTEMS:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - 三维星团: 粒子流体力学与失重几何.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - 引力网络: 节点网络力场与张力交织.<br><br>
-        3. <strong>ARTISTIC QUALITY</strong> - 算法诗意: 柏林噪声极简矩阵.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-04-26/poster.html" class="art-link" style="color: #ff4b4b; border-color: #ff4b4b;" target="_blank">[ VIEW DYNAMIC POSTER ]</a>
-        <a href="interactive_arts/2026-04-26/visual.html" class="art-link" target="_blank">[ 01 : VISUAL IMPACT ]</a>
-        <a href="interactive_arts/2026-04-26/interactive.html" class="art-link" target="_blank">[ 02 : INTERACTIVE ]</a>
-        <a href="interactive_arts/2026-04-26/artistic.html" class="art-link" target="_blank">[ 03 : ARTISTIC ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.04.20 // DAILY EXPLORATION</div>
-      <div class="day-desc">
-        <strong>DYNAMIC SYSTEMS:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - Generative Cubes: Complex geometry rendering.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - Flow Field: Physics-based fluid interaction.<br><br>
-        3. <strong>ARTISTIC QUALITY</strong> - Generative Mandala: Minimalist composition.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-04-20/visual.html" class="art-link" target="_blank">[ PLAY 01 : VISUAL IMPACT ]</a>
-        <a href="interactive_arts/2026-04-20/interactive.html" class="art-link" target="_blank">[ PLAY 02 : INTERACTIVE ]</a>
-        <a href="interactive_arts/2026-04-20/artistic.html" class="art-link" target="_blank">[ PLAY 03 : ARTISTIC ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.04.19 // DAILY EXPLORATION</div>
-      <div class="day-desc">
-        <strong>DYNAMIC SYSTEMS:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - Particle arrays and WebGL shaders.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - Mouse-driven dynamics and forces.<br><br>
-        3. <strong>ARTISTIC QUALITY</strong> - Color theory and generative patterns.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-04-19/visual.html" class="art-link" target="_blank">[ PLAY 01 : VISUAL IMPACT ]</a>
-        <a href="interactive_arts/2026-04-19/interactive.html" class="art-link" target="_blank">[ PLAY 02 : INTERACTIVE ]</a>
-        <a href="interactive_arts/2026-04-19/artistic.html" class="art-link" target="_blank">[ PLAY 03 : ARTISTIC ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.04.18 // DAILY EXPLORATION</div>
-      <div class="day-desc">
-        <strong>DYNAMIC SYSTEMS:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - Immersive structural generation.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - Reactive elements and kinetic physics.<br><br>
-        3. <strong>ARTISTIC QUALITY</strong> - Algorithmic minimalism and harmony.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-04-18/visual.html" class="art-link" target="_blank">[ PLAY 01 : VISUAL IMPACT ]</a>
-        <a href="interactive_arts/2026-04-18/interactive.html" class="art-link" target="_blank">[ PLAY 02 : INTERACTIVE ]</a>
-        <a href="interactive_arts/2026-04-18/artistic.html" class="art-link" target="_blank">[ PLAY 03 : ARTISTIC ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.04.17 // DAILY EXPLORATION</div>
-      <div class="day-desc">
-        <strong>DYNAMIC SYSTEMS:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - Shader-based visual maximalism.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - Complex proximity interactions.<br><br>
-        3. <strong>ARTISTIC QUALITY</strong> - Abstract geometry composition.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-04-17/visual.html" class="art-link" target="_blank">[ PLAY 01 : VISUAL IMPACT ]</a>
-        <a href="interactive_arts/2026-04-17/interactive.html" class="art-link" target="_blank">[ PLAY 02 : INTERACTIVE ]</a>
-        <a href="interactive_arts/2026-04-17/artistic.html" class="art-link" target="_blank">[ PLAY 03 : ARTISTIC ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.04.16 // DAILY EXPLORATION</div>
-      <div class="day-desc">
-        <strong>DYNAMIC SYSTEMS:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - Experimental rendering techniques.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - Fluid parameter adjustments.<br><br>
-        3. <strong>ARTISTIC QUALITY</strong> - Generative aesthetic balance.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-04-16/visual.html" class="art-link" target="_blank">[ PLAY 01 : VISUAL IMPACT ]</a>
-        <a href="interactive_arts/2026-04-16/interactive.html" class="art-link" target="_blank">[ PLAY 02 : INTERACTIVE ]</a>
-        <a href="interactive_arts/2026-04-16/artistic.html" class="art-link" target="_blank">[ PLAY 03 : ARTISTIC ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.04.06 // ORGANIC & REPULSION</div>
-      <div class="day-desc">
-        <strong>DYNAMIC SYSTEMS:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - Organic Maximalism: A high-density agent-based drawing system using an electric color palette.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - Structural Repulsion: Nodes reacting to proximity, generating an organic network that deforms interactively.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-04-06/visual.html" class="art-link" target="_blank">[ PLAY 01 : VISUAL IMPACT ]</a>
-        <a href="interactive_arts/2026-04-06/interactive.html" class="art-link" target="_blank">[ PLAY 02 : INTERACTIVE ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.03.29 // FLOW & PHYSICS</div>
-      <div class="day-desc">
-        <strong>DYNAMIC SYSTEMS:</strong><br><br>
-        1. <strong>VISUAL IMPACT</strong> - A fluid particle system where nodes flow through a noisy velocity field, creating organic, interconnected webs.<br><br>
-        2. <strong>NOVEL INTERACTION</strong> - A physics-based network where mouse proximity triggers repulsion and structural displacement.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-03-29/visual_impact.html" class="art-link" target="_blank">[ PLAY 01 : PARTICLE FLOW ]</a>
-        <a href="interactive_arts/2026-03-29/novel_interaction.html" class="art-link" target="_blank">[ PLAY 02 : MOUSE PHYSICS ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.03.23 // STARS</div>
-      <div class="day-desc">
-        <strong>TODAY'S WORK (CELESTIAL NAMES):</strong><br><br>
-        1. <strong>STARS</strong> - A particle system where jumping, flashing dots are attached with names of famous personalities, creating a "galaxy of stars" feel.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-03-23/visual.html" class="art-link" target="_blank">[ PLAY 01 : STARS ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.03.21 // EXTREME WARNING</div>
-      <div class="day-desc">
-        <strong>DAY 3 (TEXT & REPULSION):</strong><br><br>
-        1. <strong>STAY AWAY</strong> - Exploring the divergence between semantics and behavior.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-03-21/work1_stay_away.html" class="art-link" target="_blank">[ PLAY 01 : STAY AWAY ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.03.20 // TIME & TEXT</div>
-      <div class="day-desc">
-        <strong>DAY 2 (AUDIOVISUAL MANIFOLD):</strong><br><br>
-        1. <strong>86400 SECONDS</strong> - Time is a countdown. Each extinguished pixel is a slice of time taken from you.<br><br>
-        2. <strong>GRAVITY BABEL</strong> - Amidst meaningless falling letters, we glimpse the birth and destruction of vocabulary.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-03-20/work1_86400_seconds.html" class="art-link" target="_blank">[ PLAY 01 : 86400 SECONDS ]</a>
-        <a href="interactive_arts/2026-03-20/work3_gravity_babel.html" class="art-link" target="_blank">[ PLAY 03 : GRAVITY BABEL ]</a>
-      </div>
-    </div>
-    <div class="day-card">
-      <div class="day-date">2026.03.19 // LAUNCH</div>
-      <div class="day-desc">
-        <strong>DAY 1 (FIRST ARRAY):</strong><br><br>
-        1. <strong>MANIFOLD TIME</strong> - Exploring perception of time by interfering with particle spacetime.<br><br>
-        2. <strong>NEURAL SYMBIOSIS</strong> - Exploring the fragility of human-machine symbiosis via gravitational connection.
-      </div>
-      <div class="day-links">
-        <a href="interactive_arts/2026-03-19/work1_manifold_time.html" class="art-link" target="_blank">[ PLAY 01 : MANIFOLD TIME ]</a>
-        <a href="interactive_arts/2026-03-19/work3_neural_symbiosis.html" class="art-link" target="_blank">[ PLAY 03 : NEURAL SYMBIOSIS ]</a>
-      </div>
-    </div>
+      <section class="section" aria-labelledby="archive-title">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">ARCHIVE</p>
+            <h2 id="archive-title">生成艺术归档</h2>
+          </div>
+        </div>
+        <div class="archive-tools">
+          <div class="filter-group">
+            <button class="filter-button active" type="button" data-filter="generative">生成艺术</button>
+          </div>
+          <input class="search-box" type="search" data-search placeholder="搜索日期、标签或技术">
+        </div>
+        <div class="archive-grid" data-archive data-view="generative"></div>
+        <div class="empty-state" data-empty>没有找到匹配的生成艺术作品。</div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>ONE ZEN / Generative Art</span>
+      <a href="index.html">返回首页</a>
+    </footer>
   </div>
 
+  <script src="assets/work-catalog.js"></script>
+  <script src="assets/site.js"></script>
 </body>
 </html>
