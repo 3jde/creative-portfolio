@@ -1,5 +1,18 @@
 window.ONEZ_WORKS = [
   {
+    id: "neon-rotor-drop",
+    title: "Neon Rotor Drop",
+    date: "2026-06-17",
+    section: "game",
+    format: "Color-matching reflex arcade",
+    url: "games/2026-06-17-neon-rotor-drop.html",
+    status: "New Game",
+    featured: true,
+    palette: "cyan",
+    description: "A fast-paced color-matching game where players tap to rotate a neon core and catch matching incoming drops.",
+    tags: ["Game", "Touch", "Arcade", "Reflex"]
+  },
+  {
     id: "dream-ruins-dash",
     title: "Dream Ruins Dash",
     date: "2026-05-10",
