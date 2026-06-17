@@ -542,6 +542,7 @@ window.ONEZ_WORKS = [
     status: "Camera",
     featured: true,
     palette: "cyan",
+    cover: "assets/covers/optical-flow-20260617.png",
     description: "A camera-based optical flow system translating movement into a responsive field of particles.",
     tags: ["Camera", "p5.js", "Optical Flow", "Interactive"]
   },
@@ -555,6 +556,7 @@ window.ONEZ_WORKS = [
     status: "Camera",
     featured: true,
     palette: "amber",
+    cover: "assets/covers/bauhaus-geometry-20260617.png",
     description: "A face and body tracking sketch that turns camera input into Bauhaus-inspired geometric composition.",
     tags: ["Camera", "Computer Vision", "Geometry", "Interactive"]
   },
@@ -568,6 +570,7 @@ window.ONEZ_WORKS = [
     status: "Camera",
     featured: true,
     palette: "lime",
+    cover: "assets/covers/topographic-face-20260617.png",
     description: "A topographic mesh generated from real-time brightness mapping of webcam input.",
     tags: ["Camera", "3D Mesh", "Brightness", "Interactive"]
   }
