@@ -364,7 +364,7 @@ window.ONEZ_WORKS = [
     tags: ["Game", "Touch", "Swipe", "Physics"]
   },
   {
-    id: "neon-rotor-drop",
+    id: "neon-rotor-drop-0610",
     title: "Neon Rotor Drop",
     date: "2026-06-10",
     section: "game",
