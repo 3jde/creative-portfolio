@@ -23,12 +23,20 @@
     card.dataset.palette = work.palette || "lime";
     card.setAttribute("aria-label", `打开作品：${work.title}`);
 
+    card.setAttribute("aria-label", `Open work: ${work.title}`);
+    const cover = work.cover || `assets/covers/${work.id}.png`;
+    if (cover) {
+      card.classList.add("has-cover");
+    }
+
     const tags = (work.tags || []).slice(0, options.tagLimit || 4)
       .map((tag) => `<span class="tag">${tag}</span>`)
       .join("");
 
     card.innerHTML = `
-      <div class="work-preview" aria-hidden="true"></div>
+      <div class="work-preview" aria-hidden="true">
+        ${cover ? `<img src="${cover}" alt="" loading="lazy">` : ""}
+      </div>
       <div class="work-body">
         <div class="work-meta">
           <span>${work.date || ""}</span>

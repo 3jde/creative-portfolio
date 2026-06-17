@@ -1,6 +1,6 @@
 # ONE ZEN 作品目录维护说明
 
-这个站点现在由 `assets/work-catalog.js` 统一管理作品。首页、生成艺术页、交互影像页、游戏页都会读取这份目录。
+这个站点由 `assets/work-catalog.js` 统一管理作品。首页、生成艺术页、交互影像页、游戏页都会读取这份目录。
 
 ## 删除或临时隐藏作品
 
@@ -38,6 +38,28 @@ interactive_arts/2026-06-18-new-game/index.html
 }
 ```
 
+## 封面截图规则
+
+每个发布作品都应该有一张封面：
+
+```text
+assets/covers/<id>.png
+```
+
+例如 `id: "new-game"` 对应：
+
+```text
+assets/covers/new-game.png
+```
+
+网站会自动按这个规则读取封面。如果确实要使用其他路径，可以在作品条目里额外添加：
+
+```js
+cover: "assets/covers/other-name.png",
+```
+
+## 字段规则
+
 `section` 目前支持：
 
 - `generative`：生成艺术、每日实验、算法作品
@@ -48,7 +70,8 @@ interactive_arts/2026-06-18-new-game/index.html
 
 ## 推荐整理规则
 
-- 精选作品保持在 6 到 9 个以内。
+- 精选作品保持在 6 到 10 个以内。
 - 每个作品都写清楚 `format`、`description` 和 3 到 5 个 `tags`。
+- 每个发布作品都保留一张 `assets/covers/<id>.png` 封面。
 - 不成熟作品先保留文件，但设为 `published: false`。
 - 旧的 `daily_arts`、`public/interactive_arts`、`sketches` 可以暂时保留，等确认没有引用后再统一迁移。
