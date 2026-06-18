@@ -1,5 +1,18 @@
 window.ONEZ_WORKS = [
   {
+    id: "neon-slicer",
+    title: "Neon Slicer",
+    date: "2026-06-18",
+    section: "game",
+    format: "Swipe drag arcade",
+    url: "games/2026-06-18-neon-slicer.html",
+    status: "New Game",
+    featured: true,
+    palette: "cyan",
+    description: "A swipe-based ninja-style slicer where you cut cyan data nodes and avoid red virus cores in a neon aesthetic.",
+    tags: ["Game", "Touch", "Swipe", "Arcade"]
+  },
+  {
     id: "neon-rotor-drop",
     title: "Neon Rotor Drop",
     date: "2026-06-17",
