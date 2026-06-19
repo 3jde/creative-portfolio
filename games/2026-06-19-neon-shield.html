@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON SHIELD | ONE ZEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --neon: #ccff00; --bg: #000000; --danger: #ff003c; }
+    body { 
+      background-color: var(--bg); 
+      color: var(--neon); 
+      font-family: 'Space Mono', monospace; 
+      overflow: hidden; 
+      touch-action: none;
+      user-select: none;
+    }
+    #game-canvas { display: block; width: 100vw; height: 100vh; }
+    
+    .ui-layer {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; padding: 20px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    
+    .header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .nav a { color: var(--neon); text-decoration: none; border: 1px solid var(--neon); padding: 5px 10px; font-size: 0.8rem; pointer-events: auto; background: rgba(0,0,0,0.8); }
+    .nav a:hover { background: var(--neon); color: var(--bg); }
+    
+    .score-board { text-align: right; font-family: 'VT323', monospace; font-size: 3rem; line-height: 1; text-shadow: 0 0 10px var(--neon); }
+    
+    .game-over-screen {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center; background: rgba(0,0,0,0.9); border: 2px solid var(--neon);
+      padding: 40px; display: none; pointer-events: auto;
+    }
+    .game-over-title { font-family: 'VT323', monospace; font-size: 4rem; margin-bottom: 20px; color: var(--danger); text-shadow: 0 0 10px var(--danger); }
+    .final-score { font-size: 1.5rem; margin-bottom: 30px; }
+    .btn {
+      background: transparent; color: var(--neon); border: 1px solid var(--neon);
+      padding: 10px 20px; font-family: 'Space Mono', monospace; font-size: 1rem;
+      cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+    }
+    .btn:hover { background: var(--neon); color: var(--bg); }
+    
+    .instructions {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      text-align: center; font-size: 0.8rem; opacity: 0.7; pointer-events: none;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  
+  <div class="ui-layer">
+    <div class="header">
+      <div class="nav"><a href="../games.html">&lt; BACK TO SYS</a></div>
+      <div class="score-board" id="score">0</div>
+    </div>
+    <div class="instructions" id="instructions">
+      DRAG OR HOLD TO ROTATE SHIELD<br>DEFEND THE CORE
+    </div>
+  </div>
+
+  <div class="game-over-screen" id="game-over">
+    <div class="game-over-title">SYSTEM FAILURE</div>
+    <div class="final-score">SCORE: <span id="final-score-val">0</span></div>
+    <button class="btn" id="restart-btn">REBOOT SEQUENCE</button>
+  </div>
+
+  <script>
+    // Game state and variables
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const gameOverScreen = document.getElementById('game-over');
+    const finalScoreEl = document.getElementById('final-score-val');
+    const restartBtn = document.getElementById('restart-btn');
+    const instructionsEl = document.getElementById('instructions');
+
+    let width, height, cx, cy;
+    let score = 0;
+    let isGameOver = false;
+    let gameLoopId;
+    let difficulty = 1;
+    let lastTime = 0;
+
+    // Shield
+    let shieldAngle = 0;
+    let targetShieldAngle = 0;
+    const shieldRadius = 80;
+    const shieldArc = Math.PI / 2; // 90 degrees
+
+    // Entities
+    let projectiles = [];
+    let particles = [];
+
+    // Touch/Mouse input
+    let isPointerDown = false;
+    let pointerPos = { x: 0, y: 0 };
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      cx = width / 2;
+      cy = height / 2;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Input handlers
+    function handlePointer(e) {
+      if (isGameOver) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      pointerPos = { x: clientX, y: clientY };
+      targetShieldAngle = Math.atan2(clientY - cy, clientX - cx);
+      instructionsEl.style.opacity = '0';
+    }
+
+    window.addEventListener('pointerdown', (e) => {
+      isPointerDown = true;
+      handlePointer(e);
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (isPointerDown) handlePointer(e);
+    });
+    window.addEventListener('pointerup', () => {
+      isPointerDown = false;
+    });
+
+    restartBtn.addEventListener('click', initGame);
+
+    function createParticles(x, y, color) {
+      for (let i = 0; i < 15; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 2;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          decay: Math.random() * 0.03 + 0.02,
+          color: color
+        });
+      }
+    }
+
+    function spawnProjectile() {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.max(width, height);
+      projectiles.push({
+        x: cx + Math.cos(angle) * dist,
+        y: cy + Math.sin(angle) * dist,
+        angle: angle + Math.PI, // pointing to center
+        speed: 2 + Math.random() * 1.5 + (difficulty * 0.5),
+        radius: 6,
+        color: '#ff003c'
+      });
+    }
+
+    function lerpAngle(a, b, t) {
+      const delta = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+      return a + delta * t;
+    }
+
+    function initGame() {
+      score = 0;
+      difficulty = 1;
+      isGameOver = false;
+      projectiles = [];
+      particles = [];
+      shieldAngle = 0;
+      targetShieldAngle = 0;
+      scoreEl.innerText = score;
+      gameOverScreen.style.display = 'none';
+      instructionsEl.style.opacity = '0.7';
+      lastTime = performance.now();
+      
+      cancelAnimationFrame(gameLoopId);
+      gameLoop(performance.now());
+    }
+
+    function update(dt) {
+      if (isGameOver) return;
+
+      difficulty += dt * 0.0001;
+      
+      // Smooth shield rotation
+      shieldAngle = lerpAngle(shieldAngle, targetShieldAngle, 0.2);
+
+      // Spawn projectiles
+      if (Math.random() < 0.02 + (difficulty * 0.005)) {
+        spawnProjectile();
+      }
+
+      // Update projectiles
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        let p = projectiles[i];
+        p.x += Math.cos(p.angle) * p.speed;
+        p.y += Math.sin(p.angle) * p.speed;
+
+        const distToCenter = Math.hypot(p.x - cx, p.y - cy);
+
+        // Check shield collision
+        if (distToCenter < shieldRadius + 10 && distToCenter > shieldRadius - 10) {
+          const pAngle = Math.atan2(p.y - cy, p.x - cx);
+          const angleDiff = Math.abs(((pAngle - shieldAngle + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI);
+          
+          if (angleDiff < shieldArc / 2) {
+            // Deflected
+            createParticles(p.x, p.y, '#ccff00');
+            projectiles.splice(i, 1);
+            score++;
+            scoreEl.innerText = score;
+            
+            // Screen shake effect setup
+            ctx.translate((Math.random()-0.5)*8, (Math.random()-0.5)*8);
+            continue;
+          }
+        }
+
+        // Check core collision
+        if (distToCenter < 20) {
+          endGame();
+        }
+      }
+
+      // Update particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function draw() {
+      // Clear with trail effect
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+      ctx.fillRect(-50, -50, width + 100, height + 100); // larger fill to cover shake
+
+      // Draw Core
+      ctx.beginPath();
+      ctx.arc(cx, cy, 15 + Math.sin(Date.now() * 0.005) * 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ccff00';
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#ccff00';
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Draw Shield
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldRadius, shieldAngle - shieldArc/2, shieldAngle + shieldArc/2);
+      ctx.strokeStyle = '#ccff00';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#ccff00';
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Draw Projectiles
+      projectiles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      // Draw Particles
+      particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3 * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      
+      // Reset transform after screen shake
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function gameLoop(now) {
+      if (!lastTime) lastTime = now;
+      const dt = now - lastTime;
+      lastTime = now;
+
+      update(dt);
+      draw();
+
+      if (!isGameOver) {
+        gameLoopId = requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function endGame() {
+      isGameOver = true;
+      createParticles(cx, cy, '#ff003c');
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // ensure reset
+      draw(); // Draw final explosion
+      finalScoreEl.innerText = score;
+      gameOverScreen.style.display = 'block';
+
+      // Save to local storage for global leaderboard
+      const currentPlayer = localStorage.getItem('o_zen_current_player');
+      if (currentPlayer) {
+        const scores = JSON.parse(localStorage.getItem('o_zen_game_scores') || '{}');
+        if (!scores['neon-shield']) scores['neon-shield'] = {};
+        if (!scores['neon-shield'][currentPlayer] || score > scores['neon-shield'][currentPlayer]) {
+          scores['neon-shield'][currentPlayer] = score;
+          localStorage.setItem('o_zen_game_scores', JSON.stringify(scores));
+        }
+      }
+    }
+
+    // Start
+    initGame();
+  </script>
+</body>
+</html>
