@@ -681,3 +681,26 @@ code {
     transition-duration: 0.001ms !important;
   }
 }
+
+.zh {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 0.9em;
+  letter-spacing: 0.02em;
+  font-weight: normal;
+}
+
+h1 .zh, h2 .zh, h3 .zh {
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+.bilingual-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+}
+
+.zh.bilingual-inline {
+  margin-left: 0.4em;
+  color: var(--muted);
+}

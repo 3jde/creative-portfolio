@@ -1,10 +1,10 @@
 (function () {
   const works = (window.ONEZ_WORKS || []).filter((work) => work.published !== false);
   const labels = {
-    all: "全部",
-    generative: "生成艺术",
-    game: "游戏",
-    camera: "交互影像"
+    all: "All <span class=\"zh\">全部</span>",
+    generative: "Generative <span class=\"zh\">生成艺术</span>",
+    game: "Game <span class=\"zh\">游戏</span>",
+    camera: "Digital <span class=\"zh\">交互影像</span>"
   };
 
   function byDateDesc(a, b) {
@@ -63,10 +63,10 @@
     };
 
     target.innerHTML = `
-      <div class="stat"><strong>${counts.all}</strong><span>当前已纳入目录的作品，可通过数据文件隐藏或新增。</span></div>
-      <div class="stat"><strong>${counts.generative}</strong><span>生成艺术与每日实验，保留归档但突出精选。</span></div>
-      <div class="stat"><strong>${counts.game}</strong><span>浏览器游戏与互动玩法，可继续扩展为游戏库。</span></div>
-      <div class="stat"><strong>${counts.camera}</strong><span>摄像头、视觉追踪与实时影像互动作品。</span></div>
+      <div class="stat"><strong>${counts.all}</strong><span>Works currently in catalog. <span class=\"zh\">当前已纳入目录的作品。</span></span></div>
+      <div class="stat"><strong>${counts.generative}</strong><span>Generative art & daily experiments. <span class=\"zh\">生成艺术与每日实验，保留归档并突出精选。</span></span></div>
+      <div class="stat"><strong>${counts.game}</strong><span>Browser games & interactive mechanics. <span class=\"zh\">浏览器游戏与互动玩法。</span></span></div>
+      <div class="stat"><strong>${counts.camera}</strong><span>Webcam, vision tracking & real-time digital art. <span class=\"zh\">摄像头、视觉追踪与实时影像互动作品。</span></span></div>
     `;
   }
 

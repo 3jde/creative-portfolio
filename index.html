@@ -17,11 +17,11 @@
           <span>Interactive Systems / Digital Media Art</span>
         </a>
         <div class="nav-links">
-          <a class="active" href="index.html">首页</a>
-          <a href="generative.html">生成艺术</a>
-          <a href="digital.html">交互影像</a>
-          <a href="playground.html">游戏实验</a>
-          <a class="primary-link" href="#archive">作品库</a>
+          <a class="active" href="index.html">Home <span class="zh">首页</span></a>
+          <a href="generative.html">Generative <span class="zh">生成艺术</span></a>
+          <a href="digital.html">Digital <span class="zh">交互影像</span></a>
+          <a href="playground.html">Playground <span class="zh">游戏实验</span></a>
+          <a class="primary-link" href="#archive">Archive <span class="zh">作品库</span></a>
         </div>
       </nav>
     </header>
@@ -31,12 +31,12 @@
         <div class="hero-copy">
           <h1 id="hero-title">Interactive <span>Systems</span></h1>
           <div class="hero-summary">
-            <p>ONE ZEN 是协同AI面向生成艺术、实时影像、浏览器游戏和人机交互实验的测试网站。用于训练AI学习和完成项目，这里会保留完整旧作品，同时通过统一目录管理精选、归档和新增项目。</p>
-            <p>作品以代码为媒介，关注规则、感知、动作反馈、视觉系统和可玩的叙事结构。</p>
+            <p>ONE ZEN is an AI-assisted test site for generative art, real-time visuals, browser games, and human-computer interaction experiments. Used for training AI and completing projects, it preserves complete old works while managing featured, archived, and new projects through a unified catalog. <span class="zh bilingual-inline">ONE ZEN 是协同AI面向生成艺术、实时影像、浏览器游戏和人机交互实验的测试网站。用于训练AI学习和完成项目，这里会保留完整旧作品，同时通过统一目录管理精选、归档和新增项目。</span></p>
+            <p>Using code as a medium, the works focus on rules, perception, kinesthetic feedback, visual systems, and playable narratives. <span class="zh bilingual-inline">作品以代码为媒介，关注规则、感知、动作反馈、视觉系统和可玩的叙事结构。</span></p>
           </div>
           <div class="hero-actions">
-            <a class="button primary" href="#selected">查看精选作品</a>
-            <a class="button" href="playground.html">进入游戏实验</a>
+            <a class="button primary" href="#selected">View Selected Works <span class="zh">查看精选</span></a>
+            <a class="button" href="playground.html">Enter Playground <span class="zh">进入实验</span></a>
           </div>
         </div>
 
@@ -47,7 +47,7 @@
               <span>LIVE FIELD</span>
               <span>POINTER REACTIVE</span>
             </div>
-            <p>移动鼠标或手指会改变场域中心。这个首页背景是代码原生生成，不依赖静态截图。</p>
+            <p>Move your mouse or finger to shift the field center. This homepage background is generated natively with code. <span class="zh bilingual-inline">移动鼠标或手指改变场域中心。首页背景由代码原生生成。</span></p>
           </div>
         </div>
       </section>
@@ -56,11 +56,11 @@
         <div class="section-head">
           <div>
             <p class="section-kicker">CATALOG SYSTEM</p>
-            <h2 id="system-title">统一作品目录</h2>
-            <p class="section-lede">新增、隐藏或精选作品都集中在 <code>assets/work-catalog.js</code>。页面结构会自动读取目录，避免以后维护多个重复 HTML 列表。</p>
+            <h2 id="system-title">Catalog System <span class="zh">统一作品目录</span></h2>
+            <p class="section-lede">Adding, hiding, or featuring works is centralized in <code>assets/work-catalog.js</code>. <span class="zh bilingual-inline">新增、隐藏或精选作品都集中在 work-catalog.js，页面自动读取。</span></p>
           </div>
           <div class="section-actions">
-            <a class="button" href="WORKS_GUIDE.md">维护说明</a>
+            <a class="button" href="WORKS_GUIDE.md">Guide <span class="zh">维护说明</span></a>
           </div>
         </div>
         <div class="stats-grid" data-stats></div>
@@ -70,11 +70,11 @@
         <div class="section-head">
           <div>
             <p class="section-kicker">SELECTED WORKS</p>
-            <h2 id="selected-title">精选项目</h2>
-            <p class="section-lede">首页只展示最适合作为专业入口的项目，其余作品进入归档，保留但不干扰第一印象。</p>
+            <h2 id="selected-title">Selected Works <span class="zh">精选项目</span></h2>
+            <p class="section-lede">The homepage only displays works best suited as a professional entry point. <span class="zh bilingual-inline">首页展示最适合作为专业入口的项目，其余作品进入归档。</span></p>
           </div>
           <div class="section-actions">
-            <a class="button" href="#archive">打开完整作品库</a>
+            <a class="button" href="#archive">Open Full Archive <span class="zh">打开归档</span></a>
           </div>
         </div>
         <div class="feature-grid" data-featured data-limit="6"></div>
@@ -84,35 +84,35 @@
         <div class="section-head">
           <div>
             <p class="section-kicker">PROJECT ARCHIVE</p>
-            <h2 id="archive-title">作品库</h2>
-            <p class="section-lede">用筛选和搜索快速定位作品。这个区域适合后续继续扩展为完整档案系统。</p>
+            <h2 id="archive-title">Archive <span class="zh">作品库</span></h2>
+            <p class="section-lede">Use filters and search to quickly locate works. <span class="zh bilingual-inline">用筛选和搜索快速定位作品，适合后续扩展为完整档案系统。</span></p>
           </div>
         </div>
         <div class="archive-tools">
           <div class="filter-group" aria-label="作品筛选">
-            <button class="filter-button active" type="button" data-filter="all">全部</button>
-            <button class="filter-button" type="button" data-filter="generative">生成艺术</button>
-            <button class="filter-button" type="button" data-filter="camera">交互影像</button>
-            <button class="filter-button" type="button" data-filter="game">游戏</button>
+            <button class="filter-button active" type="button" data-filter="all">All <span class="zh">全部</span></button>
+            <button class="filter-button" type="button" data-filter="generative">Generative <span class="zh">生成艺术</span></button>
+            <button class="filter-button" type="button" data-filter="camera">Digital <span class="zh">交互影像</span></button>
+            <button class="filter-button" type="button" data-filter="game">Game <span class="zh">游戏</span></button>
           </div>
-          <input class="search-box" type="search" data-search placeholder="搜索作品、标签或技术">
+          <input class="search-box" type="search" data-search placeholder="Search works, tags, or tech 搜索...">
         </div>
         <div class="archive-grid" data-archive data-view="all"></div>
-        <div class="empty-state" data-empty>没有找到匹配的作品。</div>
+        <div class="empty-state" data-empty>No matching works found. <span class="zh">没有找到匹配的作品。</span></div>
       </section>
 
       <section class="section" aria-labelledby="maintenance-title">
         <div class="maintenance">
           <div>
             <p class="section-kicker">FUTURE EDITING</p>
-            <h2 id="maintenance-title">以后怎么增删</h2>
-            <p class="section-lede">旧作品文件继续保留，新的专业入口只读作品目录。需要隐藏不合适作品时，不删文件，只在目录里设为不发布。</p>
+            <h2 id="maintenance-title">Future Editing <span class="zh">未来维护</span></h2>
+            <p class="section-lede">Old files are kept, but the portal reads only the catalog. Hide unsuited works by unpublishing them in the catalog instead of deleting files. <span class="zh bilingual-inline">保留旧文件，通过目录设置隐藏不合适作品，而不直接删除。</span></p>
           </div>
           <div class="note-panel">
-            <h3>维护原则</h3>
-            <p>新增项目：把作品放进 <code>interactive_arts/</code>，再在 <code>assets/work-catalog.js</code> 增加一个对象。</p>
-            <p>隐藏项目：在对应对象里加入 <code>published: false</code>。精选项目：设置 <code>featured: true</code>。</p>
-            <p>分类字段 <code>section</code> 使用 <code>generative</code>、<code>camera</code>、<code>game</code> 三类，页面会自动归档。</p>
+            <h3>Maintenance Principles <span class="zh">维护原则</span></h3>
+            <p>Add Work: Place files in <code>interactive_arts/</code> and add an object in <code>work-catalog.js</code>. <span class="zh bilingual-inline">新增：放入对应目录，并在 work-catalog.js 增加记录。</span></p>
+            <p>Hide Work: Add <code>published: false</code>. Feature Work: Set <code>featured: true</code>. <span class="zh bilingual-inline">隐藏：加入 published: false。精选：设为 featured: true。</span></p>
+            <p>Use <code>section</code> values: <code>generative</code>, <code>camera</code>, or <code>game</code> for auto-archiving. <span class="zh bilingual-inline">分类字段 section 使用 generative、camera、game。</span></p>
           </div>
         </div>
       </section>
