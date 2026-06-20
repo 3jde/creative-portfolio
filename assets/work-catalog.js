@@ -10,7 +10,8 @@ window.ONEZ_WORKS = [
     featured: false,
     palette: "cyan",
     description: "A generative swarm of cooler blue and cyan nodes reacting to cursor gravity and forming temporary networks. <span class=\"zh\">响应光标重力并形成临时网络的青蓝色生成粒子群。</span>",
-    tags: ["Generative", "p5.js", "Particles", "Mouse"]
+    tags: ["Generative", "p5.js", "Particles", "Mouse"],
+    cover: "assets/covers/magnetic-flux.png"
   },
   {
     id: "magnetic-draft2",
@@ -23,7 +24,8 @@ window.ONEZ_WORKS = [
     featured: false,
     palette: "pink",
     description: "A centralized burst of hot pink and red particles drawn by magnetic forces into clustered structures. <span class=\"zh\">由磁力吸引成簇的热粉色和红色粒子的中心爆发。</span>",
-    tags: ["Generative", "p5.js", "Particles", "Magnetic"]
+    tags: ["Generative", "p5.js", "Particles", "Magnetic"],
+    cover: "assets/covers/pulse-gravity.png"
   },
   {
     id: "magnetic-draft3",
@@ -36,7 +38,21 @@ window.ONEZ_WORKS = [
     featured: false,
     palette: "lime",
     description: "Cyber green and cyan nodes interacting through dynamic repulsion and attraction forces in a digital void. <span class=\"zh\">在数字虚空中通过动态排斥力和吸引力相互作用的赛博绿和青色粒子节点。</span>",
-    tags: ["Generative", "p5.js", "Particles", "Physics"]
+    tags: ["Generative", "p5.js", "Particles", "Physics"],
+    cover: "assets/covers/crowd-system-13.png"
+  },
+  {
+    id: "neon-shield",
+    title: "Neon Shield",
+    date: "2026-06-19",
+    section: "game",
+    format: "Orbital defense reflex arcade",
+    url: "games/2026-06-19-neon-shield.html",
+    status: "New Game",
+    featured: true,
+    palette: "lime",
+    description: "A reflex-based orbital defense game where players rotate a neon shield to protect the core from incoming threats.",
+    tags: ["Game", "Touch", "Arcade", "Reflex"]
   },
   {
     id: "neon-slicer",
