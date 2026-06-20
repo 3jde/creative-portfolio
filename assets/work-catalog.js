@@ -1,5 +1,44 @@
 window.ONEZ_WORKS = [
   {
+    id: "magnetic-draft1",
+    title: "Magnetic Field I <span class=\"zh\">磁力场 I</span>",
+    date: "2026-06-10",
+    section: "generative",
+    format: "Particle network",
+    url: "daily_arts/2026-06-10_magnetic/draft1.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: false,
+    palette: "cyan",
+    description: "A generative swarm of cooler blue and cyan nodes reacting to cursor gravity and forming temporary networks. <span class=\"zh\">响应光标重力并形成临时网络的青蓝色生成粒子群。</span>",
+    tags: ["Generative", "p5.js", "Particles", "Mouse"]
+  },
+  {
+    id: "magnetic-draft2",
+    title: "Magnetic Field II <span class=\"zh\">磁力场 II</span>",
+    date: "2026-06-10",
+    section: "generative",
+    format: "Particle network",
+    url: "daily_arts/2026-06-10_magnetic/draft2.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: false,
+    palette: "pink",
+    description: "A centralized burst of hot pink and red particles drawn by magnetic forces into clustered structures. <span class=\"zh\">由磁力吸引成簇的热粉色和红色粒子的中心爆发。</span>",
+    tags: ["Generative", "p5.js", "Particles", "Magnetic"]
+  },
+  {
+    id: "magnetic-draft3",
+    title: "Magnetic Field III <span class=\"zh\">磁力场 III</span>",
+    date: "2026-06-10",
+    section: "generative",
+    format: "Particle network",
+    url: "daily_arts/2026-06-10_magnetic/draft3.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: false,
+    palette: "lime",
+    description: "Cyber green and cyan nodes interacting through dynamic repulsion and attraction forces in a digital void. <span class=\"zh\">在数字虚空中通过动态排斥力和吸引力相互作用的赛博绿和青色粒子节点。</span>",
+    tags: ["Generative", "p5.js", "Particles", "Physics"]
+  },
+  {
     id: "neon-slicer",
     title: "Neon Slicer <span class=\"zh\">霓虹切割</span>",
     date: "2026-06-18",
