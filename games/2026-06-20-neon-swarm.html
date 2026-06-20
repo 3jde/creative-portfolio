@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON SWARM | ONE ZEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --neon: #00ffff; --neon-alt: #ff00ff; --bg: #050505; --danger: #ff003c; }
+    body { 
+      background-color: var(--bg); 
+      color: var(--neon); 
+      font-family: 'Space Mono', monospace; 
+      overflow: hidden; 
+      touch-action: none;
+      user-select: none;
+    }
+    #game-canvas { display: block; width: 100vw; height: 100vh; }
+    
+    .ui-layer {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; padding: 20px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    
+    .header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .nav a { color: var(--neon); text-decoration: none; border: 1px solid var(--neon); padding: 5px 10px; font-size: 0.8rem; pointer-events: auto; background: rgba(0,0,0,0.8); }
+    .nav a:hover { background: var(--neon); color: var(--bg); }
+    
+    .stats { text-align: right; font-family: 'VT323', monospace; line-height: 1; }
+    .score-board { font-size: 3rem; text-shadow: 0 0 10px var(--neon); }
+    .health-bar-container { width: 150px; height: 15px; border: 2px solid var(--danger); margin-top: 10px; margin-left: auto; background: rgba(255,0,60,0.2); }
+    .health-bar { height: 100%; background: var(--danger); width: 100%; transition: width 0.2s; box-shadow: 0 0 10px var(--danger); }
+    
+    .game-over-screen {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center; background: rgba(0,0,0,0.9); border: 2px solid var(--neon);
+      padding: 40px; display: none; pointer-events: auto;
+      box-shadow: 0 0 20px var(--neon);
+    }
+    .game-over-title { font-family: 'VT323', monospace; font-size: 4rem; margin-bottom: 20px; color: var(--danger); text-shadow: 0 0 10px var(--danger); }
+    .final-score { font-size: 1.5rem; margin-bottom: 30px; }
+    .btn {
+      background: transparent; color: var(--neon); border: 1px solid var(--neon);
+      padding: 10px 20px; font-family: 'Space Mono', monospace; font-size: 1rem;
+      cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+    }
+    .btn:hover { background: var(--neon); color: var(--bg); box-shadow: 0 0 15px var(--neon); }
+    
+    .instructions {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      text-align: center; font-size: 0.8rem; opacity: 0.7; pointer-events: none;
+      width: 100%; text-shadow: 0 0 5px var(--neon);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  
+  <div class="ui-layer">
+    <div class="header">
+      <div class="nav"><a href="../games.html">&lt; BACK</a></div>
+      <div class="stats">
+        <div class="score-board" id="score">0000</div>
+        <div class="health-bar-container"><div class="health-bar" id="health"></div></div>
+      </div>
+    </div>
+    <div class="instructions" id="instructions">DRAG TO MOVE | AUTO SHOOT</div>
+  </div>
+  
+  <div class="game-over-screen" id="game-over">
+    <div class="game-over-title">SYSTEM FAILURE</div>
+    <div class="final-score">SCORE: <span id="final-score-val">0</span></div>
+    <button class="btn" id="restart-btn">REBOOT SYSTEM</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const healthEl = document.getElementById('health');
+    const gameOverScreen = document.getElementById('game-over');
+    const finalScoreEl = document.getElementById('final-score-val');
+    const restartBtn = document.getElementById('restart-btn');
+    const instructions = document.getElementById('instructions');
+    
+    let width, height;
+    let score = 0;
+    let isGameOver = false;
+    let frameCount = 0;
+    
+    // Game entities
+    let player;
+    let enemies = [];
+    let bullets = [];
+    let particles = [];
+    
+    // Controls
+    let pointer = { x: 0, y: 0, active: false };
+    
+    // Screen shake
+    let shakeIntensity = 0;
+    
+    const maxHealth = 100;
+    let currentHealth = maxHealth;
+    
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      if (!player) {
+        pointer.x = width / 2;
+        pointer.y = height / 2;
+      }
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // Input handling
+    function updatePointer(x, y) {
+      pointer.x = x;
+      pointer.y = y;
+      pointer.active = true;
+      if (instructions.style.opacity > 0) {
+        instructions.style.opacity = parseFloat(instructions.style.opacity || 1) - 0.05;
+      }
+    }
+    
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      updatePointer(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
+    
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      updatePointer(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
+    
+    canvas.addEventListener('touchend', () => { pointer.active = false; });
+    
+    canvas.addEventListener('mousedown', (e) => updatePointer(e.clientX, e.clientY));
+    canvas.addEventListener('mousemove', (e) => {
+      if (pointer.active || e.buttons > 0) updatePointer(e.clientX, e.clientY);
+    });
+    canvas.addEventListener('mouseup', () => { pointer.active = false; });
+    
+    class Player {
+      constructor() {
+        this.x = width / 2;
+        this.y = height / 2;
+        this.radius = 12;
+        this.shootCooldown = 0;
+        this.invulnTimer = 0;
+      }
+      
+      update() {
+        // Move towards pointer smoothly
+        if (pointer.active) {
+          this.x += (pointer.x - this.x) * 0.15;
+          this.y += (pointer.y - this.y) * 0.15;
+        }
+        
+        // Boundaries
+        this.x = Math.max(this.radius, Math.min(width - this.radius, this.x));
+        this.y = Math.max(this.radius, Math.min(height - this.radius, this.y));
+        
+        if (this.invulnTimer > 0) this.invulnTimer--;
+        
+        // Auto shoot
+        if (this.shootCooldown > 0) {
+          this.shootCooldown--;
+        } else if (enemies.length > 0) {
+          // Find closest enemy
+          let closest = null;
+          let minDist = Infinity;
+          for (let e of enemies) {
+            let d = Math.hypot(e.x - this.x, e.y - this.y);
+            if (d < minDist) { minDist = d; closest = e; }
+          }
+          
+          if (closest && minDist < Math.max(width, height)) {
+            let angle = Math.atan2(closest.y - this.y, closest.x - this.x);
+            let speed = 12;
+            bullets.push(new Bullet(this.x, this.y, Math.cos(angle)*speed, Math.sin(angle)*speed));
+            this.shootCooldown = 15; // Fire rate
+          }
+        }
+      }
+      
+      draw() {
+        if (this.invulnTimer > 0 && Math.floor(frameCount / 5) % 2 === 0) return; // Flicker
+        
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.beginPath();
+        ctx.moveTo(0, -this.radius);
+        ctx.lineTo(this.radius, this.radius);
+        ctx.lineTo(0, this.radius * 0.5);
+        ctx.lineTo(-this.radius, this.radius);
+        ctx.closePath();
+        
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = 'var(--neon)';
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.strokeStyle = 'var(--neon)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    
+    class Enemy {
+      constructor() {
+        let side = Math.floor(Math.random() * 4);
+        if (side === 0) { this.x = Math.random() * width; this.y = -30; } // top
+        else if (side === 1) { this.x = width + 30; this.y = Math.random() * height; } // right
+        else if (side === 2) { this.x = Math.random() * width; this.y = height + 30; } // bottom
+        else { this.x = -30; this.y = Math.random() * height; } // left
+        
+        this.radius = 10 + Math.random() * 5;
+        this.speed = 1 + Math.random() * 1.5 + (score / 10000); // Speed scales with score
+        this.hp = 1 + Math.floor(score / 5000); // HP scales slightly
+        this.angle = 0;
+        this.rotSpeed = (Math.random() - 0.5) * 0.1;
+      }
+      
+      update() {
+        let angle = Math.atan2(player.y - this.y, player.x - this.x);
+        this.x += Math.cos(angle) * this.speed;
+        this.y += Math.sin(angle) * this.speed;
+        this.angle += this.rotSpeed;
+      }
+      
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.beginPath();
+        ctx.rect(-this.radius, -this.radius, this.radius*2, this.radius*2);
+        
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'var(--danger)';
+        ctx.strokeStyle = 'var(--danger)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        if (this.hp > 1) {
+          ctx.fillStyle = 'rgba(255,0,60,0.5)';
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+    
+    class Bullet {
+      constructor(x, y, vx, vy) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+        this.radius = 3;
+        this.life = 100;
+      }
+      update() {
+        this.x += this.vx; this.y += this.vy;
+        this.life--;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'var(--neon)';
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+      }
+    }
+    
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x; this.y = y;
+        let angle = Math.random() * Math.PI * 2;
+        let speed = Math.random() * 5 + 1;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.radius = Math.random() * 3 + 1;
+        this.life = 1;
+        this.decay = Math.random() * 0.03 + 0.02;
+        this.color = color;
+      }
+      update() {
+        this.x += this.vx; this.y += this.vy;
+        this.life -= this.decay;
+        this.radius = Math.max(0, this.radius - 0.05);
+      }
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.life;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = this.color;
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    
+    function spawnParticles(x, y, count, color) {
+      for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y, color));
+      }
+    }
+    
+    function init() {
+      player = new Player();
+      enemies = [];
+      bullets = [];
+      particles = [];
+      score = 0;
+      currentHealth = maxHealth;
+      isGameOver = false;
+      frameCount = 0;
+      scoreEl.innerText = '0000';
+      healthEl.style.width = '100%';
+      gameOverScreen.style.display = 'none';
+      instructions.style.opacity = 1;
+      pointer.x = width / 2;
+      pointer.y = height / 2;
+      pointer.active = false;
+      loop();
+    }
+    
+    function loop() {
+      if (isGameOver) return;
+      requestAnimationFrame(loop);
+      
+      frameCount++;
+      
+      // Screen shake logic
+      let shakeX = 0; let shakeY = 0;
+      if (shakeIntensity > 0) {
+        shakeX = (Math.random() - 0.5) * shakeIntensity;
+        shakeY = (Math.random() - 0.5) * shakeIntensity;
+        shakeIntensity *= 0.9;
+        if (shakeIntensity < 0.5) shakeIntensity = 0;
+      }
+      
+      // Clear with trail effect
+      ctx.fillStyle = 'rgba(5, 5, 5, 0.3)';
+      ctx.fillRect(0, 0, width, height);
+      
+      ctx.save();
+      ctx.translate(shakeX, shakeY);
+      
+      // Draw grid background
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      let offset = (frameCount * 0.5) % 40;
+      ctx.beginPath();
+      for (let i = 0; i < width; i += 40) { ctx.moveTo(i, 0); ctx.lineTo(i, height); }
+      for (let i = 0; i < height; i += 40) { ctx.moveTo(0, i + offset); ctx.lineTo(width, i + offset); }
+      ctx.stroke();
+      
+      // Spawn enemies
+      let spawnRate = Math.max(10, 60 - Math.floor(score / 500));
+      if (frameCount % spawnRate === 0) {
+        enemies.push(new Enemy());
+      }
+      
+      // Update & Draw
+      player.update();
+      player.draw();
+      
+      // Bullets
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.update();
+        b.draw();
+        
+        if (b.life <= 0 || b.x < 0 || b.x > width || b.y < 0 || b.y > height) {
+          bullets.splice(i, 1);
+          continue;
+        }
+        
+        // Collision with enemies
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          let e = enemies[j];
+          if (Math.hypot(b.x - e.x, b.y - e.y) < b.radius + e.radius) {
+            e.hp--;
+            bullets.splice(i, 1);
+            spawnParticles(b.x, b.y, 3, '#00ffff');
+            if (e.hp <= 0) {
+              spawnParticles(e.x, e.y, 10, '#ff003c');
+              enemies.splice(j, 1);
+              score += 100;
+              scoreEl.innerText = score.toString().padStart(4, '0');
+            }
+            break;
+          }
+        }
+      }
+      
+      // Enemies
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        let e = enemies[i];
+        e.update();
+        e.draw();
+        
+        // Collision with player
+        if (player.invulnTimer <= 0 && Math.hypot(player.x - e.x, player.y - e.y) < player.radius + e.radius) {
+          currentHealth -= 20;
+          healthEl.style.width = Math.max(0, (currentHealth / maxHealth) * 100) + '%';
+          shakeIntensity = 15;
+          player.invulnTimer = 60; // 1 second roughly
+          spawnParticles(player.x, player.y, 15, '#ff00ff');
+          enemies.splice(i, 1);
+          
+          if (currentHealth <= 0) {
+            endGame();
+          }
+        }
+      }
+      
+      // Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.update();
+        p.draw();
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+      
+      ctx.restore();
+    }
+    
+    function endGame() {
+      isGameOver = true;
+      finalScoreEl.innerText = score;
+      gameOverScreen.style.display = 'block';
+    }
+    
+    restartBtn.addEventListener('click', init);
+    
+    // Initial start
+    init();
+  </script>
+</body>
+</html>
