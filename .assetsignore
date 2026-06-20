@@ -1,0 +1,9 @@
+/.git/
+/.git/**
+/.wrangler/
+/.wrangler/**
+/.gitignore
+/deploy_all.sh
+/fix-autodesk-popups-admin.ps1
+/WORKS_GUIDE.md
+/wrangler.jsonc
