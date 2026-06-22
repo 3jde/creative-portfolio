@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEON RISER</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #050510;
+        color: #fff;
+        font-family: 'Courier New', Courier, monospace;
+        overflow: hidden;
+        touch-action: none; /* Prevent default touch actions like scroll/zoom */
+    }
+    #gameCanvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+    }
+    #uiLayer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .header {
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-shadow: 0 0 10px #0ff;
+    }
+    .score {
+        font-size: 24px;
+        font-weight: bold;
+        color: #0ff;
+    }
+    .title {
+        font-size: 20px;
+        color: #fff;
+        opacity: 0.7;
+    }
+    #gameOverScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(5, 5, 16, 0.85);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        pointer-events: auto;
+        opacity: 0;
+        transition: opacity 0.5s;
+        z-index: 10;
+        visibility: hidden;
+    }
+    #gameOverScreen.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .go-title {
+        font-size: 48px;
+        color: #f0f;
+        text-shadow: 0 0 20px #f0f;
+        margin-bottom: 10px;
+    }
+    .go-score {
+        font-size: 24px;
+        margin-bottom: 30px;
+        color: #0ff;
+        text-shadow: 0 0 10px #0ff;
+    }
+    .btn {
+        padding: 15px 30px;
+        background: transparent;
+        border: 2px solid #fff;
+        color: #fff;
+        font-size: 20px;
+        cursor: pointer;
+        font-family: inherit;
+        text-transform: uppercase;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        transition: all 0.2s;
+    }
+    .btn:active {
+        background: #fff;
+        color: #000;
+    }
+    #startScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: #050510;
+        z-index: 20;
+        pointer-events: auto;
+    }
+    .inst {
+        margin: 20px 0 40px;
+        color: #aaa;
+        font-size: 16px;
+        text-align: center;
+        max-width: 80%;
+        line-height: 1.5;
+    }
+    .back-btn {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        color: #fff;
+        text-decoration: none;
+        font-size: 14px;
+        opacity: 0.5;
+        pointer-events: auto;
+    }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="uiLayer">
+    <div class="header">
+        <div class="title">NEON RISER</div>
+        <div class="score" id="scoreDisplay">0</div>
+    </div>
+    <a href="../games.html" class="back-btn">< BACK TO GAMES</a>
+</div>
+
+<div id="startScreen">
+    <div class="go-title" style="color:#0ff; text-shadow: 0 0 20px #0ff;">NEON RISER</div>
+    <div class="inst">Protect the blue orb from falling red obstacles!<br>Drag anywhere to move your shield.</div>
+    <button class="btn" id="startBtn">START GAME</button>
+</div>
+
+<div id="gameOverScreen">
+    <div class="go-title">SYSTEM FAILURE</div>
+    <div class="go-score">SCORE: <span id="finalScore"></span></div>
+    <button class="btn" id="restartBtn">REBOOT</button>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const finalScore = document.getElementById('finalScore');
+const startScreen = document.getElementById('startScreen');
+const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restartBtn');
+
+let width, height;
+let state = 'start'; // start, play, gameover
+let score = 0;
+let frameCount = 0;
+let shakeAmount = 0;
+
+let orb = { x: 0, y: 0, r: 20, color: '#0ff', mass: 0 };
+let protector = { x: 0, y: 0, px: 0, py: 0, vx: 0, vy: 0, r: 25, color: '#fff', mass: 0 };
+let obstacles = [];
+let particles = [];
+let pointer = { x: -100, y: -100, active: false };
+
+// Audio Context (optional visual feedback if no audio)
+function playSound(type) {
+    // Implement simple synth sounds if desired, left empty for visual-only focus as per prompt, 
+    // but adding strong visual feedback.
+}
+
+function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    
+    orb.x = width / 2;
+    orb.y = height - Math.min(150, height * 0.2);
+    
+    if(state === 'start') {
+        protector.x = width / 2;
+        protector.y = orb.y - 100;
+    }
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Input Handling
+function setPointer(e) {
+    let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    pointer.x = clientX;
+    pointer.y = clientY;
+    pointer.active = true;
+}
+canvas.addEventListener('mousedown', setPointer);
+canvas.addEventListener('mousemove', (e) => {
+    if(pointer.active || state === 'play') setPointer(e);
+});
+canvas.addEventListener('mouseup', () => pointer.active = false);
+canvas.addEventListener('mouseleave', () => pointer.active = false);
+
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); setPointer(e); }, {passive: false});
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); setPointer(e); }, {passive: false});
+canvas.addEventListener('touchend', (e) => { e.preventDefault(); pointer.active = false; }, {passive: false});
+
+startBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('click', startGame);
+
+function startGame() {
+    state = 'play';
+    startScreen.style.display = 'none';
+    gameOverScreen.classList.remove('active');
+    score = 0;
+    frameCount = 0;
+    obstacles = [];
+    particles = [];
+    scoreDisplay.innerText = '0';
+    
+    // Initial protector position near orb
+    protector.x = width / 2;
+    protector.y = orb.y - 100;
+    protector.px = protector.x;
+    protector.py = protector.y;
+    pointer.x = protector.x;
+    pointer.y = protector.y;
+}
+
+function gameOver() {
+    state = 'gameover';
+    shakeAmount = 20;
+    finalScore.innerText = score;
+    gameOverScreen.classList.add('active');
+    createExplosion(orb.x, orb.y, '#0ff', 50);
+}
+
+function createExplosion(x, y, color, count) {
+    for(let i=0; i<count; i++) {
+        let angle = Math.random() * Math.PI * 2;
+        let speed = Math.random() * 8 + 2;
+        particles.push({
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            color: color,
+            size: Math.random() * 4 + 2
+        });
+    }
+}
+
+function spawnObstacle() {
+    let r = Math.random() * 20 + 10; // 10 to 30
+    let x = Math.random() * (width - r*2) + r;
+    let y = -r - 10;
+    
+    // As score increases, add some horizontal velocity towards center
+    let vx = (Math.random() - 0.5) * 2;
+    let vy = Math.random() * 2 + 2 + (score * 0.05); // Speed increases with score
+    
+    obstacles.push({ x, y, vx, vy, r, mass: r, color: '#f05' });
+}
+
+function resolveCollision(c1, c2, isOrb = false) {
+    let dx = c2.x - c1.x;
+    let dy = c2.y - c1.y;
+    let dist = Math.sqrt(dx*dx + dy*dy);
+    let minDist = c1.r + c2.r;
+    
+    if(dist < minDist && dist > 0) {
+        if(isOrb) {
+            gameOver();
+            return;
+        }
+
+        let overlap = minDist - dist;
+        let nx = dx / dist;
+        let ny = dy / dist;
+        
+        let invMass1 = c1.mass === 0 ? 0 : 1/c1.mass;
+        let invMass2 = c2.mass === 0 ? 0 : 1/c2.mass;
+        let sumInvMass = invMass1 + invMass2;
+        
+        if(sumInvMass === 0) return;
+        
+        let push1 = (overlap * (invMass1 / sumInvMass));
+        let push2 = (overlap * (invMass2 / sumInvMass));
+        
+        c1.x -= nx * push1;
+        c1.y -= ny * push1;
+        c2.x += nx * push2;
+        c2.y += ny * push2;
+        
+        let rvx = c2.vx - c1.vx;
+        let rvy = c2.vy - c1.vy;
+        let velAlongNormal = rvx * nx + rvy * ny;
+        
+        if(velAlongNormal > 0) return; 
+        
+        let e = 0.8; // Bounciness
+        let j = -(1 + e) * velAlongNormal;
+        j /= sumInvMass;
+        
+        let impulseX = j * nx;
+        let impulseY = j * ny;
+        
+        c1.vx -= impulseX * invMass1;
+        c1.vy -= impulseY * invMass1;
+        c2.vx += impulseX * invMass2;
+        c2.vy += impulseY * invMass2;
+        
+        // Add some sparks if it's the protector
+        if(c1.mass === 0 || c2.mass === 0) {
+            createExplosion(c1.x + nx * c1.r, c1.y + ny * c1.r, '#fff', 5);
+        }
+    }
+}
+
+function update() {
+    if(state !== 'play') return;
+    
+    frameCount++;
+    
+    // Spawn logic
+    let spawnRate = Math.max(10, 60 - Math.floor(score / 5));
+    if(frameCount % spawnRate === 0) {
+        spawnObstacle();
+    }
+    
+    // Protector control (kinematic follow pointer)
+    let px = protector.x;
+    let py = protector.y;
+    // Smooth follow
+    let targetX = pointer.x;
+    let targetY = pointer.y;
+    
+    // If pointer is offscreen or inactive, don't zip to 0,0
+    if(targetX > 0 && targetY > 0) {
+        protector.x += (targetX - protector.x) * 0.3;
+        protector.y += (targetY - protector.y) * 0.3;
+        
+        // Clamp to screen
+        protector.x = Math.max(protector.r, Math.min(width - protector.r, protector.x));
+        protector.y = Math.max(protector.r, Math.min(height - protector.r, protector.y));
+    }
+    
+    // Calculate velocity for physics
+    protector.vx = (protector.x - px);
+    protector.vy = (protector.y - py);
+    protector.px = protector.x;
+    protector.py = protector.y;
+
+    // Update obstacles
+    for(let i=obstacles.length-1; i>=0; i--) {
+        let obs = obstacles[i];
+        
+        obs.vy += 0.05; // Gravity
+        
+        obs.x += obs.vx;
+        obs.y += obs.vy;
+        
+        // Wall bounce
+        if(obs.x - obs.r < 0) { obs.x = obs.r; obs.vx *= -0.8; }
+        if(obs.x + obs.r > width) { obs.x = width - obs.r; obs.vx *= -0.8; }
+        
+        // Remove if off bottom
+        if(obs.y - obs.r > height) {
+            obstacles.splice(i, 1);
+            score++;
+            scoreDisplay.innerText = score;
+            continue;
+        }
+        
+        // Collide with protector
+        resolveCollision(protector, obs, false);
+        
+        // Collide with Orb
+        resolveCollision(orb, obs, true);
+        
+        // Collide with other obstacles
+        for(let j=i-1; j>=0; j--) {
+            resolveCollision(obs, obstacles[j], false);
+        }
+    }
+    
+    // Update particles
+    for(let i=particles.length-1; i>=0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+        if(p.life <= 0) particles.splice(i, 1);
+    }
+}
+
+function drawGrid() {
+    ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    let gridSize = 50;
+    let offset = (frameCount % gridSize);
+    
+    ctx.beginPath();
+    for(let x=0; x<width; x+=gridSize) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+    }
+    for(let y=0; y<height + gridSize; y+=gridSize) {
+        ctx.moveTo(0, y + offset);
+        ctx.lineTo(width, y + offset);
+    }
+    ctx.stroke();
+}
+
+function draw() {
+    ctx.fillStyle = '#050510';
+    ctx.fillRect(0, 0, width, height);
+    
+    ctx.save();
+    if(shakeAmount > 0) {
+        let dx = (Math.random() - 0.5) * shakeAmount;
+        let dy = (Math.random() - 0.5) * shakeAmount;
+        ctx.translate(dx, dy);
+        shakeAmount *= 0.9;
+        if(shakeAmount < 0.5) shakeAmount = 0;
+    }
+    
+    drawGrid();
+    
+    // Draw particles
+    particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1.0;
+    
+    // Draw Orb
+    if(state !== 'gameover') {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = orb.color;
+        ctx.fillStyle = orb.color;
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, orb.r, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Inner core
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, orb.r * 0.5, 0, Math.PI*2);
+        ctx.fill();
+    }
+    
+    // Draw Protector
+    if(state !== 'gameover' || true) {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = protector.color;
+        ctx.strokeStyle = protector.color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(protector.x, protector.y, protector.r, 0, Math.PI*2);
+        ctx.stroke();
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fill();
+    }
+    
+    // Draw obstacles
+    obstacles.forEach(obs => {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = obs.color;
+        ctx.fillStyle = obs.color;
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, obs.r, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Decorate
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, obs.r * 0.3, 0, Math.PI*2);
+        ctx.fill();
+    });
+    
+    ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+loop();
+
+</script>
+</body>
+</html>
