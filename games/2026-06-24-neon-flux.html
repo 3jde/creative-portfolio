@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEON FLUX</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #050510;
+        color: #fff;
+        font-family: 'Courier New', Courier, monospace;
+        overflow: hidden;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    #gameCanvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+    }
+    #ui {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px;
+        text-shadow: 0 0 10px #0ff;
+    }
+    .score-container {
+        font-size: 24px;
+        font-weight: bold;
+        color: #0ff;
+    }
+    .health-container {
+        font-size: 24px;
+        font-weight: bold;
+        color: #f0f;
+        text-shadow: 0 0 10px #f0f;
+    }
+    #gameOverScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(5, 5, 16, 0.85);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+    }
+    .title {
+        font-size: 48px;
+        color: #fff;
+        text-shadow: 0 0 20px #fff;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+    .subtitle {
+        font-size: 16px;
+        color: #aaa;
+        margin-bottom: 40px;
+        text-align: center;
+    }
+    .final-score {
+        font-size: 32px;
+        color: #0ff;
+        text-shadow: 0 0 15px #0ff;
+        margin-bottom: 30px;
+    }
+    .btn {
+        background: transparent;
+        border: 2px solid #0ff;
+        color: #0ff;
+        padding: 15px 40px;
+        font-size: 20px;
+        font-family: inherit;
+        font-weight: bold;
+        cursor: pointer;
+        text-transform: uppercase;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.3), inset 0 0 15px rgba(0, 255, 255, 0.3);
+        transition: all 0.2s;
+        border-radius: 5px;
+    }
+    .btn:active {
+        background: rgba(0, 255, 255, 0.2);
+        box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), inset 0 0 30px rgba(0, 255, 255, 0.6);
+    }
+    #startScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #050510;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+    }
+    
+    .pulse {
+        animation: pulseAnim 0.3s ease-out;
+    }
+    @keyframes pulseAnim {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.3); }
+        100% { transform: scale(1); }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui">
+    <div class="header" id="hud" style="display:none;">
+        <div class="score-container">SCORE: <span id="scoreVal">0</span></div>
+        <div class="health-container">HP: <span id="healthVal">3</span></div>
+    </div>
+</div>
+
+<div id="startScreen">
+    <div class="title">NEON FLUX</div>
+    <div class="subtitle">Catch CYAN energy. Dodge MAGENTA hazards.<br><br>Tap LEFT/RIGHT side of screen to rotate.<br>Keyboard: Left/Right Arrows.</div>
+    <button class="btn" id="startBtn">START</button>
+</div>
+
+<div id="gameOverScreen">
+    <div class="title">SYSTEM FAILURE</div>
+    <div class="final-score">SCORE: <span id="finalScoreVal">0</span></div>
+    <button class="btn" id="restartBtn">REBOOT</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const ui = {
+        startScreen: document.getElementById('startScreen'),
+        gameOverScreen: document.getElementById('gameOverScreen'),
+        hud: document.getElementById('hud'),
+        score: document.getElementById('scoreVal'),
+        health: document.getElementById('healthVal'),
+        finalScore: document.getElementById('finalScoreVal'),
+        startBtn: document.getElementById('startBtn'),
+        restartBtn: document.getElementById('restartBtn')
+    };
+
+    let cx, cy;
+    let width, height;
+    
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        cx = width / 2;
+        cy = height / 2;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Game State
+    let state = 'START'; // START, PLAYING, GAMEOVER
+    let score = 0;
+    let health = 3;
+    let frame = 0;
+    
+    let hitStopFrames = 0;
+    let screenShake = 0;
+    
+    // Player
+    const player = {
+        angle: 0,
+        radius: 60,
+        arc: Math.PI / 2, // 90 degrees wide
+        color: '#0ff',
+        targetAngle: 0,
+        speed: 0.15
+    };
+    
+    // Input
+    const keys = { left: false, right: false };
+    const touchArea = { left: false, right: false };
+
+    window.addEventListener('keydown', (e) => {
+        if(e.key === 'ArrowLeft') keys.left = true;
+        if(e.key === 'ArrowRight') keys.right = true;
+    });
+    window.addEventListener('keyup', (e) => {
+        if(e.key === 'ArrowLeft') keys.left = false;
+        if(e.key === 'ArrowRight') keys.right = false;
+    });
+
+    // Touch controls: Left half of screen = left, Right half = right
+    canvas.addEventListener('touchstart', handleTouch, {passive: false});
+    canvas.addEventListener('touchmove', handleTouch, {passive: false});
+    canvas.addEventListener('touchend', handleTouchEnd, {passive: false});
+    canvas.addEventListener('touchcancel', handleTouchEnd, {passive: false});
+
+    function handleTouch(e) {
+        e.preventDefault();
+        touchArea.left = false;
+        touchArea.right = false;
+        for(let i=0; i<e.touches.length; i++){
+            const t = e.touches[i];
+            if(t.clientX < width/2) touchArea.left = true;
+            else touchArea.right = true;
+        }
+    }
+    function handleTouchEnd(e) {
+        e.preventDefault();
+        handleTouch(e); // re-evaluate remaining touches
+    }
+
+    // Entities
+    let entities = [];
+    let particles = [];
+    
+    const TYPE_GOOD = 0;
+    const TYPE_BAD = 1;
+
+    function resetGame() {
+        score = 0;
+        health = 3;
+        player.angle = Math.PI / 2;
+        entities = [];
+        particles = [];
+        hitStopFrames = 0;
+        screenShake = 0;
+        frame = 0;
+        updateHUD();
+        
+        state = 'PLAYING';
+        ui.startScreen.style.display = 'none';
+        ui.gameOverScreen.style.display = 'none';
+        ui.hud.style.display = 'flex';
+        
+        requestAnimationFrame(gameLoop);
+    }
+
+    function spawnEntity() {
+        const type = Math.random() > 0.3 ? TYPE_BAD : TYPE_GOOD;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.max(width, height) * 0.7;
+        const speed = 2 + Math.random() * 2 + (score * 0.05); // Speed increases with score
+        
+        entities.push({
+            type: type,
+            angle: angle,
+            dist: dist,
+            speed: speed,
+            radius: type === TYPE_GOOD ? 8 : 12,
+            active: true
+        });
+    }
+
+    function spawnParticles(x, y, color, count) {
+        for(let i=0; i<count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1 + Math.random() * 5;
+            particles.push({
+                x: x, y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1.0,
+                color: color,
+                size: 2 + Math.random() * 3
+            });
+        }
+    }
+
+    function updateHUD() {
+        ui.score.innerText = score;
+        ui.health.innerText = health;
+    }
+
+    function triggerPulse(element) {
+        element.classList.remove('pulse');
+        void element.offsetWidth; // trigger reflow
+        element.classList.add('pulse');
+    }
+
+    function update() {
+        if (hitStopFrames > 0) {
+            hitStopFrames--;
+            return; // Pause game logic during hit-stop
+        }
+
+        frame++;
+
+        // Player movement
+        let moveDir = 0;
+        if(keys.left || touchArea.left) moveDir = -1;
+        if(keys.right || touchArea.right) moveDir = 1;
+        
+        player.angle += moveDir * player.speed;
+        
+        // Normalize player angle 0 to 2PI
+        player.angle = (player.angle + Math.PI * 2) % (Math.PI * 2);
+
+        // Spawning
+        const spawnRate = Math.max(20, 60 - score * 2);
+        if (frame % Math.floor(spawnRate) === 0) {
+            spawnEntity();
+        }
+
+        // Screen shake decay
+        if (screenShake > 0) screenShake *= 0.8;
+        if (screenShake < 0.5) screenShake = 0;
+
+        // Entities
+        for (let i = entities.length - 1; i >= 0; i--) {
+            let e = entities[i];
+            e.dist -= e.speed;
+
+            if (e.dist <= player.radius + e.radius && e.dist >= player.radius - e.radius) {
+                // Check angle collision
+                // Calculate angular distance
+                let diff = Math.abs(e.angle - player.angle);
+                if (diff > Math.PI) diff = Math.PI * 2 - diff;
+
+                if (diff < player.arc / 2) {
+                    // Collision with shield!
+                    if (e.type === TYPE_GOOD) {
+                        score += 10;
+                        updateHUD();
+                        triggerPulse(ui.score);
+                        let ex = cx + Math.cos(e.angle) * player.radius;
+                        let ey = cy + Math.sin(e.angle) * player.radius;
+                        spawnParticles(ex, ey, '#0ff', 15);
+                    } else {
+                        // Blocked bad thing
+                        score += 5;
+                        updateHUD();
+                        let ex = cx + Math.cos(e.angle) * player.radius;
+                        let ey = cy + Math.sin(e.angle) * player.radius;
+                        spawnParticles(ex, ey, '#f0f', 15);
+                        screenShake = 5;
+                    }
+                    e.active = false;
+                }
+            } else if (e.dist < player.radius - 20) {
+                // Passed the shield
+                if (e.type === TYPE_BAD) {
+                    // Missed bad - hits core
+                    health--;
+                    updateHUD();
+                    triggerPulse(ui.health);
+                    screenShake = 20;
+                    hitStopFrames = 10; // Intense hit-stop on taking damage
+                    spawnParticles(cx, cy, '#f00', 30);
+                    
+                    if(health <= 0) {
+                        state = 'GAMEOVER';
+                        ui.finalScore.innerText = score;
+                        ui.gameOverScreen.style.display = 'flex';
+                        ui.hud.style.display = 'none';
+                    }
+                } else {
+                    // Missed good - nothing happens, maybe tiny penalty?
+                }
+                e.active = false;
+            }
+
+            if (!e.active) entities.splice(i, 1);
+        }
+
+        // Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.02;
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+    }
+
+    function draw() {
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        
+        // Apply screen shake
+        if (screenShake > 0) {
+            const dx = (Math.random() - 0.5) * screenShake;
+            const dy = (Math.random() - 0.5) * screenShake;
+            ctx.translate(dx, dy);
+        }
+
+        // Draw background pulse based on frame
+        const pulse = Math.sin(frame * 0.05) * 0.5 + 0.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, player.radius * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 255, 255, ${0.02 + pulse * 0.03})`;
+        ctx.fill();
+
+        // Draw Core
+        ctx.beginPath();
+        ctx.arc(cx, cy, 15, 0, Math.PI * 2);
+        ctx.fillStyle = '#111';
+        ctx.fill();
+        ctx.strokeStyle = health > 1 ? '#0ff' : '#f0f';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = health > 1 ? '#0ff' : '#f00';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.fillStyle = health > 1 ? '#0ff' : '#f00';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Draw Player Track
+        ctx.beginPath();
+        ctx.arc(cx, cy, player.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Draw Player Arc
+        ctx.beginPath();
+        ctx.arc(cx, cy, player.radius, player.angle - player.arc/2, player.angle + player.arc/2);
+        ctx.strokeStyle = player.color;
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = player.color;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Draw Entities
+        for (let e of entities) {
+            let ex = cx + Math.cos(e.angle) * e.dist;
+            let ey = cy + Math.sin(e.angle) * e.dist;
+
+            ctx.save();
+            ctx.translate(ex, ey);
+            ctx.rotate(e.angle);
+
+            ctx.shadowBlur = 10;
+            if (e.type === TYPE_GOOD) {
+                ctx.fillStyle = '#0ff';
+                ctx.shadowColor = '#0ff';
+                ctx.beginPath();
+                ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.fillStyle = '#f0f';
+                ctx.shadowColor = '#f0f';
+                // Draw a spiked shape or triangle
+                ctx.beginPath();
+                ctx.moveTo(e.radius, 0);
+                ctx.lineTo(-e.radius, e.radius);
+                ctx.lineTo(-e.radius, -e.radius);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // Draw Particles
+        for (let p of particles) {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.restore();
+    }
+
+    function gameLoop() {
+        if (state !== 'PLAYING') return;
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Initial draw
+    draw();
+
+    ui.startBtn.addEventListener('click', resetGame);
+    ui.restartBtn.addEventListener('click', resetGame);
+
+</script>
+</body>
+</html>

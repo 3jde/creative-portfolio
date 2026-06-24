@@ -42,6 +42,32 @@ window.ONEZ_WORKS = [
     cover: "assets/covers/crowd-system-13.png"
   },
   {
+    id: "neon-flux",
+    title: "Neon Flux",
+    date: "2026-06-24",
+    section: "game",
+    format: "Arcade dodge game",
+    url: "games/2026-06-24-neon-flux.html",
+    status: "New Game",
+    featured: true,
+    palette: "cyan",
+    description: "Rotate the central shield to catch cyan energy and block magenta hazards.",
+    tags: ["Game", "Touch", "Arcade", "Reflex"]
+  },
+  {
+    id: "neon-ripple",
+    title: "Neon Ripple",
+    date: "2026-06-23",
+    section: "game",
+    format: "Reflex arcade defense",
+    url: "games/2026-06-23-neon-ripple.html",
+    status: "New Game",
+    featured: false,
+    palette: "amber",
+    description: "Defend the core by unleashing an expanding ring of energy to catch falling shapes in a mobile-friendly touch defense game.",
+    tags: ["Game", "Touch", "Arcade", "Reflex"]
+  },
+  {
     id: "neon-shield",
     title: "Neon Shield",
     date: "2026-06-19",
