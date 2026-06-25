@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEON DRIFTER</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #030308;
+        color: #fff;
+        font-family: 'Courier New', Courier, monospace;
+        overflow: hidden;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    #gameCanvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+    }
+    #ui {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px;
+        text-shadow: 0 0 10px #0ff;
+        pointer-events: auto;
+    }
+    .score-container {
+        font-size: 24px;
+        font-weight: bold;
+        color: #0ff;
+    }
+    .multiplier {
+        font-size: 18px;
+        color: #ff0;
+        text-shadow: 0 0 10px #ff0;
+    }
+    .back-btn {
+        color: #fff;
+        text-decoration: none;
+        font-size: 16px;
+        border: 1px solid #fff;
+        padding: 5px 10px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .back-btn:hover {
+        background: #fff;
+        color: #000;
+    }
+    
+    .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(3, 3, 8, 0.85);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        pointer-events: auto;
+        transition: opacity 0.3s;
+    }
+    .hidden {
+        opacity: 0;
+        pointer-events: none !important;
+    }
+    
+    .title {
+        font-size: 48px;
+        font-weight: 900;
+        margin-bottom: 10px;
+        color: #fff;
+        text-shadow: 0 0 20px #0ff, 0 0 40px #0ff;
+        text-align: center;
+        letter-spacing: 4px;
+    }
+    .subtitle {
+        font-size: 18px;
+        color: #aaa;
+        margin-bottom: 40px;
+        text-align: center;
+        max-width: 80%;
+    }
+    .btn {
+        background: transparent;
+        border: 2px solid #0ff;
+        color: #0ff;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 24px;
+        font-weight: bold;
+        padding: 15px 40px;
+        cursor: pointer;
+        border-radius: 0;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 15px rgba(0, 255, 255, 0.2);
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    .btn:hover, .btn:active {
+        background: #0ff;
+        color: #000;
+        box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+    }
+    .final-score {
+        font-size: 32px;
+        color: #0ff;
+        margin-bottom: 30px;
+        text-shadow: 0 0 15px #0ff;
+    }
+    .controls-hint {
+        margin-top: 30px;
+        color: #888;
+        font-size: 14px;
+        text-align: center;
+    }
+    .controls-hint span {
+        color: #0ff;
+    }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui">
+    <div class="header">
+        <a href="../games.html" class="back-btn">&lt; BACK</a>
+        <div style="text-align: right;">
+            <div class="score-container">SCORE <span id="scoreDisplay">0</span></div>
+            <div class="multiplier">SPEED <span id="speedDisplay">1.0</span>x</div>
+        </div>
+    </div>
+</div>
+
+<div id="startScreen" class="overlay">
+    <div class="title">NEON DRIFTER</div>
+    <div class="subtitle">Drag left/right to drift. Dodge the red hazards. Collect cyan cores.</div>
+    <button class="btn" id="startBtn">INITIATE</button>
+    <div class="controls-hint">Optimized for <span>Touch</span> &amp; <span>Mouse Drag</span></div>
+</div>
+
+<div id="gameOverScreen" class="overlay hidden">
+    <div class="title" style="color: #f05; text-shadow: 0 0 20px #f05, 0 0 40px #f05;">SYSTEM FAILURE</div>
+    <div class="final-score">SCORE: <span id="finalScoreDisplay">0</span></div>
+    <button class="btn" id="restartBtn">REBOOT</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    // UI Elements
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const speedDisplay = document.getElementById('speedDisplay');
+    const finalScoreDisplay = document.getElementById('finalScoreDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    
+    let width, height;
+    let cx, cy;
+    
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        cx = width / 2;
+        cy = height / 2;
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // Game State
+    let state = 'start'; // start, playing, gameover
+    let score = 0;
+    let baseSpeed = 0;
+    let distance = 0;
+    let lastTime = 0;
+    
+    // Camera shake
+    let shakeX = 0;
+    let shakeY = 0;
+    let shakeIntensity = 0;
+    
+    // Input
+    let targetX = cx;
+    let isTouching = false;
+    
+    function handleInput(x) {
+        targetX = x;
+        isTouching = true;
+    }
+    
+    function handleInputEnd() {
+        isTouching = false;
+    }
+    
+    canvas.addEventListener('touchstart', e => handleInput(e.touches[0].clientX));
+    canvas.addEventListener('touchmove', e => handleInput(e.touches[0].clientX));
+    canvas.addEventListener('touchend', handleInputEnd);
+    
+    canvas.addEventListener('mousedown', e => handleInput(e.clientX));
+    canvas.addEventListener('mousemove', e => { if (isTouching) handleInput(e.clientX); });
+    canvas.addEventListener('mouseup', handleInputEnd);
+    canvas.addEventListener('mouseleave', handleInputEnd);
+    
+    // Entities
+    class Player {
+        constructor() {
+            this.x = cx;
+            this.y = height * 0.75;
+            this.size = 15;
+            this.trail = [];
+        }
+        
+        update(dt) {
+            // Drift towards target X
+            const speed = 10 * (dt / 16);
+            this.x += (targetX - this.x) * 0.15 * (dt/16);
+            
+            // Constrain
+            this.x = Math.max(this.size, Math.min(width - this.size, this.x));
+            
+            // Update trail
+            this.trail.unshift({x: this.x, y: this.y});
+            if (this.trail.length > 20) this.trail.pop();
+        }
+        
+        draw(ctx) {
+            // Trail
+            ctx.beginPath();
+            if (this.trail.length > 0) {
+                ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                for (let i = 1; i < this.trail.length; i++) {
+                    ctx.lineTo(this.trail[i].x, this.trail[i].y + i * 15); // stretch trail down as camera moves up
+                }
+            }
+            ctx.strokeStyle = '#0ff';
+            ctx.shadowColor = '#0ff';
+            ctx.shadowBlur = 10;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            
+            // Ship
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#0ff';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y - this.size);
+            ctx.lineTo(this.x + this.size * 0.8, this.y + this.size);
+            ctx.lineTo(this.x, this.y + this.size * 0.5);
+            ctx.lineTo(this.x - this.size * 0.8, this.y + this.size);
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+    
+    class Obstacle {
+        constructor(x, y, w, h) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.passed = false;
+        }
+        
+        update(speed) {
+            this.y += speed;
+        }
+        
+        draw(ctx) {
+            ctx.fillStyle = '#030';
+            ctx.strokeStyle = '#f05';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#f05';
+            ctx.shadowBlur = 15;
+            
+            ctx.beginPath();
+            ctx.rect(this.x - this.w/2, this.y - this.h/2, this.w, this.h);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+    }
+    
+    class Collectible {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.size = 10;
+            this.active = true;
+            this.pulse = Math.random() * Math.PI * 2;
+        }
+        
+        update(speed, dt) {
+            this.y += speed;
+            this.pulse += 0.1 * (dt/16);
+        }
+        
+        draw(ctx) {
+            if (!this.active) return;
+            const r = this.size + Math.sin(this.pulse) * 3;
+            
+            ctx.fillStyle = '#0ff';
+            ctx.shadowColor = '#0ff';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r * 0.5, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+    
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 5 + 2;
+            this.vx = Math.cos(angle) * speed;
+            this.vy = Math.sin(angle) * speed;
+            this.life = 1.0;
+            this.decay = Math.random() * 0.03 + 0.02;
+            this.color = color;
+            this.size = Math.random() * 4 + 2;
+        }
+        
+        update(speed, dt) {
+            this.x += this.vx * (dt/16);
+            this.y += (this.vy + speed * 0.5) * (dt/16); // inherit some world speed
+            this.life -= this.decay * (dt/16);
+        }
+        
+        draw(ctx) {
+            if (this.life <= 0) return;
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = this.life;
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 10 * this.life;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1.0;
+        }
+    }
+    
+    let player;
+    let obstacles = [];
+    let collectibles = [];
+    let particles = [];
+    let bgStars = [];
+    
+    function initStars() {
+        bgStars = [];
+        for (let i=0; i<50; i++) {
+            bgStars.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                s: Math.random() * 2 + 0.5,
+                a: Math.random() * 0.5 + 0.1
+            });
+        }
+    }
+    
+    function spawnWave(yOff) {
+        const type = Math.floor(Math.random() * 3);
+        
+        if (type === 0) {
+            // Gap
+            const gapWidth = width * 0.35;
+            const gapX = Math.random() * (width - gapWidth) + gapWidth/2;
+            
+            obstacles.push(new Obstacle(gapX / 2 - gapWidth/2, yOff, gapX - gapWidth/2 + 20, 30));
+            obstacles.push(new Obstacle(gapX + gapWidth/2 + (width - (gapX + gapWidth/2))/2, yOff, width - (gapX + gapWidth/2) + 20, 30));
+            
+            // Collectible in gap
+            collectibles.push(new Collectible(gapX, yOff));
+            
+        } else if (type === 1) {
+            // Pillars
+            for (let i = 0; i < 3; i++) {
+                if (Math.random() > 0.3) {
+                    obstacles.push(new Obstacle(width * 0.2 + (width * 0.3) * i, yOff, 60, 60));
+                } else {
+                    collectibles.push(new Collectible(width * 0.2 + (width * 0.3) * i, yOff));
+                }
+            }
+        } else {
+            // Moving gap style (static but slanted)
+            const slant = (Math.random() - 0.5) * width * 0.5;
+            obstacles.push(new Obstacle(cx + slant, yOff, width * 0.4, 40));
+            collectibles.push(new Collectible(cx - slant, yOff));
+            if (Math.random() > 0.5) collectibles.push(new Collectible(cx - slant * 0.5, yOff - 50));
+        }
+    }
+    
+    function spawnParticles(x, y, color, count) {
+        for (let i=0; i<count; i++) {
+            particles.push(new Particle(x, y, color));
+        }
+    }
+    
+    function startGame() {
+        state = 'playing';
+        score = 0;
+        baseSpeed = 6;
+        distance = 0;
+        player = new Player();
+        targetX = cx;
+        obstacles = [];
+        collectibles = [];
+        particles = [];
+        
+        startScreen.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+        
+        initStars();
+        
+        // Initial waves
+        for (let i = 1; i <= 5; i++) {
+            spawnWave(-i * 400);
+        }
+        
+        lastTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+    
+    function gameOver() {
+        state = 'gameover';
+        shakeIntensity = 20;
+        spawnParticles(player.x, player.y, '#f05', 50);
+        spawnParticles(player.x, player.y, '#fff', 20);
+        
+        setTimeout(() => {
+            gameOverScreen.classList.remove('hidden');
+            finalScoreDisplay.innerText = Math.floor(score);
+        }, 1000);
+    }
+    
+    function circleRectCollide(cx, cy, cr, rx, ry, rw, rh) {
+        let testX = cx;
+        let testY = cy;
+        
+        if (cx < rx - rw/2) testX = rx - rw/2;
+        else if (cx > rx + rw/2) testX = rx + rw/2;
+        
+        if (cy < ry - rh/2) testY = ry - rh/2;
+        else if (cy > ry + rh/2) testY = ry + rh/2;
+        
+        let distX = cx - testX;
+        let distY = cy - testY;
+        let distance = Math.sqrt((distX*distX) + (distY*distY));
+        
+        return distance <= cr;
+    }
+    
+    function gameLoop(time) {
+        const dt = time - lastTime;
+        lastTime = time;
+        
+        // Clear
+        ctx.fillStyle = '#030308';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Shake
+        if (shakeIntensity > 0) {
+            shakeX = (Math.random() - 0.5) * shakeIntensity;
+            shakeY = (Math.random() - 0.5) * shakeIntensity;
+            shakeIntensity -= 0.5 * (dt/16);
+            if (shakeIntensity < 0) shakeIntensity = 0;
+        } else {
+            shakeX = 0;
+            shakeY = 0;
+        }
+        
+        ctx.save();
+        ctx.translate(shakeX, shakeY);
+        
+        // Speed scaling
+        const currentSpeed = baseSpeed + (distance / 5000);
+        speedDisplay.innerText = (currentSpeed / 6).toFixed(1);
+        
+        // Stars background
+        ctx.fillStyle = '#fff';
+        bgStars.forEach(star => {
+            star.y += currentSpeed * 0.2 * (dt/16);
+            if (star.y > height) {
+                star.y = 0;
+                star.x = Math.random() * width;
+            }
+            ctx.globalAlpha = star.a;
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.s, 0, Math.PI*2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+        
+        if (state === 'playing') {
+            player.update(dt);
+            distance += currentSpeed * (dt/16);
+            score += 0.1 * currentSpeed * (dt/16);
+            scoreDisplay.innerText = Math.floor(score);
+            
+            // Spawning
+            let highestY = height;
+            obstacles.forEach(o => { if (o.y < highestY) highestY = o.y; });
+            collectibles.forEach(c => { if (c.y < highestY) highestY = c.y; });
+            
+            if (highestY > -100) {
+                spawnWave(highestY - 400 - Math.random() * 200);
+            }
+            
+            // Entities update & collision
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let o = obstacles[i];
+                o.update(currentSpeed * (dt/16));
+                o.draw(ctx);
+                
+                if (o.y > player.y && !o.passed) {
+                    o.passed = true;
+                    score += 10;
+                }
+                
+                if (circleRectCollide(player.x, player.y, player.size * 0.8, o.x, o.y, o.w, o.h)) {
+                    gameOver();
+                }
+                
+                if (o.y > height + 100) obstacles.splice(i, 1);
+            }
+            
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                let c = collectibles[i];
+                c.update(currentSpeed * (dt/16), dt);
+                c.draw(ctx);
+                
+                if (c.active) {
+                    let dx = player.x - c.x;
+                    let dy = player.y - c.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < player.size + c.size) {
+                        c.active = false;
+                        score += 50;
+                        spawnParticles(c.x, c.y, '#0ff', 15);
+                        shakeIntensity = 2; // mini shake for feedback
+                    }
+                }
+                
+                if (c.y > height + 100) collectibles.splice(i, 1);
+            }
+            
+            player.draw(ctx);
+        } else if (state === 'gameover') {
+            obstacles.forEach(o => o.draw(ctx));
+            collectibles.forEach(c => c.draw(ctx));
+        }
+        
+        // Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.update(state === 'playing' ? baseSpeed + (distance/5000) : 0, dt);
+            p.draw(ctx);
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+        
+        ctx.restore();
+        
+        if (state === 'playing' || particles.length > 0) {
+            requestAnimationFrame(gameLoop);
+        }
+    }
+    
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+    
+    // Initial draw
+    initStars();
+    ctx.fillStyle = '#030308';
+    ctx.fillRect(0, 0, width, height);
+    
+</script>
+</body>
+</html>
