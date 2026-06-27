@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON SHIFT | ONE ZEN GAMES</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050505;
+      --text: #ffffff;
+      --c1: #ff0055;
+      --c2: #00ccff;
+      --c3: #ffcc00;
+      --c4: #33ff33;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #game-container {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #111, #000);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #ui-layer {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 10;
+    }
+    .score-display {
+      font-family: 'VT323', monospace;
+      font-size: 3rem;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    .back-btn {
+      color: #fff;
+      text-decoration: none;
+      border: 1px solid #fff;
+      padding: 5px 15px;
+      font-size: 0.9rem;
+      pointer-events: auto;
+      background: rgba(0,0,0,0.5);
+      transition: 0.2s;
+    }
+    .back-btn:hover { background: #fff; color: #000; }
+    
+    #start-screen, #game-over-screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+      z-index: 20;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-family: 'VT323', monospace;
+      font-size: 4rem;
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px var(--c2);
+    }
+    p { font-size: 1rem; margin-bottom: 30px; opacity: 0.8; max-width: 400px; line-height: 1.5; }
+    .btn {
+      background: transparent;
+      color: #fff;
+      border: 2px solid #fff;
+      padding: 15px 40px;
+      font-family: 'Space Mono', monospace;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: 0.2s;
+      outline: none;
+    }
+    .btn:hover, .btn:active {
+      background: #fff;
+      color: #000;
+      box-shadow: 0 0 20px #fff;
+    }
+    #game-over-screen { display: none; }
+    .hidden { display: none !important; }
+
+    /* Instructions visualization */
+    .controls-hint {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      opacity: 0.7;
+    }
+    .hint-box {
+      border: 1px dashed #555;
+      padding: 10px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-layer">
+      <div class="top-bar">
+        <div class="score-display">SCORE: <span id="scoreVal">0</span></div>
+        <a href="../games.html" class="back-btn">< BACK</a>
+      </div>
+    </div>
+
+    <div id="start-screen">
+      <h1>NEON SHIFT</h1>
+      <p>Match incoming particles with the correct color on the central ring.</p>
+      <div class="controls-hint">
+        <div class="hint-box"><- TAP LEFT<br>Rotate CCW</div>
+        <div class="hint-box">TAP RIGHT -><br>Rotate CW</div>
+      </div>
+      <button class="btn" id="startBtn">START SYSTEM</button>
+    </div>
+
+    <div id="game-over-screen">
+      <h1>SYSTEM FAILURE</h1>
+      <p>Final Score: <span id="finalScore">0</span></p>
+      <button class="btn" id="restartBtn">REBOOT</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startScreen = document.getElementById('start-screen');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const scoreVal = document.getElementById('scoreVal');
+    const finalScore = document.getElementById('finalScore');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+    let width, height, cx, cy;
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      cx = width / 2;
+      cy = height / 2;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Game state
+    let state = 'start'; // start, playing, gameover
+    let score = 0;
+    let ringAngle = 0;
+    let targetRingAngle = 0;
+    let ringScale = 1;
+    let particles = [];
+    let explosions = [];
+    let lastTime = 0;
+    let spawnTimer = 0;
+    let spawnInterval = 2000;
+    let gameSpeed = 1;
+
+    const colors = ['#ff0055', '#00ccff', '#ffcc00', '#33ff33']; // Top, Right, Bottom, Left (at angle 0)
+    const RING_RADIUS = 60;
+    const RING_THICKNESS = 15;
+
+    function initGame() {
+      score = 0;
+      scoreVal.innerText = score;
+      ringAngle = 0;
+      targetRingAngle = 0;
+      particles = [];
+      explosions = [];
+      spawnInterval = 2000;
+      gameSpeed = 1;
+      state = 'playing';
+      startScreen.classList.add('hidden');
+      gameOverScreen.classList.add('hidden');
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+
+    startBtn.addEventListener('click', initGame);
+    restartBtn.addEventListener('click', initGame);
+
+    // Controls
+    function handleInput(x) {
+      if (state !== 'playing') return;
+      if (x < width / 2) {
+        // Rotate CCW
+        targetRingAngle -= Math.PI / 2;
+      } else {
+        // Rotate CW
+        targetRingAngle += Math.PI / 2;
+      }
+    }
+
+    // Touch and mouse events
+    window.addEventListener('pointerdown', (e) => {
+      // Ignore if clicking UI buttons
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
+      handleInput(e.clientX);
+    });
+
+    class Particle {
+      constructor() {
+        // Spawn from edges
+        const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        let x, y;
+        if (edge === 0) { x = Math.random() * width; y = -50; }
+        else if (edge === 1) { x = width + 50; y = Math.random() * height; }
+        else if (edge === 2) { x = Math.random() * width; y = height + 50; }
+        else { x = -50; y = Math.random() * height; }
+
+        this.x = x;
+        this.y = y;
+        this.colorIndex = Math.floor(Math.random() * 4);
+        this.color = colors[this.colorIndex];
+        this.radius = 8;
+        
+        // Calculate direction to center
+        const dx = cx - this.x;
+        const dy = cy - this.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const speed = (200 + Math.random() * 50) * gameSpeed; // pixels per second
+        this.vx = (dx / dist) * speed;
+        this.vy = (dy / dist) * speed;
+      }
+
+      update(dt) {
+        this.x += this.vx * (dt / 1000);
+        this.y += this.vy * (dt / 1000);
+      }
+
+      draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 15;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    class Explosion {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.life = 1.0;
+        this.particles = [];
+        for(let i=0; i<10; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 100 + 50;
+          this.particles.push({
+            x: this.x, y: this.y,
+            vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed
+          });
+        }
+      }
+      update(dt) {
+        this.life -= dt / 500; // half second life
+        for(let p of this.particles) {
+          p.x += p.vx * (dt/1000);
+          p.y += p.vy * (dt/1000);
+        }
+      }
+      draw(ctx) {
+        ctx.globalAlpha = Math.max(0, this.life);
+        ctx.fillStyle = this.color;
+        for(let p of this.particles) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+    // Drawing the Ring
+    function drawRing() {
+      ctx.save();
+      ctx.translate(cx, cy);
+      // Smooth rotation
+      ringAngle += (targetRingAngle - ringAngle) * 0.2;
+      ctx.rotate(ringAngle);
+      
+      // Pulse effect
+      ringScale += (1 - ringScale) * 0.1;
+      ctx.scale(ringScale, ringScale);
+
+      const segmentAngle = Math.PI / 2;
+      for(let i=0; i<4; i++) {
+        ctx.beginPath();
+        // Shift by -45deg so colors are top/right/bottom/left
+        ctx.arc(0, 0, RING_RADIUS, i*segmentAngle - Math.PI/4, (i+1)*segmentAngle - Math.PI/4);
+        ctx.lineWidth = RING_THICKNESS;
+        ctx.strokeStyle = colors[i];
+        ctx.shadowColor = colors[i];
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function gameLoop(time) {
+      if (state !== 'playing') return;
+      const dt = time - lastTime;
+      lastTime = time;
+
+      // Clear
+      ctx.fillStyle = 'rgba(5, 5, 5, 0.3)'; // Trail effect
+      ctx.fillRect(0, 0, width, height);
+
+      // Spawning
+      spawnTimer += dt;
+      if (spawnTimer > spawnInterval) {
+        particles.push(new Particle());
+        spawnTimer = 0;
+        // Increase difficulty
+        spawnInterval = Math.max(400, spawnInterval - 50);
+        gameSpeed += 0.02;
+      }
+
+      // Update & Draw Explosions
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        explosions[i].update(dt);
+        explosions[i].draw(ctx);
+        if (explosions[i].life <= 0) explosions.splice(i, 1);
+      }
+
+      // Update & Draw Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.update(dt);
+        p.draw(ctx);
+
+        // Collision check
+        const dx = p.x - cx;
+        const dy = p.y - cy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist < RING_RADIUS + RING_THICKNESS/2) {
+          // Check color match
+          // Determine angle of impact
+          let hitAngle = Math.atan2(dy, dx);
+          if (hitAngle < 0) hitAngle += Math.PI * 2;
+          
+          // Adjust for ring rotation
+          // Normalize ring angle to positive 0-2PI
+          let currentRingRot = (ringAngle % (Math.PI*2));
+          if (currentRingRot < 0) currentRingRot += Math.PI*2;
+          
+          // Effective angle on the ring
+          let effectiveAngle = (hitAngle - currentRingRot + Math.PI*2) % (Math.PI*2);
+          
+          // Add PI/4 to align with segments correctly
+          let shiftedAngle = (effectiveAngle + Math.PI/4) % (Math.PI*2);
+          let hitSegment = Math.floor(shiftedAngle / (Math.PI/2));
+          
+          if (hitSegment === p.colorIndex) {
+            // Match!
+            score += 10;
+            scoreVal.innerText = score;
+            ringScale = 1.2; // pulse
+            explosions.push(new Explosion(p.x, p.y, p.color));
+            particles.splice(i, 1);
+          } else {
+            // GameOver
+            gameOver();
+          }
+        }
+      }
+
+      drawRing();
+
+      if (state === 'playing') {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function gameOver() {
+      state = 'gameover';
+      // Shake screen effect
+      document.body.style.transform = "translate(5px, 5px)";
+      setTimeout(() => document.body.style.transform = "translate(-5px, -5px)", 50);
+      setTimeout(() => document.body.style.transform = "translate(5px, -5px)", 100);
+      setTimeout(() => document.body.style.transform = "translate(0, 0)", 150);
+
+      finalScore.innerText = score;
+      gameOverScreen.classList.remove('hidden');
+    }
+
+    // Initial draw
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, width, height);
+    drawRing();
+  </script>
+</body>
+</html>

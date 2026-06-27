@@ -1,5 +1,18 @@
 window.ONEZ_WORKS = [
   {
+    id: "neon-shift",
+    title: "Neon Shift",
+    date: "2026-06-27",
+    section: "game",
+    format: "Arcade color matcher",
+    url: "games/2026-06-27-neon-shift.html",
+    status: "New Game",
+    featured: true,
+    palette: "pink",
+    description: "Match incoming particles with the correct color on the central ring. Fast-paced arcade progression with smooth touch controls, screen shake, and satisfying particle bursts.",
+    tags: ["Game", "Touch", "Arcade", "Color"]
+  },
+  {
     id: "magnetic-draft1",
     title: "Magnetic Field I <span class=\"zh\">磁力场 I</span>",
     date: "2026-06-10",
