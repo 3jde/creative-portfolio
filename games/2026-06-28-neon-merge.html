@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON MERGE | ONE ZEN GAMES</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+    :root { --bg: #050505; --ui-color: #ccff00; }
+    body { 
+      background-color: var(--bg); 
+      color: var(--ui-color); 
+      font-family: 'Space Mono', monospace; 
+      overflow: hidden; 
+      width: 100vw; 
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #ui-layer {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+    
+    .header {
+      display: flex; justify-content: space-between; padding: 20px;
+    }
+    .score-board { font-size: 1.5rem; }
+    .score-value { font-family: 'VT323', monospace; font-size: 2.5rem; }
+    
+    .back-btn {
+      color: var(--ui-color); text-decoration: none; border: 1px solid var(--ui-color);
+      padding: 5px 15px; background: rgba(0,0,0,0.5); pointer-events: auto;
+    }
+    
+    #game-container {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    canvas {
+      background: #000;
+      box-shadow: 0 0 20px rgba(204, 255, 0, 0.1);
+      border: 1px solid rgba(204, 255, 0, 0.3);
+    }
+    
+    .screens {
+      position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center;
+      background: rgba(0,0,0,0.85);
+      border: 1px solid var(--ui-color);
+      padding: 30px;
+      pointer-events: auto;
+    }
+    
+    h1 { font-family: 'VT323', monospace; font-size: 4rem; margin-bottom: 10px; line-height: 1; }
+    p { margin-bottom: 20px; font-size: 0.9rem; }
+    
+    button {
+      background: var(--ui-color);
+      color: var(--bg);
+      border: none;
+      padding: 15px 30px;
+      font-family: 'Space Mono', monospace;
+      font-weight: bold;
+      font-size: 1.2rem;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    button:hover { background: #fff; }
+    
+    #touch-area {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 5;
+    }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div id="ui-layer">
+    <div class="header">
+      <a href="../games.html" class="back-btn">< BACK</a>
+      <div class="score-board">
+        SCORE <br>
+        <div class="score-value" id="score">0</div>
+      </div>
+    </div>
+    
+    <div id="start-screen" class="screens">
+      <h1>NEON MERGE</h1>
+      <p>Drop glowing orbs. Match identical orbs to merge them and grow larger.</p>
+      <p>Drag horizontally to aim. Release to drop.</p>
+      <button onclick="startGame()">START PROTOCOL</button>
+    </div>
+    
+    <div id="game-over-screen" class="screens hidden">
+      <h1>OVERLOAD</h1>
+      <p>CONTAINMENT BREACHED.</p>
+      <p>FINAL SCORE: <span id="final-score" class="score-value">0</span></p>
+      <button onclick="resetGame()">REBOOT</button>
+    </div>
+  </div>
+  
+  <div id="game-container">
+    <div id="touch-area"></div>
+  </div>
+
+  <script>
+    // --- TIERS & STYLES ---
+    const TIERS = [
+      { radius: 15, color: '#00ffff' }, // 0 Cyan
+      { radius: 22, color: '#ff00ff' }, // 1 Magenta
+      { radius: 32, color: '#ffff00' }, // 2 Yellow
+      { radius: 45, color: '#00ff00' }, // 3 Lime
+      { radius: 60, color: '#ff8800' }, // 4 Orange
+      { radius: 78, color: '#ff0000' }, // 5 Red
+      { radius: 95, color: '#8800ff' }, // 6 Purple
+      { radius: 115, color: '#0088ff'}, // 7 Blue
+      { radius: 140, color: '#ffffff' } // 8 White
+    ];
+
+    // --- ENGINE SETUP ---
+    const Engine = Matter.Engine,
+          Render = Matter.Render,
+          Runner = Matter.Runner,
+          Bodies = Matter.Bodies,
+          Composite = Matter.Composite,
+          Events = Matter.Events,
+          Vector = Matter.Vector;
+
+    const GAME_WIDTH = 400;
+    const GAME_HEIGHT = 600;
+    const WALL_THICKNESS = 60;
+    
+    let engine, render, runner;
+    let currentScore = 0;
+    let gameState = 'START'; // START, PLAYING, OVER
+    let nextTier = 0;
+    let previewX = GAME_WIDTH / 2;
+    let isDropping = false;
+    let particles = [];
+    
+    // Custom renderer context
+    let ctx;
+    let containerEl = document.getElementById('game-container');
+
+    function initMatter() {
+      engine = Engine.create();
+      engine.world.gravity.y = 1;
+      
+      // Calculate responsive scale
+      let scale = Math.min((window.innerWidth - 20) / GAME_WIDTH, (window.innerHeight - 100) / GAME_HEIGHT);
+      if(scale > 1) scale = 1;
+      
+      render = Render.create({
+        element: containerEl,
+        engine: engine,
+        options: {
+          width: GAME_WIDTH,
+          height: GAME_HEIGHT,
+          wireframes: false,
+          background: 'transparent',
+          pixelRatio: window.devicePixelRatio
+        }
+      });
+      
+      render.canvas.style.transform = `scale(${scale})`;
+      ctx = render.context;
+      
+      // Override render loop to add custom drawing (glow, preview, particles)
+      Events.on(render, 'afterRender', customDraw);
+
+      runner = Runner.create();
+      
+      createWalls();
+      setupCollisions();
+    }
+    
+    function createWalls() {
+      const options = { isStatic: true, render: { fillStyle: '#222', strokeStyle: '#ccff00', lineWidth: 1 } };
+      Composite.add(engine.world, [
+        Bodies.rectangle(GAME_WIDTH/2, GAME_HEIGHT + WALL_THICKNESS/2, GAME_WIDTH + 200, WALL_THICKNESS, options), // bottom
+        Bodies.rectangle(-WALL_THICKNESS/2, GAME_HEIGHT/2, WALL_THICKNESS, GAME_HEIGHT + 200, options), // left
+        Bodies.rectangle(GAME_WIDTH + WALL_THICKNESS/2, GAME_HEIGHT/2, WALL_THICKNESS, GAME_HEIGHT + 200, options) // right
+      ]);
+      
+      // Deadline sensor
+      const sensor = Bodies.rectangle(GAME_WIDTH/2, 50, GAME_WIDTH, 10, {
+        isStatic: true, isSensor: true, render: { visible: false }, label: 'deadline'
+      });
+      Composite.add(engine.world, sensor);
+    }
+
+    // --- GAME LOGIC ---
+    let mergesQueue = [];
+    
+    function setupCollisions() {
+      Events.on(engine, 'collisionStart', function(event) {
+        if(gameState !== 'PLAYING') return;
+        
+        let pairs = event.pairs;
+        
+        for (let i = 0; i < pairs.length; i++) {
+          let bodyA = pairs[i].bodyA;
+          let bodyB = pairs[i].bodyB;
+          
+          // Check game over
+          if(bodyA.label === 'deadline' && bodyB.tier !== undefined) checkGameOver(bodyB);
+          if(bodyB.label === 'deadline' && bodyA.tier !== undefined) checkGameOver(bodyA);
+
+          if (bodyA.tier !== undefined && bodyA.tier === bodyB.tier && !bodyA.isMerging && !bodyB.isMerging) {
+            bodyA.isMerging = true;
+            bodyB.isMerging = true;
+            mergesQueue.push({ bodyA, bodyB });
+          }
+        }
+      });
+      
+      // Check sensor actively for bodies staying too high
+      Events.on(engine, 'collisionActive', function(event) {
+        if(gameState !== 'PLAYING') return;
+        let pairs = event.pairs;
+        for (let i = 0; i < pairs.length; i++) {
+          let bodyA = pairs[i].bodyA;
+          let bodyB = pairs[i].bodyB;
+          if(bodyA.label === 'deadline' && bodyB.tier !== undefined) checkGameOver(bodyB);
+          if(bodyB.label === 'deadline' && bodyA.tier !== undefined) checkGameOver(bodyA);
+        }
+      });
+
+      Events.on(engine, 'beforeUpdate', function() {
+        while(mergesQueue.length > 0) {
+          let merge = mergesQueue.pop();
+          let a = merge.bodyA;
+          let b = merge.bodyB;
+          
+          if(Composite.allBodies(engine.world).includes(a) && Composite.allBodies(engine.world).includes(b)) {
+            let nextT = a.tier + 1;
+            let midX = (a.position.x + b.position.x) / 2;
+            let midY = (a.position.y + b.position.y) / 2;
+            
+            Composite.remove(engine.world, [a, b]);
+            spawnParticles(midX, midY, TIERS[a.tier].color);
+            
+            addScore((nextT) * 10);
+            
+            if (nextT < TIERS.length) {
+              let newBody = createOrb(midX, midY, nextT);
+              Composite.add(engine.world, newBody);
+            }
+          }
+        }
+      });
+    }
+    
+    let overTimer = null;
+    function checkGameOver(body) {
+      if(body.velocity.y < 0.5 && body.velocity.y > -0.5) {
+        if(!overTimer) {
+          overTimer = setTimeout(() => {
+            if(gameState === 'PLAYING') gameOver();
+          }, 2000);
+        }
+      } else {
+        if(overTimer) { clearTimeout(overTimer); overTimer = null; }
+      }
+    }
+
+    function createOrb(x, y, tier) {
+      let t = TIERS[tier];
+      return Bodies.circle(x, y, t.radius, {
+        tier: tier,
+        restitution: 0.3,
+        friction: 0.5,
+        density: 0.001,
+        render: {
+          fillStyle: '#000',
+          strokeStyle: t.color,
+          lineWidth: 2
+        }
+      });
+    }
+
+    function addScore(pts) {
+      currentScore += pts;
+      document.getElementById('score').innerText = currentScore;
+    }
+
+    // --- INPUT HANDLING ---
+    const touchArea = document.getElementById('touch-area');
+    
+    function handleMove(e) {
+      if (gameState !== 'PLAYING' || isDropping) return;
+      let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      let rect = render.canvas.getBoundingClientRect();
+      let scale = GAME_WIDTH / rect.width;
+      let x = (clientX - rect.left) * scale;
+      previewX = Math.max(TIERS[nextTier].radius, Math.min(GAME_WIDTH - TIERS[nextTier].radius, x));
+    }
+    
+    function handleRelease(e) {
+      if (gameState !== 'PLAYING' || isDropping) return;
+      dropOrb();
+    }
+
+    touchArea.addEventListener('mousemove', handleMove);
+    touchArea.addEventListener('touchmove', handleMove, {passive: false});
+    touchArea.addEventListener('mousedown', handleMove);
+    touchArea.addEventListener('touchstart', handleMove, {passive: false});
+    
+    touchArea.addEventListener('mouseup', handleRelease);
+    touchArea.addEventListener('touchend', handleRelease);
+
+    function dropOrb() {
+      isDropping = true;
+      let orb = createOrb(previewX, 50, nextTier);
+      Composite.add(engine.world, orb);
+      
+      setTimeout(() => {
+        nextTier = Math.floor(Math.random() * 3); // Spawn tier 0, 1, or 2
+        isDropping = false;
+      }, 800);
+    }
+
+    // --- CUSTOM RENDER (GLOW & PARTICLES) ---
+    function customDraw() {
+      // Draw deadline
+      ctx.beginPath();
+      ctx.moveTo(0, 50);
+      ctx.lineTo(GAME_WIDTH, 50);
+      ctx.strokeStyle = 'rgba(255,0,0,0.3)';
+      ctx.setLineDash([5, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Draw bodies with glow
+      let bodies = Composite.allBodies(engine.world);
+      bodies.forEach(b => {
+        if(b.tier !== undefined) {
+          ctx.beginPath();
+          ctx.arc(b.position.x, b.position.y, TIERS[b.tier].radius, 0, 2*Math.PI);
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = TIERS[b.tier].color;
+          ctx.strokeStyle = TIERS[b.tier].color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = '#000';
+          ctx.fill();
+          ctx.shadowBlur = 0; // reset
+        }
+      });
+      
+      // Draw Preview
+      if (gameState === 'PLAYING' && !isDropping) {
+        let t = TIERS[nextTier];
+        ctx.beginPath();
+        ctx.arc(previewX, 50, t.radius, 0, 2*Math.PI);
+        ctx.strokeStyle = t.color;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        ctx.beginPath();
+        ctx.moveTo(previewX, 50 + t.radius);
+        ctx.lineTo(previewX, GAME_HEIGHT);
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.stroke();
+      }
+      
+      // Particles
+      for(let i=particles.length-1; i>=0; i--) {
+        let p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.life -= 0.05;
+        if(p.life <= 0) { particles.splice(i, 1); continue; }
+        
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+    }
+    
+    function spawnParticles(x, y, color) {
+      for(let i=0; i<15; i++) {
+        particles.push({
+          x: x, y: y,
+          vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
+          r: Math.random()*3 + 1,
+          color: color,
+          life: 1.0
+        });
+      }
+    }
+
+    // --- GAME FLOW ---
+    window.startGame = function() {
+      document.getElementById('start-screen').classList.add('hidden');
+      gameState = 'PLAYING';
+      currentScore = 0;
+      document.getElementById('score').innerText = '0';
+      nextTier = Math.floor(Math.random() * 3);
+      previewX = GAME_WIDTH / 2;
+      isDropping = false;
+      Render.run(render);
+      Runner.run(runner, engine);
+    };
+    
+    window.gameOver = function() {
+      gameState = 'OVER';
+      Runner.stop(runner);
+      document.getElementById('game-over-screen').classList.remove('hidden');
+      document.getElementById('final-score').innerText = currentScore;
+      
+      // Save Score
+      let currentPlayer = localStorage.getItem('o_zen_current_player') || 'ANON';
+      let scores = JSON.parse(localStorage.getItem('o_zen_game_scores') || '{}');
+      if(!scores['neon-merge']) scores['neon-merge'] = {};
+      if(!scores['neon-merge'][currentPlayer] || scores['neon-merge'][currentPlayer] < currentScore) {
+        scores['neon-merge'][currentPlayer] = currentScore;
+        localStorage.setItem('o_zen_game_scores', JSON.stringify(scores));
+      }
+    };
+    
+    window.resetGame = function() {
+      Composite.clear(engine.world);
+      Engine.clear(engine);
+      document.getElementById('game-over-screen').classList.add('hidden');
+      createWalls();
+      startGame();
+    };
+
+    // Init on load
+    initMatter();
+    
+    // Resize handling
+    window.addEventListener('resize', () => {
+       let scale = Math.min((window.innerWidth - 20) / GAME_WIDTH, (window.innerHeight - 100) / GAME_HEIGHT);
+       if(scale > 1) scale = 1;
+       render.canvas.style.transform = `scale(${scale})`;
+    });
+
+  </script>
+</body>
+</html>
