@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Generative Ink Bleed</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #f0eee9; }</style>
+</head>
+<body>
+  <script>
+    let blobs = [];
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      background('#f0eee9');
+      for (let i = 0; i < 5; i++) {
+        blobs.push(new InkBlob(width/2 + random(-100, 100), height/2 + random(-100, 100)));
+      }
+    }
+
+    function draw() {
+      for (let b of blobs) {
+        b.update();
+        b.show();
+      }
+    }
+
+    function mousePressed() {
+      blobs.push(new InkBlob(mouseX, mouseY));
+    }
+
+    class InkBlob {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.r = random(10, 30);
+        this.color = random([color(20, 25, 30, 5), color(40, 70, 90, 5), color(180, 50, 40, 5)]);
+        this.t = random(1000);
+      }
+
+      update() {
+        this.r += random(0.1, 0.5);
+        this.x += map(noise(this.t), 0, 1, -1, 1);
+        this.y += map(noise(this.t + 1000), 0, 1, -1, 1);
+        this.t += 0.01;
+      }
+
+      show() {
+        if (this.r > 150) return; // Stop drawing when too big
+        noStroke();
+        fill(this.color);
+        beginShape();
+        for (let a = 0; a < TWO_PI; a += 0.1) {
+          let offset = map(noise(cos(a) + this.t, sin(a) + this.t), 0, 1, -this.r*0.3, this.r*0.3);
+          let r = this.r + offset;
+          vertex(this.x + r * cos(a), this.y + r * sin(a));
+        }
+        endShape(CLOSE);
+      }
+    }
+  </script>
+</body>
+</html>

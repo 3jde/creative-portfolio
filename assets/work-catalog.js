@@ -1,5 +1,44 @@
 window.ONEZ_WORKS = [
   {
+    id: "clifford-attractor",
+    title: "Clifford Attractor <span class=\"zh\">克利福德吸引子</span>",
+    date: "2026-06-29",
+    section: "generative",
+    format: "Generative math art",
+    url: "interactive_arts/2026-06-29/sketch_a.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "cyan",
+    description: "A mathematical Clifford Attractor visualization focusing on dense visual impact and complex geometric shapes. <span class=\"zh\">基于克利福德吸引子的数学可视化，专注于密集的视觉冲击和复杂的几何形状。</span>",
+    tags: ["Generative", "Math", "Attractor"]
+  },
+  {
+    id: "magnetic-flow-grid",
+    title: "Magnetic Flow Grid <span class=\"zh\">磁性流体网格</span>",
+    date: "2026-06-29",
+    section: "generative",
+    format: "Interactive physics",
+    url: "interactive_arts/2026-06-29/sketch_b.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "amber",
+    description: "An interactive grid driven by magnetic flow and mouse physics, exploring novel interaction mechanics. <span class=\"zh\">由磁性流体和鼠标物理驱动的交互式网格，探索新颖的交互机制。</span>",
+    tags: ["Generative", "Interactive", "Physics", "Grid"]
+  },
+  {
+    id: "generative-ink-bleed",
+    title: "Generative Ink Bleed <span class=\"zh\">生成式晕墨</span>",
+    date: "2026-06-29",
+    section: "generative",
+    format: "Algorithmic composition",
+    url: "interactive_arts/2026-06-29/sketch_c.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "pink",
+    description: "An artistic exploration of ink bleeding effects through algorithmic composition, inspired by traditional art. <span class=\"zh\">受传统艺术启发，通过算法构图对墨水晕染效果进行艺术探索。</span>",
+    tags: ["Generative", "Artistic", "Ink", "Composition"]
+  },
+  {
     id: "neon-strike",
     title: "Neon Strike",
     date: "2026-06-29",
