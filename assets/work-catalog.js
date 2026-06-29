@@ -1,5 +1,31 @@
 window.ONEZ_WORKS = [
   {
+    id: "neon-strike",
+    title: "Neon Strike",
+    date: "2026-06-29",
+    section: "game",
+    format: "Slingshot action",
+    url: "games/2026-06-29-neon-strike.html",
+    status: "New Game",
+    featured: true,
+    palette: "cyan",
+    description: "A hyper-kinetic defense game with bullet-time aiming. Drag anywhere to slow time and aim, release to dash and destroy falling targets.",
+    tags: ["Game", "Touch", "Arcade", "Action"]
+  },
+  {
+    id: "neon-merge",
+    title: "Neon Merge",
+    date: "2026-06-28",
+    section: "game",
+    format: "Physics puzzle",
+    url: "games/2026-06-28-neon-merge.html",
+    status: "Game",
+    featured: true,
+    palette: "purple",
+    description: "Drop and match glowing neon orbs to merge them into larger shapes! Inspired by physics-based merging games.",
+    tags: ["Game", "Touch", "Puzzle", "Physics"]
+  },
+  {
     id: "neon-shift",
     title: "Neon Shift",
     date: "2026-06-27",
