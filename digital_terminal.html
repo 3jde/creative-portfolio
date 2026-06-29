@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Terminal Mirror | ONE ZEN</title>
+  <style>
+    body { margin: 0; background: #050505; color: #f4f7ef; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    canvas { display: block; }
+    #ui { position: absolute; bottom: 20px; left: 20px; z-index: 10; pointer-events: none; }
+    h1 { margin: 0; font-size: 1.2rem; color: #ccff00; }
+    p { margin: 5px 0 0; font-size: 0.9rem; color: #a4aca2; text-shadow: 0 1px 2px #000; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+</head>
+<body>
+  <div id="ui">
+    <h1>Terminal Mirror <span style="color:#fff;font-size:0.8em;opacity:0.5;">[DATA BRUTALISM]</span></h1>
+    <p>A camera-based typographic reconstruction.</p>
+  </div>
+  <script>
+    let capture;
+    let blocks = [];
+    let rowHeight = 16;
+    let gap = 4;
+    let chars = "데이터시스템0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      capture = createCapture(VIDEO);
+      capture.size(640, 480);
+      capture.hide();
+      generateLayout();
+      background(5);
+    }
+
+    function generateLayout() {
+      blocks = [];
+      for (let y = 0; y < height; y += rowHeight + gap) {
+        let x = 0;
+        while (x < width) {
+          let w = random([20, 30, 40, 50, 70, 90, 110]);
+          if (x + w > width) w = width - x;
+          let t = "";
+          let num = max(1, floor(w / 8));
+          for (let i = 0; i < num; i++) t += random(chars);
+          blocks.push({ x: x, y: y, w: w, h: rowHeight, text: t, val: 0 });
+          x += w + gap;
+        }
+      }
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      generateLayout();
+      background(5);
+    }
+
+    function draw() {
+      fill(5, 5, 5, 45);
+      rect(0, 0, width, height);
+
+      let useCamera = false;
+      try {
+        if (capture && capture.loadedmetadata) {
+          capture.loadPixels();
+          if (capture.pixels && capture.pixels.length > 0) {
+            useCamera = true;
+          }
+        }
+      } catch (e) {}
+
+      let t = millis() * 0.001;
+
+      for (let b of blocks) {
+        let targetVal = 0;
+        if (useCamera) {
+          let cx = map(b.x + b.w / 2, 0, width, capture.width, 0);
+          let cy = map(b.y + b.h / 2, 0, height, 0, capture.height);
+          cx = constrain(floor(cx), 0, capture.width - 1);
+          cy = constrain(floor(cy), 0, capture.height - 1);
+          let index = (cy * capture.width + cx) * 4;
+          let r = capture.pixels[index];
+          let g = capture.pixels[index + 1];
+          let bl = capture.pixels[index + 2];
+          targetVal = (r + g + bl) / 3;
+        } else {
+          // Fallback noise pattern when camera is inactive/blocked (e.g. headless screenshot)
+          let n = noise(b.x * 0.003, b.y * 0.003, t * 0.4);
+          targetVal = map(n, 0.25, 0.75, -50, 300);
+        }
+
+        b.val += (targetVal - b.val) * 0.2;
+        
+        if (b.val > 25) {
+          let col;
+          if (b.val > 180) col = color(0, 242, 255);
+          else if (b.val > 120) col = color(255, 0, 255);
+          else if (b.val > 70) col = color(255, 107, 0);
+          else col = color(50, 60, 50);
+          
+          if (b.val > 150 && random() < 0.08) {
+            b.text = b.text.substring(1) + random(chars);
+          }
+
+          fill(col);
+          noStroke();
+          rect(b.x, b.y, b.w, b.h, 3);
+          
+          fill(0);
+          textSize(10);
+          textAlign(CENTER, CENTER);
+          text(b.text, b.x + b.w / 2, b.y + b.h / 2 + 1);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
