@@ -745,5 +745,19 @@ window.ONEZ_WORKS = [
     cover: "assets/covers/topographic-face-20260617.png",
     description: "A topographic mesh generated from real-time brightness mapping of webcam input. <span class=\"zh\">根据网络摄像头输入的实时亮度映射生成的地形网格。</span>",
     tags: ["Camera", "3D Mesh", "Brightness", "Interactive"]
+  },
+  {
+    id: "digital-terminal",
+    title: "Terminal Mirror <span class=\"zh\">终端之镜</span>",
+    date: "2026-06-29",
+    section: "camera",
+    format: "Data brutalism mirror",
+    url: "digital_terminal.html",
+    status: "Camera <span class=\"zh\">摄像头</span>",
+    featured: true,
+    palette: "cyan",
+    cover: "assets/covers/digital-terminal.png",
+    description: "A camera-based typographic reconstruction mapping brightness to a brutalist grid of text pills. <span class=\"zh\">基于摄像头的排版重构，将亮度映射到粗野主义的文本网格中。</span>",
+    tags: ["Camera", "p5.js", "Terminal", "Interactive"]
   }
 ];
