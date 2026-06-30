@@ -8,42 +8,67 @@
 </head>
 <body>
   <script>
-    let x = 0.1, y = 0.1;
+    let particles = [];
+    let numParticles = 10000;
     let a = -1.4, b = 1.6, c = 1.0, d = 0.7;
-    let points = [];
-    
+
     function setup() {
       createCanvas(windowWidth, windowHeight);
       background(5);
-      stroke(255, 50, 150, 30);
-      strokeWeight(0.5);
+      for(let i=0; i<numParticles; i++) {
+        particles.push(createVector(random(-3, 3), random(-3, 3)));
+      }
     }
 
     function draw() {
+      // Fade out effect to show motion trails
+      fill(5, 5, 5, 35);
+      noStroke();
+      rect(0, 0, width, height);
+      
       translate(width / 2, height / 2);
       
       // evolve parameters slightly over time for animation
-      a = -1.4 + sin(frameCount * 0.001) * 0.2;
-      b = 1.6 + cos(frameCount * 0.001) * 0.2;
+      let a_cur = a + sin(frameCount * 0.002) * 0.3;
+      let b_cur = b + cos(frameCount * 0.002) * 0.3;
       
-      for (let i = 0; i < 1000; i++) {
-        let xn = sin(a * y) + c * cos(a * x);
-        let yn = sin(b * x) + d * cos(b * y);
+      let dt = 0.015; // Smooth particle speed
+      let scaleFactor = min(width, height) / 4.5;
+      
+      for (let i = 0; i < numParticles; i++) {
+        let p = particles[i];
         
-        let px = map(x, -2.5, 2.5, -min(width, height)/2, min(width, height)/2);
-        let py = map(y, -2.5, 2.5, -min(width, height)/2, min(width, height)/2);
+        // Calculate vector flow (using Clifford map equations as velocity)
+        let vx = sin(a_cur * p.y) + c * cos(a_cur * p.x);
+        let vy = sin(b_cur * p.x) + d * cos(b_cur * p.y);
         
+        p.x += vx * dt;
+        p.y += vy * dt;
+        
+        let px = p.x * scaleFactor;
+        let py = p.y * scaleFactor;
+        
+        // Map color to velocity to emphasize motion
+        let vel = sqrt(vx*vx + vy*vy);
+        let colR = map(vel, 0, 2, 50, 255);
+        let colG = map(vx, -2, 2, 100, 255);
+        let colB = map(vy, -2, 2, 150, 255);
+        
+        stroke(colR, colG, colB, 150);
+        strokeWeight(1.5);
         point(px, py);
         
-        x = xn;
-        y = yn;
+        // Recycle particles that drift too far out of bounds
+        if (p.x < -4 || p.x > 4 || p.y < -4 || p.y > 4) {
+          p.x = random(-3, 3);
+          p.y = random(-3, 3);
+        }
       }
-      
-      // Fade out effect
-      fill(5, 5, 5, 10);
-      noStroke();
-      rect(-width/2, -height/2, width, height);
-      stroke(100, 200, 255, 30);
+    }
+    
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      background(5);
     }
   </script>
 </body>
