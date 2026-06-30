@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON VORTEX | Daily Mini Game</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=VT323&display=swap');
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background: #020205;
+      overflow: hidden;
+      touch-action: none;
+      font-family: 'Space Mono', monospace;
+      color: #00ffff;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+      box-sizing: border-box;
+      z-index: 10;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.8rem;
+      text-shadow: 0 0 10px #00ffff;
+      font-family: 'VT323', monospace;
+      margin-top: 20px;
+    }
+    .score-display {
+      color: #00ffff;
+    }
+    .level-display {
+      color: #ff00ff;
+      text-shadow: 0 0 10px #ff00ff;
+    }
+    .overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(2, 2, 5, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      z-index: 20;
+    }
+    .overlay.hidden {
+      display: none;
+    }
+    h1 {
+      font-family: 'VT323', monospace;
+      font-size: 4rem;
+      margin: 0 0 10px 0;
+      color: #00ffff;
+      text-shadow: 0 0 20px #00ffff;
+      text-align: center;
+    }
+    p.instructions {
+      font-size: 1rem;
+      max-width: 80%;
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 30px;
+      color: #ccc;
+    }
+    .btn {
+      background: transparent;
+      border: 2px solid #ff00ff;
+      color: #ff00ff;
+      font-family: 'Space Mono', monospace;
+      font-size: 1.2rem;
+      padding: 10px 30px;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: 0 0 10px #ff00ff inset, 0 0 10px #ff00ff;
+      transition: all 0.2s;
+    }
+    .btn:hover, .btn:active {
+      background: #ff00ff;
+      color: #020205;
+    }
+    .nav-back {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 1rem;
+      pointer-events: auto;
+      text-shadow: 0 0 5px #fff;
+    }
+    .nav-back:hover {
+      color: #00ffff;
+    }
+  </style>
+</head>
+<body>
+  <a href="../games.html" class="nav-back">← Back</a>
+  <canvas id="gameCanvas"></canvas>
+  <div class="ui-layer">
+    <div class="top-bar">
+      <div class="score-display">SCORE: <span id="scoreVal">0</span></div>
+      <div class="level-display">SPEED: <span id="levelVal">1.0</span>x</div>
+    </div>
+  </div>
+  
+  <div id="startScreen" class="overlay">
+    <h1>NEON VORTEX</h1>
+    <p class="instructions">
+      Drag horizontally to orbit the core.<br><br>
+      Align with the gaps to pass through the collapsing vortex rings.<br>
+      Survive as long as you can!
+    </p>
+    <button class="btn" id="startBtn">START SYSTEM</button>
+  </div>
+
+  <div id="gameOverScreen" class="overlay hidden">
+    <h1>SYSTEM FAILURE</h1>
+    <p class="instructions">
+      Final Score: <span id="finalScore">0</span>
+    </p>
+    <button class="btn" id="restartBtn">REBOOT</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreVal = document.getElementById('scoreVal');
+    const levelVal = document.getElementById('levelVal');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const finalScore = document.getElementById('finalScore');
+
+    let cx, cy;
+    let baseRadius;
+    
+    // Game State
+    let state = 'START'; // START, PLAYING, GAMEOVER
+    let score = 0;
+    let speedMult = 1.0;
+    let playerAngle = Math.PI / 2;
+    let playerOrbitRadius = 100;
+    
+    // Inputs
+    let pointerX = null;
+    let pointerDown = false;
+    let lastPointerX = null;
+    let keys = {};
+    
+    // Entities
+    let obstacles = [];
+    let particles = [];
+    let bgParticles = [];
+    
+    // Visuals
+    let screenShake = 0;
+    let corePulse = 0;
+    
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      cx = canvas.width / 2;
+      cy = canvas.height / 2;
+      baseRadius = Math.min(cx, cy) * 0.45;
+      if (baseRadius < 80) baseRadius = 80;
+      if (baseRadius > 200) baseRadius = 200;
+      playerOrbitRadius = baseRadius;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // Input Handling
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
+    
+    canvas.addEventListener('touchstart', e => {
+      pointerDown = true;
+      lastPointerX = e.touches[0].clientX;
+    }, {passive: false});
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if(pointerDown && lastPointerX !== null) {
+        let deltaX = e.touches[0].clientX - lastPointerX;
+        playerAngle += deltaX * 0.01;
+        lastPointerX = e.touches[0].clientX;
+      }
+    }, {passive: false});
+    canvas.addEventListener('touchend', e => {
+      pointerDown = false;
+      lastPointerX = null;
+    });
+
+    canvas.addEventListener('mousedown', e => {
+      pointerDown = true;
+      lastPointerX = e.clientX;
+    });
+    window.addEventListener('mousemove', e => {
+      if(pointerDown && state === 'PLAYING') {
+        let deltaX = e.clientX - lastPointerX;
+        playerAngle += deltaX * 0.01;
+        lastPointerX = e.clientX;
+      }
+    });
+    window.addEventListener('mouseup', () => {
+      pointerDown = false;
+      lastPointerX = null;
+    });
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+
+    function startGame() {
+      state = 'PLAYING';
+      score = 0;
+      speedMult = 1.0;
+      playerAngle = Math.PI / 2;
+      obstacles = [];
+      particles = [];
+      screenShake = 0;
+      updateScore();
+      
+      startScreen.classList.add('hidden');
+      gameOverScreen.classList.add('hidden');
+      
+      spawnObstacle();
+    }
+
+    function gameOver() {
+      state = 'GAMEOVER';
+      finalScore.innerText = score;
+      gameOverScreen.classList.remove('hidden');
+      screenShake = 20;
+      createExplosion(cx + Math.cos(playerAngle)*playerOrbitRadius, cy + Math.sin(playerAngle)*playerOrbitRadius, '#ff00ff', 50);
+    }
+
+    function updateScore() {
+      scoreVal.innerText = score;
+      levelVal.innerText = speedMult.toFixed(1);
+    }
+
+    function spawnObstacle() {
+      let numSegments = Math.floor(Math.random() * 3) + 4; // 4 to 6 sides (or just circle if we use arc)
+      let gapWidth = Math.PI / 3 * (Math.max(0.5, 1.5 - speedMult * 0.1)); // Shrinks as game gets harder
+      let gapAngle = Math.random() * Math.PI * 2;
+      let rotSpeed = (Math.random() - 0.5) * 0.02 * speedMult;
+      
+      obstacles.push({
+        radius: Math.max(canvas.width, canvas.height) * 0.8,
+        gapStart: gapAngle,
+        gapWidth: gapWidth,
+        rotSpeed: rotSpeed,
+        thickness: 10 + Math.random() * 5,
+        color: Math.random() > 0.5 ? '#00ffff' : '#ff00ff',
+        passed: false
+      });
+    }
+
+    function createExplosion(x, y, color, count) {
+      for(let i=0; i<count; i++) {
+        let ang = Math.random() * Math.PI * 2;
+        let spd = Math.random() * 5 + 2;
+        particles.push({
+          x: x, y: y,
+          vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+          life: 1.0, decay: Math.random() * 0.02 + 0.02,
+          color: color, size: Math.random() * 4 + 2
+        });
+      }
+    }
+    
+    // Setup background stars
+    for(let i=0; i<100; i++) {
+      bgParticles.push({
+        angle: Math.random() * Math.PI * 2,
+        dist: Math.random() * Math.max(canvas.width, canvas.height),
+        speed: Math.random() * 0.5 + 0.1,
+        size: Math.random() * 2 + 0.5
+      });
+    }
+
+    let lastTime = 0;
+    function loop(time) {
+      requestAnimationFrame(loop);
+      let dt = (time - lastTime) / 1000;
+      if (dt > 0.1) dt = 0.1;
+      lastTime = time;
+
+      // Update
+      if (state === 'PLAYING') {
+        if (keys['ArrowLeft'] || keys['KeyA']) playerAngle -= 3 * dt;
+        if (keys['ArrowRight'] || keys['KeyD']) playerAngle += 3 * dt;
+        
+        // Normalize player angle
+        playerAngle = (playerAngle % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+
+        // Core pulse
+        corePulse += dt * 5;
+
+        // Obstacles
+        let obsSpeed = 150 * speedMult * dt;
+        
+        // Spawn logic
+        if (obstacles.length === 0 || obstacles[obstacles.length-1].radius < baseRadius + 200 * speedMult) {
+          spawnObstacle();
+        }
+
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          let obs = obstacles[i];
+          obs.radius -= obsSpeed;
+          obs.gapStart += obs.rotSpeed;
+          
+          // Collision check
+          if (!obs.passed && obs.radius <= playerOrbitRadius + 10 && obs.radius >= playerOrbitRadius - 10) {
+            // Check if player is in gap
+            let normGapStart = (obs.gapStart % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+            let normGapEnd = (normGapStart + obs.gapWidth) % (Math.PI*2);
+            let inGap = false;
+            
+            if (normGapEnd > normGapStart) {
+              inGap = playerAngle >= normGapStart && playerAngle <= normGapEnd;
+            } else {
+              inGap = playerAngle >= normGapStart || playerAngle <= normGapEnd;
+            }
+            
+            // Allow a small leniency
+            let leniency = 0.1;
+            if (!inGap) {
+              let d1 = Math.min(Math.abs(playerAngle - normGapStart), Math.PI*2 - Math.abs(playerAngle - normGapStart));
+              let d2 = Math.min(Math.abs(playerAngle - normGapEnd), Math.PI*2 - Math.abs(playerAngle - normGapEnd));
+              if (d1 < leniency || d2 < leniency) inGap = true;
+            }
+
+            if (inGap) {
+              obs.passed = true;
+              score++;
+              speedMult += 0.05;
+              updateScore();
+              createExplosion(cx + Math.cos(playerAngle)*playerOrbitRadius, cy + Math.sin(playerAngle)*playerOrbitRadius, obs.color, 15);
+              corePulse = 0; // Reset pulse for visual feedback
+            } else {
+              gameOver();
+            }
+          }
+
+          if (obs.radius < 10) {
+            obstacles.splice(i, 1);
+          }
+        }
+      }
+
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+      
+      // Update BG
+      for(let i=0; i<bgParticles.length; i++) {
+        let bp = bgParticles[i];
+        bp.dist -= bp.speed * (state === 'PLAYING' ? speedMult : 1);
+        bp.angle += 0.001;
+        if(bp.dist < 10) {
+          bp.dist = Math.max(canvas.width, canvas.height);
+          bp.angle = Math.random() * Math.PI * 2;
+        }
+      }
+
+      if (screenShake > 0) screenShake *= 0.9;
+      if (screenShake < 0.5) screenShake = 0;
+
+      draw();
+    }
+
+    function draw() {
+      // Clear
+      ctx.fillStyle = 'rgba(2, 2, 5, 0.3)'; // Trail effect
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      
+      // Screen Shake
+      if (screenShake > 0) {
+        ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+      }
+
+      // Draw BG
+      ctx.fillStyle = '#444';
+      bgParticles.forEach(bp => {
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(bp.angle)*bp.dist, cy + Math.sin(bp.angle)*bp.dist, bp.size, 0, Math.PI*2);
+        ctx.fill();
+      });
+
+      // Draw Core
+      let pulse = Math.sin(corePulse) * 5;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#00ffff';
+      ctx.fillStyle = '#00ffff';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 20 + pulse, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Orbit Path
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, playerOrbitRadius, 0, Math.PI*2);
+      ctx.stroke();
+
+      // Draw Obstacles
+      ctx.lineCap = 'round';
+      obstacles.forEach(obs => {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = obs.color;
+        ctx.strokeStyle = obs.color;
+        ctx.lineWidth = obs.thickness;
+        
+        ctx.beginPath();
+        let endAngle = obs.gapStart + (Math.PI*2 - obs.gapWidth);
+        ctx.arc(cx, cy, obs.radius, obs.gapStart + obs.gapWidth, obs.gapStart + Math.PI*2);
+        ctx.stroke();
+      });
+
+      // Draw Player
+      if (state !== 'GAMEOVER') {
+        let px = cx + Math.cos(playerAngle) * playerOrbitRadius;
+        let py = cy + Math.sin(playerAngle) * playerOrbitRadius;
+        
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#fff';
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(px, py, 8, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Player trail/glow
+        ctx.fillStyle = '#00ffff';
+        ctx.beginPath();
+        ctx.arc(px, py, 12, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      // Draw Particles
+      ctx.globalCompositeOperation = 'lighter';
+      particles.forEach(p => {
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.color;
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1.0;
+      ctx.globalCompositeOperation = 'source-over';
+
+      ctx.restore();
+    }
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

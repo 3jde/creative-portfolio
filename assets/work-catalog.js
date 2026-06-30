@@ -1,5 +1,18 @@
 window.ONEZ_WORKS = [
   {
+    id: "neon-vortex",
+    title: "Neon Vortex <span class=\"zh\">霓虹漩涡</span>",
+    date: "2026-06-30",
+    section: "game",
+    format: "Arcade survival",
+    url: "games/2026-06-30-neon-vortex.html",
+    status: "New Game",
+    featured: true,
+    palette: "pink",
+    description: "Orbit the core and navigate through collapsing neon rings. Intense touch arcade survival. <span class=\"zh\">围绕核心运行并穿梭于不断缩小的霓虹环之间。高强度的触控街机生存游戏。</span>",
+    tags: ["Game", "Touch", "Arcade", "Survival", "Mobile"]
+  },
+  {
     id: "clifford-attractor",
     title: "Clifford Attractor <span class=\"zh\">克利福德吸引子</span>",
     date: "2026-06-29",
