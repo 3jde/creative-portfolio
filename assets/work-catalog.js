@@ -1,5 +1,18 @@
 window.ONEZ_WORKS = [
   {
+    id: "elastic-tension",
+    title: "Elastic Tension <span class=\"zh\">弹性张力</span>",
+    date: "2026-06-30",
+    section: "generative",
+    format: "Interactive physics",
+    url: "interactive_arts/2026-06-30-elastic-tension/index.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "cyan",
+    description: "An interactive topological grid driven by spring physics, exploring novel interaction mechanics. <span class=\"zh\">由弹簧物理驱动的交互式拓扑网格，探索新颖的交互机制。</span>",
+    tags: ["Generative", "Interactive", "Physics", "Grid"]
+  },
+  {
     id: "neon-vortex",
     title: "Neon Vortex <span class=\"zh\">霓虹漩涡</span>",
     date: "2026-06-30",
