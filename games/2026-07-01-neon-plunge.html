@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON PLUNGE | Daily Mini Game</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap');
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background: #050510;
+      overflow: hidden;
+      touch-action: none;
+      font-family: 'Space Mono', monospace;
+      color: #00ffff;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      z-index: 10;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px 30px;
+      font-size: 2rem;
+      font-family: 'VT323', monospace;
+      text-shadow: 0 0 10px #00ffff;
+    }
+    .score-label {
+      color: #00ffff;
+    }
+    .high-score-label {
+      color: #ff00ff;
+      text-shadow: 0 0 10px #ff00ff;
+    }
+    .overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(5, 5, 16, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      transition: opacity 0.3s;
+    }
+    .hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    h1 {
+      font-family: 'VT323', monospace;
+      font-size: 5rem;
+      margin: 0;
+      color: #00ffff;
+      text-shadow: 0 0 20px #00ffff;
+      text-align: center;
+      line-height: 1;
+    }
+    .subtitle {
+      font-size: 1rem;
+      color: #fff;
+      margin: 10px 0 40px;
+      text-align: center;
+      opacity: 0.8;
+    }
+    .btn {
+      background: transparent;
+      border: 2px solid #00ffff;
+      color: #00ffff;
+      font-family: 'Space Mono', monospace;
+      font-size: 1.2rem;
+      padding: 15px 40px;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2), inset 0 0 10px rgba(0, 255, 255, 0.1);
+      transition: all 0.2s;
+    }
+    .btn:active, .btn:hover {
+      background: #00ffff;
+      color: #000;
+      box-shadow: 0 0 20px #00ffff;
+    }
+    .controls-hint {
+      margin-top: 30px;
+      font-size: 0.9rem;
+      color: #aaa;
+      text-align: center;
+    }
+    .controls-hint span {
+      color: #ff00ff;
+    }
+    
+    /* Touch zones for mobile */
+    .touch-zones {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      z-index: 5;
+    }
+    .zone {
+      flex: 1;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<div class="touch-zones" id="touchZones">
+  <div class="zone" id="zoneLeft"></div>
+  <div class="zone" id="zoneRight"></div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div class="ui-layer">
+  <div class="top-bar">
+    <div class="score-label">SCORE: <span id="scoreDisplay">0</span></div>
+    <div class="high-score-label">BEST: <span id="highScoreDisplay">0</span></div>
+  </div>
+</div>
+
+<div class="overlay" id="startScreen">
+  <h1>NEON PLUNGE</h1>
+  <div class="subtitle">Freefall through the gaps.</div>
+  <button class="btn" id="startBtn">START DIVE</button>
+  <div class="controls-hint">
+    Desktop: <span>Left / Right Arrows</span><br>
+    Mobile: <span>Touch & Hold Left / Right half of screen</span>
+  </div>
+</div>
+
+<div class="overlay hidden" id="gameOverScreen">
+  <h1 style="color: #ff00ff; text-shadow: 0 0 20px #ff00ff;">SYSTEM FAILURE</h1>
+  <div class="subtitle">Final Score: <span id="finalScore" style="color:#00ffff; font-size:1.5rem; font-weight:bold;">0</span></div>
+  <button class="btn" id="restartBtn">REBOOT</button>
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  
+  // UI Elements
+  const startScreen = document.getElementById('startScreen');
+  const gameOverScreen = document.getElementById('gameOverScreen');
+  const startBtn = document.getElementById('startBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const highScoreDisplay = document.getElementById('highScoreDisplay');
+  const finalScore = document.getElementById('finalScore');
+  const zoneLeft = document.getElementById('zoneLeft');
+  const zoneRight = document.getElementById('zoneRight');
+  
+  let width, height;
+  let animationId;
+  let lastTime = performance.now();
+  
+  // Game State
+  const state = {
+    running: false,
+    score: 0,
+    highScore: localStorage.getItem('neonPlungeHighScore') || 0,
+    time: 0,
+    baseSpeed: 0,
+    speedMultiplier: 1,
+    screenShake: 0
+  };
+  
+  highScoreDisplay.textContent = state.highScore;
+  
+  // Entities
+  const player = {
+    x: 0,
+    y: 0,
+    radius: 12,
+    vx: 0,
+    speed: 550, // px per second
+    color: '#00ffff',
+    trail: []
+  };
+  
+  let obstacles = [];
+  let particles = [];
+  let stars = []; // Background speed lines
+  
+  // Input
+  const keys = { ArrowLeft: false, ArrowRight: false, a: false, d: false };
+  let touchLeft = false;
+  let touchRight = false;
+  
+  function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    if (!state.running && player.x === 0) {
+      player.x = width / 2;
+      player.y = height * 0.25; 
+    }
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  
+  // Input Handling
+  window.addEventListener('keydown', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
+  window.addEventListener('keyup', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+  
+  const handleTouchStart = (dir) => (e) => { e.preventDefault(); if(dir === 'left') touchLeft = true; else touchRight = true; };
+  const handleTouchEnd = (dir) => (e) => { e.preventDefault(); if(dir === 'left') touchLeft = false; else touchRight = false; };
+  
+  zoneLeft.addEventListener('touchstart', handleTouchStart('left'), {passive: false});
+  zoneLeft.addEventListener('touchend', handleTouchEnd('left'), {passive: false});
+  zoneLeft.addEventListener('mousedown', handleTouchStart('left'));
+  zoneLeft.addEventListener('mouseup', handleTouchEnd('left'));
+  zoneLeft.addEventListener('mouseleave', handleTouchEnd('left'));
+  
+  zoneRight.addEventListener('touchstart', handleTouchStart('right'), {passive: false});
+  zoneRight.addEventListener('touchend', handleTouchEnd('right'), {passive: false});
+  zoneRight.addEventListener('mousedown', handleTouchStart('right'));
+  zoneRight.addEventListener('mouseup', handleTouchEnd('right'));
+  zoneRight.addEventListener('mouseleave', handleTouchEnd('right'));
+  
+  function spawnObstacle() {
+    const minGap = 80;
+    const gapWidth = Math.max(minGap, 220 - state.score * 3);
+    const minWall = 30;
+    const maxWall = width - gapWidth - minWall;
+    const gapStart = minWall + Math.random() * (maxWall - minWall);
+    
+    obstacles.push({
+      y: height + 50,
+      gapStart,
+      gapWidth,
+      thickness: 25,
+      passed: false,
+      color: `hsl(${300 + Math.random()*50}, 100%, 60%)`
+    });
+  }
+  
+  function createExplosion(x, y, color) {
+    for(let i=0; i<40; i++) {
+      particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 1000,
+        vy: (Math.random() - 0.5) * 1000,
+        life: 0.5 + Math.random(),
+        maxLife: 0.5 + Math.random(),
+        size: Math.random() * 6 + 2,
+        color
+      });
+    }
+  }
+  
+  function initGame() {
+    state.running = true;
+    state.score = 0;
+    state.time = 0;
+    state.baseSpeed = 350; // px/sec moving up
+    state.speedMultiplier = 1;
+    state.screenShake = 0;
+    
+    player.x = width / 2;
+    player.y = height * 0.25;
+    player.trail = [];
+    
+    obstacles = [];
+    particles = [];
+    
+    scoreDisplay.textContent = '0';
+    spawnObstacle();
+    
+    startScreen.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    
+    lastTime = performance.now();
+  }
+  
+  function gameOver() {
+    state.running = false;
+    state.screenShake = 30;
+    createExplosion(player.x, player.y, player.color);
+    
+    if (state.score > state.highScore) {
+      state.highScore = state.score;
+      localStorage.setItem('neonPlungeHighScore', state.highScore);
+      highScoreDisplay.textContent = state.highScore;
+    }
+    finalScore.textContent = state.score;
+    
+    setTimeout(() => {
+      gameOverScreen.classList.remove('hidden');
+      touchLeft = false;
+      touchRight = false;
+      keys.ArrowLeft = false;
+      keys.ArrowRight = false;
+      keys.a = false;
+      keys.d = false;
+    }, 1200);
+  }
+  
+  function update(dt) {
+    if (state.screenShake > 0) {
+      state.screenShake -= dt * 60;
+      if (state.screenShake < 0) state.screenShake = 0;
+    }
+    
+    let currentScrollSpeed = state.baseSpeed * state.speedMultiplier;
+    
+    // Background
+    stars.forEach(s => {
+      s.y -= s.speed * dt * (state.running ? state.speedMultiplier : 1);
+      if (s.y < -s.length) {
+        s.y = height + s.length;
+        s.x = Math.random() * width;
+      }
+    });
+    
+    // Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      let p = particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= 0.95; // friction
+      p.vy *= 0.95;
+      p.life -= dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+    
+    if (!state.running) return; 
+    
+    state.time += dt;
+    state.speedMultiplier = 1 + (state.score * 0.05);
+    
+    // Player Input
+    let moveDir = 0;
+    if (keys.ArrowLeft || keys.a || touchLeft) moveDir = -1;
+    if (keys.ArrowRight || keys.d || touchRight) moveDir = 1;
+    
+    player.x += moveDir * player.speed * dt;
+    
+    // Bounds
+    if (player.x < player.radius) player.x = player.radius;
+    if (player.x > width - player.radius) player.x = width - player.radius;
+    
+    // Trail
+    player.trail.push({x: player.x, y: player.y});
+    if (player.trail.length > 12) player.trail.shift();
+    
+    // Obstacles
+    let needsNewObstacle = false;
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      let obs = obstacles[i];
+      obs.y -= currentScrollSpeed * dt;
+      
+      // Collision
+      let inWallY = (player.y + player.radius > obs.y) && (player.y - player.radius < obs.y + obs.thickness);
+      if (inWallY) {
+        let inGapX = (player.x - player.radius > obs.gapStart) && (player.x + player.radius < obs.gapStart + obs.gapWidth);
+        if (!inGapX) {
+          gameOver();
+        }
+      }
+      
+      // Passed
+      if (!obs.passed && obs.y + obs.thickness < player.y - player.radius) {
+        obs.passed = true;
+        state.score++;
+        scoreDisplay.textContent = state.score;
+        
+        // Spawn success sparks
+        for(let j=0; j<8; j++) {
+           particles.push({
+             x: obs.gapStart + Math.random()*obs.gapWidth, 
+             y: obs.y, 
+             vx: (Math.random()-0.5)*300, vy: -currentScrollSpeed*0.3, 
+             life: 0.4, maxLife: 0.4, size: 2.5, color: '#ffffff'
+           });
+        }
+      }
+      
+      if (obs.y < -100) {
+        obstacles.splice(i, 1);
+      }
+      
+      // Spawn distance logic
+      if (i === obstacles.length - 1 && obs.y < height - (400 - Math.min(200, state.score * 5))) {
+        needsNewObstacle = true;
+      }
+    }
+    
+    if (needsNewObstacle || obstacles.length === 0) {
+      spawnObstacle();
+    }
+  }
+  
+  function draw() {
+    ctx.fillStyle = '#050510';
+    ctx.fillRect(0, 0, width, height);
+    
+    ctx.save();
+    if (state.screenShake > 0) {
+      let dx = (Math.random() - 0.5) * state.screenShake;
+      let dy = (Math.random() - 0.5) * state.screenShake;
+      ctx.translate(dx, dy);
+    }
+    
+    // Background Lines
+    ctx.lineWidth = 1;
+    stars.forEach(s => {
+      ctx.strokeStyle = `rgba(0, 255, 255, ${s.alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x, s.y + s.length);
+      ctx.stroke();
+    });
+    
+    // Obstacles
+    obstacles.forEach(obs => {
+      ctx.fillStyle = obs.color;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = obs.color;
+      
+      // Left part
+      ctx.fillRect(0, obs.y, obs.gapStart, obs.thickness);
+      // Right part
+      ctx.fillRect(obs.gapStart + obs.gapWidth, obs.y, width - (obs.gapStart + obs.gapWidth), obs.thickness);
+    });
+    
+    // Particles
+    particles.forEach(p => {
+      ctx.fillStyle = p.color;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = p.color;
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    
+    // Player
+    if (state.running) {
+      // Trail
+      if (player.trail.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(player.trail[0].x, player.trail[0].y);
+        for (let i = 1; i < player.trail.length; i++) {
+          ctx.lineTo(player.trail[i].x, player.trail[i].y);
+        }
+        ctx.strokeStyle = player.color;
+        ctx.lineWidth = player.radius * 1.2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = player.color;
+        ctx.globalAlpha = 0.4;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      
+      ctx.fillStyle = player.color;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = player.color;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
+      ctx.fill();
+      
+      // Core highlight
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius * 0.4, 0, Math.PI*2);
+      ctx.fill();
+    }
+    
+    ctx.restore();
+  }
+  
+  function loop(time) {
+    let dt = (time - lastTime) / 1000;
+    if (dt > 0.1) dt = 0.1; // Cap dt
+    lastTime = time;
+    
+    update(dt);
+    draw();
+    
+    animationId = requestAnimationFrame(loop);
+  }
+  
+  startBtn.addEventListener('click', initGame);
+  restartBtn.addEventListener('click', initGame);
+  
+  // Init bg
+  stars = Array.from({length: 40}, () => ({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    length: Math.random() * 60 + 20,
+    speed: Math.random() * 150 + 50,
+    alpha: Math.random() * 0.4 + 0.1
+  }));
+  
+  // Start idle loop
+  animationId = requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>
