@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Neon Tether</title>
+  <style>
+    :root {
+      --bg: #050510;
+      --primary: #00ffff;
+      --secondary: #ff00ff;
+      --text: #ffffff;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', Courier, monospace;
+      overflow: hidden;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    #ui {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    #top-bar {
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 0 10px var(--primary);
+    }
+    #overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(5, 5, 16, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+    h1 {
+      font-size: 48px;
+      margin: 0 0 20px 0;
+      text-shadow: 0 0 20px var(--secondary);
+      text-align: center;
+    }
+    p.desc {
+      max-width: 300px;
+      text-align: center;
+      margin-bottom: 40px;
+      line-height: 1.5;
+      color: #aaa;
+    }
+    button {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+      padding: 15px 40px;
+      font-size: 20px;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 30px;
+      text-transform: uppercase;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3), inset 0 0 15px rgba(0, 255, 255, 0.1);
+      transition: all 0.2s;
+    }
+    button:active {
+      background: var(--primary);
+      color: var(--bg);
+    }
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="ui">
+    <div id="top-bar">
+      <div id="score">SCORE: 0</div>
+      <div id="high-score">HIGH: 0</div>
+    </div>
+  </div>
+  <div id="overlay">
+    <h1>NEON TETHER</h1>
+    <p class="desc">Tap and hold to tether to the nearest glowing anchor and swing.<br><br>Release to launch.<br><br>Climb as high as you can!</p>
+    <button id="start-btn">PLAY</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('start-btn');
+    const scoreEl = document.getElementById('score');
+    const highScoreEl = document.getElementById('high-score');
+
+    let width, height;
+    let state = 'MENU'; // MENU, PLAYING, GAMEOVER
+    let score = 0;
+    let highScore = localStorage.getItem('neon-tether-highscore') || 0;
+    highScoreEl.innerText = 'HIGH: ' + highScore;
+
+    let player = { x: 0, y: 0, vx: 0, vy: 0, radius: 10, maxSpeed: 25 };
+    let anchors = [];
+    let particles = [];
+    let cameraY = 0;
+    let isTethered = false;
+    let currentAnchor = null;
+    let tetherRadius = 0;
+
+    const gravity = 0.4;
+    const colors = ['#00ffff', '#ff00ff', '#ffff00', '#00ff00'];
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function initGame() {
+      player.x = width / 2;
+      player.y = height - 100;
+      player.vx = 8; // initial horizontal speed to start swinging
+      player.vy = -10;
+      cameraY = height;
+      score = 0;
+      updateScore();
+      anchors = [];
+      particles = [];
+      generateAnchors(height, -1000);
+      state = 'PLAYING';
+      overlay.classList.add('hidden');
+      isTethered = false;
+      currentAnchor = null;
+    }
+
+    function generateAnchors(startY, endY) {
+      for (let y = startY; y > endY; y -= 120 + Math.random() * 80) {
+        anchors.push({
+          x: 50 + Math.random() * (width - 100),
+          y: y,
+          active: true,
+          color: colors[Math.floor(Math.random() * colors.length)]
+        });
+      }
+    }
+
+    function createParticles(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x, y: y,
+          vx: (Math.random() - 0.5) * 10,
+          vy: (Math.random() - 0.5) * 10,
+          life: 1,
+          color: color
+        });
+      }
+    }
+
+    function updateScore() {
+      scoreEl.innerText = 'SCORE: ' + Math.floor(score);
+    }
+
+    function gameOver() {
+      state = 'GAMEOVER';
+      overlay.classList.remove('hidden');
+      document.querySelector('#overlay h1').innerText = 'GAME OVER';
+      document.querySelector('#overlay p.desc').innerText = 'SCORE: ' + Math.floor(score);
+      if (score > highScore) {
+        highScore = Math.floor(score);
+        localStorage.setItem('neon-tether-highscore', highScore);
+        highScoreEl.innerText = 'HIGH: ' + highScore;
+      }
+    }
+
+    // Input handling
+    function handlePointerDown(e) {
+      if (state !== 'PLAYING') return;
+      isTethered = true;
+      // Find nearest anchor above or slightly below player
+      let minDist = Infinity;
+      let closest = null;
+      for (let a of anchors) {
+        let dx = a.x - player.x;
+        let dy = a.y - player.y;
+        let dist = Math.hypot(dx, dy);
+        if (dist < minDist && dist < 400) { // max reach
+          minDist = dist;
+          closest = a;
+        }
+      }
+      if (closest) {
+        currentAnchor = closest;
+        tetherRadius = minDist;
+        createParticles(currentAnchor.x, currentAnchor.y, '#ffffff', 5);
+      } else {
+        isTethered = false;
+      }
+    }
+
+    function handlePointerUp(e) {
+      if (state !== 'PLAYING') return;
+      if (isTethered) {
+        // Boost slightly on release
+        player.vx *= 1.2;
+        player.vy *= 1.2;
+        // Cap speed
+        let speed = Math.hypot(player.vx, player.vy);
+        if (speed > player.maxSpeed) {
+          player.vx = (player.vx / speed) * player.maxSpeed;
+          player.vy = (player.vy / speed) * player.maxSpeed;
+        }
+      }
+      isTethered = false;
+      currentAnchor = null;
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
+    startBtn.addEventListener('click', (e) => { e.stopPropagation(); initGame(); });
+
+    function update() {
+      if (state !== 'PLAYING') return;
+
+      player.vy += gravity;
+      player.x += player.vx;
+      player.y += player.vy;
+
+      // Bounce off walls
+      if (player.x < player.radius) {
+        player.x = player.radius;
+        player.vx *= -0.8;
+      } else if (player.x > width - player.radius) {
+        player.x = width - player.radius;
+        player.vx *= -0.8;
+      }
+
+      if (isTethered && currentAnchor) {
+        let dx = player.x - currentAnchor.x;
+        let dy = player.y - currentAnchor.y;
+        let dist = Math.hypot(dx, dy);
+        
+        if (dist > tetherRadius) {
+          // Constrain position
+          player.x = currentAnchor.x + (dx / dist) * tetherRadius;
+          player.y = currentAnchor.y + (dy / dist) * tetherRadius;
+          
+          // Tangential velocity constraint
+          let nx = dx / dist;
+          let ny = dy / dist;
+          let vdot = player.vx * nx + player.vy * ny;
+          
+          player.vx -= vdot * nx;
+          player.vy -= vdot * ny;
+
+          // Add a tiny bit of angular friction or boost depending on direction
+          // We will just let gravity do the work
+        }
+      } else {
+        // Air drag
+        player.vx *= 0.99;
+        player.vy *= 0.99;
+      }
+
+      // Camera logic: move up if player goes up
+      if (player.y < cameraY - height * 0.5) {
+        cameraY = player.y + height * 0.5;
+        score = Math.max(score, (height - cameraY) / 10);
+        updateScore();
+      }
+
+      // Game over if player falls below screen
+      if (player.y > cameraY + 100) {
+        gameOver();
+      }
+
+      // Generate new anchors
+      let topAnchorY = anchors.length > 0 ? anchors[anchors.length - 1].y : cameraY;
+      if (topAnchorY > cameraY - height * 1.5) {
+        generateAnchors(topAnchorY, cameraY - height * 2);
+      }
+
+      // Cleanup old anchors
+      anchors = anchors.filter(a => a.y < cameraY + height);
+
+      // Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.02;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function draw() {
+      // Clear with trail effect
+      ctx.fillStyle = 'rgba(5, 5, 16, 0.3)';
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      // Translate for camera (cameraY is the bottom of the screen)
+      ctx.translate(0, height - cameraY);
+
+      // Draw anchors
+      for (let a of anchors) {
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = a.color;
+        ctx.shadowColor = a.color;
+        ctx.shadowBlur = 15;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // Draw tether
+      if (isTethered && currentAnchor) {
+        ctx.beginPath();
+        ctx.moveTo(currentAnchor.x, currentAnchor.y);
+        ctx.lineTo(player.x, player.y);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // Draw particles
+      for (let p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3 * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+      }
+
+      // Draw player
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = '#0ff';
+      ctx.shadowBlur = 20;
+      ctx.fill();
+      
+      ctx.restore();
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+    
+    // Start loop
+    requestAnimationFrame(loop);
+
+  </script>
+</body>
+</html>
