@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Kinetic Kandinsky</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #fdfbf7; }</style>
+</head>
+<body>
+  <script>
+    let shapes = [];
+    let palette = ['#2b2d42', '#8d99ae', '#edf2f4', '#ef233c', '#d90429', '#f2cc8f'];
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      for(let i=0; i<15; i++) {
+        addShape(random(width), random(height));
+      }
+    }
+
+    function draw() {
+      background('#fdfbf7');
+      
+      for(let s of shapes) {
+        s.x += s.vx;
+        s.y += s.vy;
+        s.angle += s.vangle;
+        
+        // Bounce off walls
+        if(s.x < 0 || s.x > width) s.vx *= -1;
+        if(s.y < 0 || s.y > height) s.vy *= -1;
+        
+        push();
+        translate(s.x, s.y);
+        rotate(s.angle);
+        fill(s.col);
+        noStroke();
+        if(s.type === 0) circle(0, 0, s.size);
+        else if(s.type === 1) rect(-s.size/2, -s.size/2, s.size, s.size);
+        else if(s.type === 2) triangle(-s.size/2, s.size/2, s.size/2, s.size/2, 0, -s.size/2);
+        
+        // Decorative lines à la Kandinsky
+        if(s.hasLine) {
+          stroke(10);
+          strokeWeight(2);
+          line(-s.size, -s.size, s.size*2, s.size*2);
+        }
+        pop();
+      }
+      
+      // Draw intersecting connecting lines if shapes are close
+      stroke(0, 50);
+      strokeWeight(1);
+      for(let i=0; i<shapes.length; i++) {
+        for(let j=i+1; j<shapes.length; j++) {
+          if(dist(shapes[i].x, shapes[i].y, shapes[j].x, shapes[j].y) < 200) {
+            line(shapes[i].x, shapes[i].y, shapes[j].x, shapes[j].y);
+          }
+        }
+      }
+    }
+
+    function mousePressed() {
+      addShape(mouseX, mouseY);
+    }
+
+    function addShape(x, y) {
+      shapes.push({
+        x: x, y: y,
+        vx: random(-2, 2), vy: random(-2, 2),
+        angle: random(TWO_PI), vangle: random(-0.05, 0.05),
+        size: random(20, 100),
+        type: floor(random(3)),
+        col: color(random(palette)),
+        hasLine: random(1) > 0.5
+      });
+      // remove oldest if too many
+      if(shapes.length > 40) shapes.shift();
+    }
+  </script>
+</body>
+</html>

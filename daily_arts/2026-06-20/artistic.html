@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Klimt's Tapestry - Artistic Gen</title>
+  <style>body { margin: 0; overflow: hidden; background-color: #080605; }</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+</head>
+<body>
+<script>
+let palette = ['#D4AF37', '#AA6C39', '#FFDF00', '#555555', '#8B0000', '#2E8B57'];
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  background('#080605');
+  frameRate(5);
+}
+
+function draw() {
+  // Slowly build the tapestry
+  translate(width/2, height/2);
+  
+  // Random position within an invisible bell curve (focused on center)
+  let r = randomGaussian(0, width/4);
+  let theta = random(TWO_PI);
+  let x = r * cos(theta);
+  let y = r * sin(theta) + 50; // offset slightly lower for "figures"
+
+  push();
+  translate(x, y);
+  
+  let choice = floor(random(3));
+  let col = color(random(palette));
+  col.setAlpha(180);
+  fill(col);
+  stroke(0, 50);
+  
+  if (choice === 0) {
+    // Spiral
+    let maxRad = random(10, 40);
+    noFill();
+    stroke(col);
+    strokeWeight(random(1, 3));
+    beginShape();
+    for (let a = 0; a < maxRad; a += 0.5) {
+      let r2 = a * 1.5;
+      vertex(r2 * cos(a), r2 * sin(a));
+    }
+    endShape();
+  } else if (choice === 1) {
+    // Mosaic Rectangle
+    rotate(random(TWO_PI));
+    rectMode(CENTER);
+    rect(0, 0, random(10, 50), random(10, 30));
+    // Inner pattern
+    if(random()>0.5) {
+      fill('#080605');
+      rect(0, 0, random(5, 15), random(5, 10));
+    }
+  } else {
+    // Ornate Circles
+    let d = random(10, 50);
+    circle(0, 0, d);
+    fill('#080605');
+    circle(0, 0, d/2);
+  }
+  pop();
+  
+  // Subtle atmospheric dust
+  noStroke();
+  fill(255, 215, 0, 50);
+  circle(random(-width/2, width/2), random(-height/2, height/2), random(1, 4));
+
+  if(frameCount > 1000) noLoop(); // Stop after it's dense enough
+}
+function windowResized() { resizeCanvas(windowWidth, windowHeight); background('#080605'); frameCount=0; loop(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch A: Optical Slit-Scan</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #000; }</style>
+</head>
+<body>
+  <script>
+    let video;
+    let x = 0;
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      video = createCapture(VIDEO);
+      video.size(windowHeight * (4/3), windowHeight);
+      video.hide();
+      background(0);
+    }
+    function draw() {
+      if (video.loadedmetadata) {
+        let w = video.width;
+        let h = video.height;
+        // copy a thin slice from the center of the video
+        copy(video, w/2, 0, 1, h, x, 0, 1, h);
+        x++;
+        if (x > width) {
+          x = 0;
+        }
+      }
+    }
+  </script>
+</body>
+</html>

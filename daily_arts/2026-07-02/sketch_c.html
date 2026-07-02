@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Brutalist Generative Fog</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Archivo+Black&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000000;
+      --fg: #ffffff;
+      --grey: #888888;
+    }
+    body, html {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+    }
+    .layout-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      box-sizing: border-box;
+      padding: 2vw;
+    }
+    
+    /* Top 65% - 3D/Visual Space */
+    .visual-zone {
+      flex: 0 0 60%;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+    }
+    
+    /* p5 canvas container */
+    #canvas-container {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 1;
+    }
+
+    /* UI Overlays in Visual Zone */
+    .ui-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+    
+    /* Bounding Box Simulation */
+    .bounding-box {
+      position: absolute;
+      top: 20%; left: 30%; width: 40%; height: 60%;
+      border: 1px solid var(--fg);
+    }
+    .bounding-box::before, .bounding-box::after {
+      content: ''; position: absolute; background: var(--fg);
+    }
+    .crosshair-tl { position: absolute; top: -5px; left: -5px; width: 10px; height: 10px; border-top: 1px solid var(--fg); border-left: 1px solid var(--fg); }
+    .crosshair-br { position: absolute; bottom: -5px; right: -5px; width: 10px; height: 10px; border-bottom: 1px solid var(--fg); border-right: 1px solid var(--fg); }
+    
+    .label-line {
+      position: absolute;
+      top: 20%; left: 10%; width: 20%; height: 1px;
+      background: var(--grey);
+    }
+    .label-text {
+      position: absolute;
+      top: calc(20% - 15px); left: 10%;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--grey);
+    }
+
+    .label-line-2 {
+      position: absolute;
+      bottom: 20%; right: 10%; width: 20%; height: 1px;
+      background: var(--grey);
+    }
+    .label-text-2 {
+      position: absolute;
+      bottom: calc(20% - 15px); right: 10%;
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-align: right;
+      color: var(--grey);
+      width: 20%;
+    }
+
+    /* Bottom 35% - Info Panel */
+    .info-panel {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-top: 2vw;
+    }
+    
+    .left-section {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .glitch-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 6vw;
+      line-height: 0.9;
+      margin: 0;
+      letter-spacing: -2px;
+      text-transform: uppercase;
+      transform: scale(1, -1); /* Flipped effect as per reference */
+      display: inline-block;
+    }
+    
+    .subtitle {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      margin-top: 10px;
+      text-transform: uppercase;
+    }
+    
+    .right-section {
+      display: flex;
+      gap: 4vw;
+      font-weight: 300;
+    }
+    
+    .date-large {
+      font-size: 3vw;
+      line-height: 1.1;
+      font-family: 'Archivo Black', sans-serif;
+    }
+    .date-year {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+    }
+    
+    .schedule-columns {
+      display: flex;
+      gap: 2vw;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    
+    .col-title {
+      color: var(--grey);
+      margin-bottom: 5px;
+    }
+    
+    .parentheses {
+      font-size: 3vw;
+      font-weight: 100;
+      color: var(--grey);
+      display: flex;
+      align-items: center;
+    }
+    
+    .venue-info {
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--grey);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Footer / Logos */
+    .footer {
+      height: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3vw;
+    }
+    
+    .logo-placeholder {
+      width: 15px; height: 15px;
+      background: var(--fg);
+      border-radius: 50%;
+    }
+    .logo-placeholder.square { border-radius: 0; }
+    .logo-placeholder.triangle { background: transparent; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 15px solid var(--fg); }
+  </style>
+</head>
+<body>
+  <div class="layout-container">
+    <!-- Visual Zone (Top 60-65%) -->
+    <div class="visual-zone">
+      <div id="canvas-container"></div>
+      
+      <!-- UI Overlays -->
+      <div class="ui-overlay">
+        <div class="label-text">[feeling today]</div>
+        <div class="label-line"></div>
+        
+        <div class="bounding-box">
+          <div class="crosshair-tl"></div>
+          <div class="crosshair-br"></div>
+        </div>
+        
+        <div class="label-text-2">[time is speeding up]</div>
+        <div class="label-line-2"></div>
+      </div>
+    </div>
+    
+    <!-- Info Panel (Bottom 35%) -->
+    <div class="info-panel">
+      <div class="left-section">
+        <h1 class="glitch-title">SKETCH_C</h1>
+        <p class="subtitle">GENERATIVE FOG — (exhibition)</p>
+      </div>
+      
+      <div class="right-section">
+        <div class="date-large">
+          02 — 07 JUL <br>
+          <span class="date-year">2026</span>
+        </div>
+        
+        <div class="parentheses">(</div>
+        
+        <div class="schedule-columns">
+          <div>
+            <div class="col-title">(THU)</div>
+            <div>08:00 - 12:00</div>
+          </div>
+          <div>
+            <div class="col-title">(FRI)</div>
+            <div>10:00 - 18:00</div>
+          </div>
+          <div>
+            <div class="col-title">(SAT)</div>
+            <div>12:00 - 20:00</div>
+          </div>
+        </div>
+        
+        <div class="parentheses">)</div>
+        
+        <div class="venue-info">
+          (venue) ONEZ CREATIVE WORKSPACE<br>
+          (free) DIGITAL ACCESS
+        </div>
+      </div>
+    </div>
+    
+    <!-- Footer Logos -->
+    <div class="footer">
+      <div class="logo-placeholder"></div>
+      <div class="logo-placeholder square"></div>
+      <div class="logo-placeholder triangle"></div>
+      <div class="logo-placeholder square"></div>
+      <div class="logo-placeholder"></div>
+    </div>
+  </div>
+
+  <script>
+    let t = 0;
+    function setup() {
+      let container = document.getElementById('canvas-container');
+      let canvas = createCanvas(container.offsetWidth, container.offsetHeight);
+      canvas.parent('canvas-container');
+      background(0);
+      noStroke();
+    }
+    
+    function draw() {
+      let mx = mouseX || width/2;
+      
+      // Sun / Light source (adapted for grayscale/brutalist)
+      let sunX = width * 0.5 + sin(t*0.5)*100;
+      let sunY = height * 0.5;
+      
+      blendMode(BLEND);
+      fill(0, 0, 0, 10); // Black background fade
+      rect(0, 0, width, height);
+      
+      blendMode(SCREEN);
+      // Generate monochrome fog/smoke clouds
+      for(let i = 0; i < 5; i++) {
+        let x = noise(t + i*10) * width;
+        let y = noise(t + i*20) * height;
+        let r = noise(t + i*30) * 200 + 50;
+        
+        let d = dist(x, y, sunX, sunY);
+        
+        // Monochrome palette
+        let brightness = map(d, 0, width/2, 200, 20);
+        brightness += map(mx, 0, width, -20, 20);
+        brightness = constrain(brightness, 0, 255);
+        
+        fill(brightness, brightness, brightness, 15);
+        ellipse(x, y, r, r*0.6);
+      }
+      
+      // Add brutalist grid lines
+      blendMode(BLEND);
+      stroke(255, 255, 255, 10);
+      strokeWeight(1);
+      if (frameCount % 30 === 0) {
+        line(0, random(height), width, random(height));
+        line(random(width), 0, random(width), height);
+      }
+      noStroke();
+      
+      t += 0.01;
+    }
+    
+    function windowResized() {
+      let container = document.getElementById('canvas-container');
+      resizeCanvas(container.offsetWidth, container.offsetHeight);
+      background(0);
+    }
+  </script>
+</body>
+</html>

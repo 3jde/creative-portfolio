@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <style>body { padding: 0; margin: 0; overflow: hidden; background: #f0f0f0; }</style>
+</head>
+<body>
+  <script>
+    let t = 0;
+    function setup() { createCanvas(windowWidth, windowHeight); background(240); }
+    function draw() {
+      let x = noise(t) * width;
+      let y = noise(t+5) * height;
+      noStroke();
+      fill(0, 150, 200, 10);
+      ellipse(x, y, 100, 100);
+      t += 0.01;
+    }
+  </script>
+</body>
+</html>

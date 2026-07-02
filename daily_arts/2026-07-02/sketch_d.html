@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sketch D: Techno-Organic Core</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>
+    body, html {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: #1a1c22;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    let nodes = [];
+    const NUM_NODES = 250;
+    const MAX_DIST = 100;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      background('#1a1c22');
+      
+      // Initialize nodes with a bias towards the vertical center
+      for (let i = 0; i < NUM_NODES; i++) {
+        let x = random(width);
+        let y = random(height);
+        
+        // Push particles towards the center column using a bell curve-like distribution
+        let offset = randomGaussian(0, width * 0.15);
+        x = width / 2 + offset;
+        
+        nodes.push({
+          pos: createVector(x, y),
+          basePos: createVector(x, y),
+          seed: random(1000),
+          size: random(1, 4),
+          color: calculateColor(x, width)
+        });
+      }
+    }
+    
+    // Warm colors in center, cool towards edges
+    function calculateColor(x, w) {
+      let d = abs(x - w / 2) / (w / 2); // 0 at center, 1 at edge
+      if (d < 0.3) return color(255, 204, 136, 150); // Electric Gold
+      if (d < 0.6) return color(255, 150, 100, 100); // Amber
+      return color(150, 200, 255, 60);               // Cool Grey-Blue
+    }
+
+    function draw() {
+      // Clear background with slight fade for trails
+      blendMode(BLEND);
+      background(26, 28, 34, 40); 
+
+      // Draw faint architectural scaffold grid
+      stroke(255, 255, 255, 10);
+      strokeWeight(0.5);
+      if (frameCount % 60 === 0) {
+        line(0, random(height), width, random(height));
+        line(random(width), 0, random(width), height);
+      }
+
+      blendMode(ADD);
+      
+      // Update and draw nodes
+      for (let i = 0; i < nodes.length; i++) {
+        let n = nodes[i];
+        
+        // Dynamic motion based on perlin noise
+        let nScale = 0.002;
+        let angle = noise(n.basePos.x * nScale, n.basePos.y * nScale, frameCount * 0.005 + n.seed) * TWO_PI * 4;
+        n.pos.x = n.basePos.x + cos(angle) * 30;
+        n.pos.y = n.basePos.y + sin(angle) * 30;
+        
+        // Draw connections
+        for (let j = i + 1; j < nodes.length; j++) {
+          let other = nodes[j];
+          let d = p5.Vector.dist(n.pos, other.pos);
+          
+          if (d < MAX_DIST) {
+            // Opacity falls off with distance
+            let alpha = map(d, 0, MAX_DIST, 200, 0);
+            strokeWeight(map(d, 0, MAX_DIST, 1.5, 0.1));
+            
+            // Interaction: if mouse is close, glow up
+            let mouseDist = dist(mouseX, mouseY, (n.pos.x+other.pos.x)/2, (n.pos.y+other.pos.y)/2);
+            if (mouseDist < 150) {
+              alpha += 50;
+              strokeWeight(map(d, 0, MAX_DIST, 2.5, 0.5));
+            }
+            
+            let c = lerpColor(n.color, other.color, 0.5);
+            c.setAlpha(alpha);
+            stroke(c);
+            
+            // Add slight curve to connections
+            noFill();
+            beginShape();
+            vertex(n.pos.x, n.pos.y);
+            // control point displaced by noise
+            let cpX = (n.pos.x + other.pos.x) / 2 + (noise(frameCount * 0.01 + n.seed) - 0.5) * 50;
+            let cpY = (n.pos.y + other.pos.y) / 2 + (noise(frameCount * 0.01 + other.seed) - 0.5) * 50;
+            quadraticVertex(cpX, cpY, other.pos.x, other.pos.y);
+            endShape();
+          }
+        }
+        
+        // Draw the node core
+        noStroke();
+        fill(n.color);
+        ellipse(n.pos.x, n.pos.y, n.size, n.size);
+      }
+    }
+    
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      background('#1a1c22');
+    }
+  </script>
+</body>
+</html>

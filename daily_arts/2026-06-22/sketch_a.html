@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch A: Cosmic Voids</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #000; }</style>
+</head>
+<body>
+  <script>
+    let stars = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      for(let i = 0; i < 400; i++) {
+        stars.push({
+          x: random(-width, width),
+          y: random(-height, height),
+          z: random(-2000, 0),
+          size: random(1, 4),
+          speed: random(2, 6)
+        });
+      }
+    }
+    function draw() {
+      background(0, 5);
+      orbitControl();
+      for(let s of stars) {
+        s.z += s.speed;
+        if(s.z > 0) { s.z = -2000; s.x = random(-width, width); s.y = random(-height, height); }
+        let sx = map(s.x / s.z, 0, 1, 0, width);
+        let sy = map(s.y / s.z, 0, 1, 0, height);
+        let r = map(s.z, -2000, 0, 0, 5);
+        stroke(150, 200, 255, map(s.z, -2000, 0, 50, 255));
+        strokeWeight(r);
+        point(sx, sy, s.z);
+      }
+    }
+  </script>
+</body>
+</html>

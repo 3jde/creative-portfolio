@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Wave Ripples</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #0a0a1a; }</style>
+</head>
+<body>
+  <script>
+    let pts = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      let cols = 30, rows = 20;
+      for(let i = 0; i < cols; i++) {
+        for(let j = 0; j < rows; j++) {
+          pts.push({
+            x: map(i, 0, cols-1, -width/2+50, width/2-50),
+            y: map(j, 0, rows-1, -height/2+50, height/2-50),
+            baseZ: 0,
+            ox: i, oy: j
+          });
+        }
+      }
+    }
+    function draw() {
+      background(10, 10, 30, 50);
+      noFill();
+      stroke(100, 180, 255, 100);
+      strokeWeight(1.5);
+      let mX = map(mouseX, 0, width, -1, 1);
+      let mY = map(mouseY, 0, height, -1, 1);
+      for(let p of pts) {
+        let d = dist(mX, mY, p.ox*0.05, p.oy*0.05);
+        let wave = sin(frameCount * 0.02 + p.ox * 0.3 + p.oy * 0.4) * 30;
+        let ripple = sin(d * 10 - frameCount * 0.05) * 40 / (d * 2 + 1);
+        p.z = wave + ripple;
+      }
+      beginShape(TRIANGLE_STRIP);
+      for(let i = 0; i < pts.length - 30; i++) {
+        if((i+1) % 30 !== 0) {
+          vertex(pts[i].x, pts[i].y, pts[i].z);
+          vertex(pts[i+1].x, pts[i+1].y, pts[i+1].z);
+          vertex(pts[i+30].x, pts[i+30].y, pts[i+30].z);
+        }
+      }
+      endShape();
+    }
+  </script>
+</body>
+</html>

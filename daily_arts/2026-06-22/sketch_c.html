@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Japanese Ink Garden</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #f5f0e8; }</style>
+</head>
+<body>
+  <script>
+    let lines = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      background('#f5f0e8');
+      for(let i = 0; i < 80; i++) {
+        lines.push({
+          x: random(width),
+          y: random(height),
+          len: random(30, 120),
+          angle: random(TWO_PI),
+          speed: random(0.2, 0.8),
+          weight: random(0.3, 2),
+          gray: random(40, 180)
+        });
+      }
+    }
+    function draw() {
+      background('#f5f0e8');
+      translate(width/2, height/2);
+      for(let l of lines) {
+        push();
+        translate(l.x - width/2, l.y - height/2);
+        rotate(l.angle + sin(frameCount * l.speed * 0.01) * 0.3);
+        stroke(l.gray, 200);
+        strokeWeight(l.weight);
+        let sway = sin(frameCount * l.speed * 0.02) * 10;
+        line(0, 0, l.len + sway, 0);
+        // small branch
+        stroke(l.gray, 120);
+        strokeWeight(l.weight * 0.5);
+        line(l.len * 0.6, 0, l.len * 0.8, -15 + sway * 0.3);
+        pop();
+      }
+    }
+  </script>
+</body>
+</html>

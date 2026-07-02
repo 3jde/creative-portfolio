@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Dali's Melting Time</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #26211c; }</style>
+</head>
+<body>
+  <script>
+    let t = 0;
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      strokeJoin(ROUND);
+    }
+    
+    function draw() {
+      background(38, 33, 28, 50); // slight trail
+      translate(width/2, height/2);
+      
+      let meltFactor = map(mouseY, 0, height, 0.5, 3.0);
+      let timeSpeed = map(mouseX, 0, width, -0.05, 0.05);
+      
+      noStroke();
+      fill(220, 210, 180, 200); // clock face
+      
+      beginShape();
+      for (let a = 0; a < TWO_PI; a += 0.1) {
+        // Base radius
+        let r = 150;
+        // Melting distortion based on noise and y-axis stretching
+        let nx = cos(a);
+        let ny = sin(a);
+        
+        let drop = 0;
+        if (ny > 0) { // Bottom half stretches more
+          drop = pow(ny, 2) * 100 * meltFactor * noise(nx*2, t);
+        }
+        
+        let x = r * nx + noise(nx, ny, t)*20;
+        let y = r * ny + drop;
+        vertex(x, y);
+      }
+      endShape(CLOSE);
+      
+      // Clock hands
+      stroke(20);
+      strokeWeight(4);
+      push();
+      // Hour hand
+      let hrDrop = meltFactor * 15; 
+      rotate(t * 0.5);
+      line(0, 0, 40, hrDrop);
+      pop();
+      
+      push();
+      // Minute hand
+      rotate(t * 4.0);
+      line(0, 0, 80, hrDrop*2);
+      pop();
+      
+      t += timeSpeed;
+      if (t === 0) t += 0.01;
+    }
+  </script>
+</body>
+</html>

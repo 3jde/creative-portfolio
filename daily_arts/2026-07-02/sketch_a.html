@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch A: Egon Schiele's Wireframes</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #e8dcc4; }</style>
+</head>
+<body>
+  <script>
+    let lines = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      background('#e8dcc4'); // Paper color
+      strokeWeight(1);
+    }
+    
+    function draw() {
+      // Semi-transparent fade for rough, sketchy look
+      fill(232, 220, 196, 5);
+      noStroke();
+      rect(0, 0, width, height);
+      
+      let mx = mouseX || width/2;
+      let my = mouseY || height/2;
+      
+      // Generate nervous, sharp lines towards mouse
+      for(let i=0; i<3; i++) {
+        let x1 = mx + random(-150, 150);
+        let y1 = my + random(-150, 150);
+        let x2 = x1 + random(-20, 20);
+        let y2 = y1 + random(-20, 20);
+        
+        stroke(random([color(40, 30, 25, 200), color(180, 50, 40, 150), color(50, 60, 40, 150)]));
+        line(x1, y1, x2, y2);
+        
+        // Sometimes draw a sharp jagged connection
+        if (random() > 0.8) {
+          line(x2, y2, mx + random(-50, 50), my + random(-50, 50));
+        }
+      }
+    }
+  </script>
+</body>
+</html>

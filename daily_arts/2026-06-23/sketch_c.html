@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Kinetic Typography Mirror</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #f4f4f4; }</style>
+</head>
+<body>
+  <script>
+    let video;
+    let step = 12;
+    let chars = "  .,-~:;=!*#$@";
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      video = createCapture(VIDEO);
+      video.size(width / step, height / step);
+      video.hide();
+      textFont('monospace');
+      textSize(step);
+      textAlign(CENTER, CENTER);
+    }
+
+    function draw() {
+      background(244);
+      video.loadPixels();
+      fill(20);
+      noStroke();
+      
+      for (let y = 0; y < video.height; y++) {
+        for (let x = 0; x < video.width; x++) {
+          let index = (video.width - x + 1 + (y * video.width)) * 4;
+          let r = video.pixels[index + 0];
+          let g = video.pixels[index + 1];
+          let b = video.pixels[index + 2];
+          let bright = (r + g + b) / 3;
+          
+          let charIndex = floor(map(bright, 0, 255, chars.length - 1, 0));
+          if (charIndex < 0) charIndex = 0;
+          if (charIndex >= chars.length) charIndex = chars.length - 1;
+          
+          if (chars[charIndex] !== ' ') {
+            text(chars[charIndex], x * step, y * step);
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

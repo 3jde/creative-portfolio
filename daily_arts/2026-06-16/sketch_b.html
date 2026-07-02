@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Interactive Ripple Pond</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #1a2a3a; }</style>
+</head>
+<body>
+  <script>
+    let ripples = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      noFill();
+    }
+    function draw() {
+      background(26, 42, 58, 50);
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        let r = ripples[i];
+        stroke(150, 200, 255, r.alpha);
+        strokeWeight(r.weight);
+        circle(r.x, r.y, r.size);
+        r.size += r.speed;
+        r.alpha -= 3;
+        r.weight *= 0.95;
+        if (r.alpha <= 0) ripples.splice(i, 1);
+      }
+    }
+    function mouseMoved() {
+      if (frameCount % 3 === 0) {
+        ripples.push({x: mouseX, y: mouseY, size: 0, alpha: 200, speed: 4, weight: 3});
+      }
+    }
+  </script>
+</body>
+</html>

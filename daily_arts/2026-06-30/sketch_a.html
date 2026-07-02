@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch A: Interactive Starry Night</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #0a1128; }</style>
+</head>
+<body>
+  <script>
+    let particles = [];
+    let num = 800;
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      background('#0a1128');
+      for(let i=0; i<num; i++) {
+        particles.push(new Particle());
+      }
+    }
+    function draw() {
+      fill(10, 17, 40, 10);
+      noStroke();
+      rect(0, 0, width, height);
+      for(let p of particles) {
+        p.follow();
+        p.update();
+        p.edges();
+        p.show();
+      }
+    }
+    class Particle {
+      constructor() {
+        this.pos = createVector(random(width), random(height));
+        this.vel = createVector(0, 0);
+        this.acc = createVector(0, 0);
+        this.maxspeed = 3;
+        this.color = random([color(255, 204, 0, 150), color(0, 102, 204, 150), color(153, 204, 255, 150), color(255, 255, 255, 150)]);
+      }
+      follow() {
+        let x = floor(this.pos.x / 20);
+        let y = floor(this.pos.y / 20);
+        // Flow field influenced by swirling patterns
+        let angle = noise(x * 0.05, y * 0.05, frameCount * 0.005) * TWO_PI * 4;
+        
+        // Interactive aspect: mouse creates a vortex
+        let d = dist(mouseX, mouseY, this.pos.x, this.pos.y);
+        if (d < 150) {
+          let targetAngle = atan2(this.pos.y - mouseY, this.pos.x - mouseX) + PI/2;
+          angle = lerp(angle, targetAngle, map(d, 0, 150, 1, 0));
+        }
+        
+        let dir = p5.Vector.fromAngle(angle);
+        this.acc.add(dir);
+      }
+      update() {
+        this.vel.add(this.acc);
+        this.vel.limit(this.maxspeed);
+        this.pos.add(this.vel);
+        this.acc.mult(0);
+      }
+      show() {
+        stroke(this.color);
+        strokeWeight(2);
+        point(this.pos.x, this.pos.y);
+      }
+      edges() {
+        if (this.pos.x > width) this.pos.x = 0;
+        if (this.pos.x < 0) this.pos.x = width;
+        if (this.pos.y > height) this.pos.y = 0;
+        if (this.pos.y < 0) this.pos.y = height;
+      }
+    }
+  </script>
+</body>
+</html>

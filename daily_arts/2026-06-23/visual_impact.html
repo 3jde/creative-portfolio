@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <style>body { padding: 0; margin: 0; overflow: hidden; background: #000; }</style>
+</head>
+<body>
+  <script>
+    let particles = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      for(let i=0; i<200; i++) particles.push(new Particle());
+    }
+    function draw() {
+      background(0, 50);
+      particles.forEach(p => { p.update(); p.show(); });
+    }
+    class Particle {
+      constructor() { this.pos = createVector(random(width), random(height)); this.vel = p5.Vector.random2D(); this.color = color(random(100,255), random(50,200), 255); }
+      update() { this.pos.add(this.vel); if(this.pos.x < 0 || this.pos.x > width) this.vel.x *= -1; if(this.pos.y < 0 || this.pos.y > height) this.vel.y *= -1; }
+      show() { noStroke(); fill(this.color); ellipse(this.pos.x, this.pos.y, 5); }
+    }
+  </script>
+</body>
+</html>

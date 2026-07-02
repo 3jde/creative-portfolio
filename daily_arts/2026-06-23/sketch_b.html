@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Pose Geometry</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #111; color: white; font-family: monospace; position: relative; } #status { position: absolute; top: 10px; left: 10px; }</style>
+</head>
+<body>
+  <div id="status">Loading BodyPose model...</div>
+  <script>
+    let video;
+    let bodyPose;
+    let poses = [];
+    
+    function preload() {
+      bodyPose = ml5.bodyPose();
+    }
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      video = createCapture(VIDEO);
+      video.size(width, height);
+      video.hide();
+      bodyPose.detectStart(video, gotPoses);
+    }
+
+    function gotPoses(results) {
+      poses = results;
+      document.getElementById('status').innerText = poses.length > 0 ? 'Pose detected' : 'Waiting for pose...';
+    }
+
+    function draw() {
+      background(17, 17, 17, 50);
+      
+      for (let i = 0; i < poses.length; i++) {
+        let pose = poses[i];
+        for (let j = 0; j < pose.keypoints.length; j++) {
+          let keypoint = pose.keypoints[j];
+          if (keypoint.confidence > 0.1) {
+            fill(0, 255, 100, 150);
+            noStroke();
+            circle(keypoint.x, keypoint.y, 10);
+            
+            // Connect points with lines to origin to create webbing
+            stroke(0, 150, 255, 30);
+            strokeWeight(1);
+            line(width/2, height, keypoint.x, keypoint.y);
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

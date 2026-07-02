@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: The Great Generative Wave</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #e0e5ec; }</style>
+</head>
+<body>
+  <script>
+    let t = 0;
+    let splashes = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+    }
+    function draw() {
+      background('#e8eedd');
+      noStroke();
+      
+      // Draw background wave layers
+      for (let i = 0; i < 3; i++) {
+        fill(10 + i*20, 50 + i*40, 120 + i*40, 180);
+        beginShape();
+        vertex(0, height);
+        for (let x = 0; x <= width; x += 10) {
+          let y = height * 0.6 + i * 50 - noise(x * 0.005 + t + i) * 300 * sin(PI * x / width);
+          vertex(x, y);
+        }
+        vertex(width, height);
+        endShape(CLOSE);
+      }
+      t += 0.02;
+
+      // Mouse interaction -> splashing foam particles
+      if (mouseIsPressed || (pmouseX !== mouseX || pmouseY !== mouseY)) {
+        splashes.push({x: mouseX, y: mouseY, vx: random(-2, 2), vy: random(-5, -1), life: 255});
+      }
+
+      for (let i = splashes.length - 1; i >= 0; i--) {
+        let p = splashes[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.2; // gravity
+        p.life -= 5;
+        fill(255, 255, 255, p.life);
+        circle(p.x, p.y, random(2, 6));
+        if (p.life < 0) splashes.splice(i, 1);
+      }
+    }
+  </script>
+</body>
+</html>

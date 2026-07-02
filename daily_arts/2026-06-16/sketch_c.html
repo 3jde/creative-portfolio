@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Generative O'Keeffe Flora</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #fdfbf7; }</style>
+</head>
+<body>
+  <script>
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      background('#fdfbf7');
+      noLoop();
+      drawFlower(width/2, height/2, min(width,height)*0.3);
+    }
+    function drawFlower(cx, cy, maxR) {
+      noStroke();
+      for(let r = maxR; r > 10; r -= 2) {
+        let n = noise(r * 0.05);
+        let c = lerpColor(color('#e8a598'), color('#a1c4fd'), r/maxR);
+        c.setAlpha(150);
+        fill(c);
+        beginShape();
+        for(let a = 0; a < TWO_PI; a += 0.05) {
+          let offset = map(noise(cos(a)*2, sin(a)*2, r*0.01), 0, 1, -20, 20);
+          let x = cx + (r + offset) * cos(a);
+          let y = cy + (r + offset) * sin(a);
+          vertex(x, y);
+        }
+        endShape(CLOSE);
+      }
+      fill('#f3d250');
+      circle(cx, cy, maxR * 0.15);
+    }
+    function mousePressed() {
+      background('#fdfbf7');
+      drawFlower(mouseX, mouseY, random(100, min(width,height)*0.4));
+    }
+  </script>
+</body>
+</html>

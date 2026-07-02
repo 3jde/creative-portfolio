@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Langton's Abstract</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #1a1a1a; }</style>
+</head>
+<body>
+  <script>
+    let grid;
+    let x, y;
+    let dir;
+    let res = 5;
+    let cols, rows;
+    
+    let ANTUP = 0;
+    let ANTRIGHT = 1;
+    let ANTDOWN = 2;
+    let ANTLEFT = 3;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      cols = width / res;
+      rows = height / res;
+      grid = new Array(cols);
+      for (let i = 0; i < cols; i++) {
+        grid[i] = new Array(rows).fill(0);
+      }
+      x = floor(cols / 2);
+      y = floor(rows / 2);
+      dir = ANTUP;
+      background(26);
+    }
+    
+    function draw() {
+      for (let n = 0; n < 100; n++) {
+        let state = grid[x][y];
+        if (state == 0) {
+          dir = (dir + 1) % 4;
+          grid[x][y] = 1;
+          fill(255, 100, 150, 150);
+        } else {
+          dir = (dir + 3) % 4;
+          grid[x][y] = 0;
+          fill(50, 200, 255, 150);
+        }
+        
+        noStroke();
+        rect(x * res, y * res, res, res);
+        
+        if (dir == ANTUP) y--;
+        else if (dir == ANTRIGHT) x++;
+        else if (dir == ANTDOWN) y++;
+        else if (dir == ANTLEFT) x--;
+        
+        x = (x + cols) % cols;
+        y = (y + rows) % rows;
+      }
+      
+      fill(26, 2);
+      rect(0, 0, width, height); // fade trail
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Magnetic Flow Grid</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #1a1b26; }</style>
+</head>
+<body>
+  <script>
+    let spacing = 30;
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+    }
+
+    function draw() {
+      background('#1a1b26');
+      
+      let mX = constrain(mouseX, 0, width);
+      let mY = constrain(mouseY, 0, height);
+      
+      for (let x = spacing/2; x < width; x += spacing) {
+        for (let y = spacing/2; y < height; y += spacing) {
+          let d = dist(mX, mY, x, y);
+          let angle = atan2(mY - y, mX - x);
+          
+          // Elements point towards the mouse, but flip if too close
+          if (d < 150) {
+            angle += PI; 
+          }
+          
+          let len = map(d, 0, 300, 15, 5);
+          len = constrain(len, 5, 15);
+          
+          push();
+          translate(x, y);
+          rotate(angle);
+          
+          let c = lerpColor(color('#f7768e'), color('#7aa2f7'), constrain(d/300, 0, 1));
+          stroke(c);
+          strokeWeight(2);
+          
+          line(-len, 0, len, 0);
+          // arrowhead
+          line(len, 0, len - 4, -4);
+          line(len, 0, len - 4, 4);
+          
+          pop();
+        }
+      }
+    }
+  </script>
+</body>
+</html>

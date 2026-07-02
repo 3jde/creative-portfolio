@@ -40,7 +40,7 @@ interactive_arts/2026-06-18-new-game/index.html
 
 ## 封面截图规则
 
-每个发布作品都应该有一张封面：
+每个发布作品都必须有一张基于真实运行画面的截图作为封面：
 
 ```text
 assets/covers/<id>.png
@@ -72,6 +72,6 @@ cover: "assets/covers/other-name.png",
 
 - 精选作品保持在 6 到 10 个以内。
 - 每个作品都写清楚 `format`、`description` 和 3 到 5 个 `tags`。
-- 每个发布作品都保留一张 `assets/covers/<id>.png` 封面。
+- 每个发布作品都保留一张 `assets/covers/<id>.png` 封面（必须为作品真实截图）。
 - 不成熟作品先保留文件，但设为 `published: false`。
 - 旧的 `daily_arts`、`public/interactive_arts`、`sketches` 可以暂时保留，等确认没有引用后再统一迁移。

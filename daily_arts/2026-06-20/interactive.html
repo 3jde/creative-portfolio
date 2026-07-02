@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Klimt's Embrace - Interactive</title>
+  <style>body { margin: 0; overflow: hidden; background-color: #1a1510; }</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+</head>
+<body>
+<script>
+let shapes = [];
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  for(let i=0; i<300; i++) {
+    shapes.push(new Shape(random(width), random(height)));
+  }
+}
+
+function draw() {
+  background('#1a1510');
+  let targetX = mouseX || width/2;
+  let targetY = mouseY || height/2;
+  
+  for(let s of shapes) {
+    if(mouseIsPressed) {
+      // Magnetic pull to center
+      let force = createVector(targetX - s.pos.x, targetY - s.pos.y);
+      force.setMag(0.5);
+      s.vel.add(force);
+    } else {
+      // Gentle drift and repel from mouse slightly
+      let d = dist(targetX, targetY, s.pos.x, s.pos.y);
+      if(d < 150) {
+        let force = createVector(s.pos.x - targetX, s.pos.y - targetY);
+        force.setMag(0.2);
+        s.vel.add(force);
+      }
+    }
+    s.update();
+    s.display();
+  }
+}
+
+class Shape {
+  constructor(x, y) {
+    this.pos = createVector(x, y);
+    this.vel = p5.Vector.random2D();
+    this.type = random() > 0.5 ? 'rect' : 'circle';
+    this.w = random(5, 25);
+    this.h = this.type === 'rect' ? random(10, 30) : this.w;
+    this.col = random() > 0.4 ? color(218, 165, 32, 200) : (random() > 0.5 ? color(100, 100, 100, 150) : color(200, 50, 50, 150));
+    this.angle = random(TWO_PI);
+  }
+  update() {
+    this.vel.mult(0.92); // Friction
+    this.pos.add(this.vel);
+    
+    // Boundary wrap
+    if(this.pos.x < 0) this.pos.x = width;
+    if(this.pos.x > width) this.pos.x = 0;
+    if(this.pos.y < 0) this.pos.y = height;
+    if(this.pos.y > height) this.pos.y = 0;
+  }
+  display() {
+    push();
+    translate(this.pos.x, this.pos.y);
+    rotate(this.angle + this.vel.heading()*0.1);
+    noStroke();
+    fill(this.col);
+    if(this.type === 'rect') {
+      rectMode(CENTER);
+      rect(0, 0, this.w, this.h);
+    } else {
+      circle(0, 0, this.w);
+    }
+    pop();
+  }
+}
+function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+</script>
+</body>
+</html>

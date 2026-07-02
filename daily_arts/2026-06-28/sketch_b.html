@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Interactive L-System</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #e0e5ec; }</style>
+</head>
+<body>
+  <script>
+    let angle;
+    let len = 100;
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+    }
+    
+    function draw() {
+      background('#e0e5ec');
+      let mX = constrain(mouseX, 0, width);
+      let mY = constrain(mouseY, 0, height);
+      angle = map(mX, 0, width, 0, PI);
+      len = map(mY, height, 0, 10, 150);
+      
+      translate(width / 2, height);
+      stroke(40, 60, 50, 200);
+      branch(len, 10);
+    }
+    
+    function branch(len, depth) {
+      strokeWeight(depth * 0.5);
+      line(0, 0, 0, -len);
+      translate(0, -len);
+      if (len > 4) {
+        push();
+        rotate(angle + noise(frameCount*0.01 + depth)*0.1);
+        branch(len * 0.67, depth - 1);
+        pop();
+        
+        push();
+        rotate(-angle - noise(frameCount*0.02 + depth)*0.1);
+        branch(len * 0.67, depth - 1);
+        pop();
+      }
+    }
+  </script>
+</body>
+</html>

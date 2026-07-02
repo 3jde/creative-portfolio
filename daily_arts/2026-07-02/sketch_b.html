@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Mondrian's Audio Visualizer (Mock)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #f4f4f4; }</style>
+</head>
+<body>
+  <script>
+    let grid = [];
+    let cols = 8;
+    let rows = 6;
+    let w, h;
+    let palette = ['#e63946', '#f1faee', '#a8dadc', '#457b9d', '#1d3557', '#ffd166', '#06d6a0'];
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      w = width / cols;
+      h = height / rows;
+      for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+          grid.push({
+            x: i * w, y: j * h,
+            c: '#ffffff',
+            targetC: '#ffffff',
+            lastChange: random(100)
+          });
+        }
+      }
+    }
+    
+    function draw() {
+      background(240);
+      stroke(20);
+      strokeWeight(8);
+      
+      let mx = mouseX;
+      let my = mouseY;
+      
+      for (let cell of grid) {
+        // Mock audio/interaction reactivity
+        let d = dist(mx, my, cell.x + w/2, cell.y + h/2);
+        if (d < 200 && frameCount - cell.lastChange > 20) {
+          cell.targetC = random(palette);
+          cell.lastChange = frameCount;
+        } else if (frameCount - cell.lastChange > 60) {
+           if(random()>0.95) cell.targetC = '#ffffff';
+        }
+        
+        fill(cell.targetC);
+        rect(cell.x, cell.y, w, h);
+      }
+    }
+  </script>
+</body>
+</html>

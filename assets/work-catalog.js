@@ -1,5 +1,47 @@
 window.ONEZ_WORKS = [
   {
+    id: "gen-260702-e",
+    title: "Techwear Cyber-Industrial <span class=\"zh\">赛博机能</span>",
+    date: "2026-07-02",
+    section: "generative",
+    format: "Dynamic poster",
+    url: "generative/gen-260702-e.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "amber",
+    description: "A generative cyber-industrial poster with fixed-ratio artboard, brutalist grid, neon flow fields, and kinetic polygon armor. <span class=\"zh\">具有固定比例画板、粗野主义网格、霓虹流场与动力学多边形装甲的生成式赛博机能海报。</span>",
+    tags: ["Generative", "Cyber-Industrial", "Flow Field", "Brutalist"],
+    cover: "assets/covers/gen-260702-e.png"
+  },
+  {
+    id: "gen-260702-d",
+    title: "Techno-Organic Core <span class=\"zh\">赛博有机核心</span>",
+    date: "2026-07-02",
+    section: "generative",
+    format: "Particle network",
+    url: "generative/gen-260702-d.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "cyan",
+    description: "A dynamic techno-organic network where fluid neural-like connections blend with rigid architectural grids, accented by additive blending glows. <span class=\"zh\">流体神经状连线与刚性建筑网格交织的赛博有机网络，带有加法混合发光效果。</span>",
+    tags: ["Generative", "Network", "Techno-Organic", "Particles"],
+    cover: "assets/covers/gen-260702-d.png"
+  },
+  {
+    id: "gen-260702-c",
+    title: "Brutalist Generative Fog <span class=\"zh\">粗野生成迷雾</span>",
+    date: "2026-07-02",
+    section: "generative",
+    format: "Generative layout",
+    url: "generative/gen-260702-c.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "pink",
+    description: "A minimalist brutalist design separating generative fog from a rigid 2D typography UI, recreating a spatial cyber aesthetic. <span class=\"zh\">将生成雾与刚性2D排版UI分离的极简粗野主义设计，重现空间赛博美学。</span>",
+    tags: ["Generative", "Brutalist", "Layout", "Typography"],
+    cover: "assets/covers/gen-260702-c.png"
+  },
+  {
     id: "elastic-tension",
     title: "Elastic Tension <span class=\"zh\">弹性张力</span>",
     date: "2026-06-30",

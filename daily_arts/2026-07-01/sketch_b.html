@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Seurat's Flocking Pointillism</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #fff5e6; }</style>
+</head>
+<body>
+  <script>
+    let dots = [];
+    let palette = ['#e63946', '#f1faee', '#a8dadc', '#457b9d', '#1d3557', '#ffd166', '#06d6a0'];
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      for(let i=0; i<600; i++) {
+        dots.push({
+          x: random(width), y: random(height),
+          vx: random(-1, 1), vy: random(-1, 1),
+          c: random(palette),
+          targetX: random(width), targetY: random(height)
+        });
+      }
+      background('#fff5e6');
+    }
+    
+    function draw() {
+      background(255, 245, 230, 20); // semi-transparent for smeared pointillism
+      noStroke();
+      
+      let mX = mouseX; let mY = mouseY;
+      
+      for(let d of dots) {
+        // Flocking / wandering behavior
+        if(frameCount % 100 === 0) {
+          d.targetX = d.x + random(-100, 100);
+          d.targetY = d.y + random(-100, 100);
+        }
+        
+        // If mouse pressed, attract to mouse
+        if(mouseIsPressed) {
+          d.targetX = mX;
+          d.targetY = mY;
+        }
+        
+        d.vx += (d.targetX - d.x) * 0.001;
+        d.vy += (d.targetY - d.y) * 0.001;
+        
+        // Friction
+        d.vx *= 0.95;
+        d.vy *= 0.95;
+        
+        d.x += d.vx;
+        d.y += d.vy;
+        
+        fill(d.c);
+        circle(d.x, d.y, random(3, 8)); // brush stroke sizes vary
+      }
+    }
+  </script>
+</body>
+</html>
