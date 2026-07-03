@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<title>Sphere Lifecycle</title>
+<style>
+  html, body { margin:0; padding:0; overflow:hidden; background:#f1f0ec; }
+  #canvas-wrap { width:100vw; height:100vh; cursor:grab; }
+  #canvas-wrap:active { cursor:grabbing; }
+  #hint {
+    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size:13px; color:#7a7a76; letter-spacing:0.02em;
+    pointer-events:none; opacity:0.85;
+  }
+</style>
+</head>
+<body>
+<div id="canvas-wrap"></div>
+<div id="hint">悬浮球群 · 生长-收缩循环 · 拖拽旋转 · 滚轮缩放</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function() {
+  const mount = document.getElementById('canvas-wrap');
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  // ---------- Scene / Camera / Renderer ----------
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
+  scene.fog = new THREE.Fog(0xffffff, 22, 40);
+
+  const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+  let camDist = 16;
+  camera.position.set(0, 6.5, camDist);
+  camera.lookAt(0, 6, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  mount.appendChild(renderer.domElement);
+
+  // ---------- Lights ----------
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const key = new THREE.DirectionalLight(0xffffff, 1.05);
+  key.position.set(6, 14, 8);
+  key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.camera.left = -10;
+  key.shadow.camera.right = 10;
+  key.shadow.camera.top = 12;
+  key.shadow.camera.bottom = 0;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xbfd4ff, 0.35);
+  fill.position.set(-6, 5, -4);
+  scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.4);
+  rim.position.set(-3, 7, -8);
+  scene.add(rim);
+
+  // ---------- Floor (soft, near-white shadow catcher) ----------
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(80, 80),
+    new THREE.ShadowMaterial({ opacity: 0.12 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = 0;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // ---------- Floating sphere lifecycle system ----------
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const N = 380;
+  const CENTER = new THREE.Vector3(0, 6.2, -0.6);
+  const BOUND = { xMin: -4.6, xMax: 4.6, yMin: 2.2, yMax: 10.6, zMin: -3.6, zMax: 2.0 };
+  const ATTRACT_K = 0.55;
+  const JITTER = 1.4;
+  const MAX_SPEED = 1.6;
+  const DAMPING = 0.985;
+
+  // color gradient steps: blue -> white (used only near death for blue spheres)
+  const STEPS = 6;
+  const blueColor = new THREE.Color(0x1c3bff);
+  const whiteColor = new THREE.Color(0xffffff);
+  const stepColors = [];
+  for (let s = 0; s < STEPS; s++) {
+    const c = blueColor.clone().lerp(whiteColor, s / (STEPS - 1));
+    stepColors.push(c);
+  }
+
+  const sphereGeo = new THREE.SphereGeometry(1, 12, 12);
+  const blackMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.35, metalness: 0.15 });
+  const blackMesh = new THREE.InstancedMesh(sphereGeo, blackMat, N);
+  blackMesh.castShadow = true; blackMesh.receiveShadow = true;
+  group.add(blackMesh);
+
+  const stepMeshes = [];
+  for (let s = 0; s < STEPS; s++) {
+    const emissiveAmt = 0.28 * (1 - s / (STEPS - 1)); // fades out as it turns white
+    const mat = new THREE.MeshStandardMaterial({
+      color: stepColors[s], roughness: 0.28, metalness: 0.18,
+      emissive: stepColors[s].clone().multiplyScalar(0.35), emissiveIntensity: emissiveAmt,
+    });
+    const mesh = new THREE.InstancedMesh(sphereGeo, mat, N);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    group.add(mesh);
+    stepMeshes.push(mesh);
+  }
+
+  function smoothstep(e0, e1, x) {
+    const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+    return t * t * (3 - 2 * t);
+  }
+
+  // per-sphere state
+  const posX = new Float32Array(N), posY = new Float32Array(N), posZ = new Float32Array(N);
+  const velX = new Float32Array(N), velY = new Float32Array(N), velZ = new Float32Array(N);
+  const baseR = new Float32Array(N);
+  const age = new Float32Array(N);
+  const maxAge = new Float32Array(N);
+  const isBlue = new Uint8Array(N);
+  const curScale = new Float32Array(N);
+
+  function randRange(a, b) { return a + Math.random() * (b - a); }
+
+  function birth(i, staggered) {
+    posX[i] = randRange(BOUND.xMin * 0.6, BOUND.xMax * 0.6);
+    posY[i] = randRange(BOUND.yMin + 1, BOUND.yMax - 1);
+    posZ[i] = randRange(BOUND.zMin + 0.5, BOUND.zMax - 0.5);
+    velX[i] = randRange(-0.4, 0.4);
+    velY[i] = randRange(-0.4, 0.4);
+    velZ[i] = randRange(-0.4, 0.4);
+    baseR[i] = randRange(0.22, 0.55);
+    maxAge[i] = randRange(3.5, 8.0);
+    age[i] = staggered ? Math.random() * maxAge[i] : 0;
+    isBlue[i] = Math.random() < 0.28 ? 1 : 0;
+  }
+
+  for (let i = 0; i < N; i++) birth(i, true);
+
+  const CELL = 1.1;
+  const grid = new Map();
+  function cellKey(cx, cy, cz) { return cx + ',' + cy + ',' + cz; }
+
+  function step(dt) {
+    for (let i = 0; i < N; i++) {
+      age[i] += dt;
+      if (age[i] >= maxAge[i]) {
+        birth(i, false);
+        continue;
+      }
+      const t = age[i] / maxAge[i];
+      // grow (0->1) then shrink (1->0) smoothly
+      curScale[i] = Math.sin(Math.PI * t);
+
+      // gentle attraction toward center + random jitter, no gravity
+      const dxc = CENTER.x - posX[i], dyc = CENTER.y - posY[i], dzc = CENTER.z - posZ[i];
+      velX[i] += dxc * ATTRACT_K * dt + (Math.random() - 0.5) * JITTER * dt;
+      velY[i] += dyc * ATTRACT_K * dt + (Math.random() - 0.5) * JITTER * dt;
+      velZ[i] += dzc * ATTRACT_K * dt + (Math.random() - 0.5) * JITTER * dt;
+
+      velX[i] *= DAMPING; velY[i] *= DAMPING; velZ[i] *= DAMPING;
+      const sp = Math.sqrt(velX[i] * velX[i] + velY[i] * velY[i] + velZ[i] * velZ[i]);
+      if (sp > MAX_SPEED) {
+        const f = MAX_SPEED / sp;
+        velX[i] *= f; velY[i] *= f; velZ[i] *= f;
+      }
+
+      posX[i] += velX[i] * dt;
+      posY[i] += velY[i] * dt;
+      posZ[i] += velZ[i] * dt;
+
+      // soft bounds
+      if (posX[i] < BOUND.xMin) { posX[i] = BOUND.xMin; velX[i] = Math.abs(velX[i]) * 0.5; }
+      if (posX[i] > BOUND.xMax) { posX[i] = BOUND.xMax; velX[i] = -Math.abs(velX[i]) * 0.5; }
+      if (posY[i] < BOUND.yMin) { posY[i] = BOUND.yMin; velY[i] = Math.abs(velY[i]) * 0.5; }
+      if (posY[i] > BOUND.yMax) { posY[i] = BOUND.yMax; velY[i] = -Math.abs(velY[i]) * 0.5; }
+      if (posZ[i] < BOUND.zMin) { posZ[i] = BOUND.zMin; velZ[i] = Math.abs(velZ[i]) * 0.5; }
+      if (posZ[i] > BOUND.zMax) { posZ[i] = BOUND.zMax; velZ[i] = -Math.abs(velZ[i]) * 0.5; }
+    }
+
+    // spatial hash collision using current (animated) radii
+    grid.clear();
+    for (let i = 0; i < N; i++) {
+      const cx = Math.floor(posX[i] / CELL), cy = Math.floor(posY[i] / CELL), cz = Math.floor(posZ[i] / CELL);
+      const k = cellKey(cx, cy, cz);
+      let arr = grid.get(k);
+      if (!arr) { arr = []; grid.set(k, arr); }
+      arr.push(i);
+    }
+
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 0; i < N; i++) {
+        const ri = baseR[i] * curScale[i];
+        if (ri < 0.01) continue;
+        const cx = Math.floor(posX[i] / CELL), cy = Math.floor(posY[i] / CELL), cz = Math.floor(posZ[i] / CELL);
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dz = -1; dz <= 1; dz++) {
+              const arr = grid.get(cellKey(cx + dx, cy + dy, cz + dz));
+              if (!arr) continue;
+              for (let n = 0; n < arr.length; n++) {
+                const j = arr[n];
+                if (j <= i) continue;
+                const rj = baseR[j] * curScale[j];
+                if (rj < 0.01) continue;
+                const ddx = posX[j] - posX[i], ddy = posY[j] - posY[i], ddz = posZ[j] - posZ[i];
+                const distSq = ddx * ddx + ddy * ddy + ddz * ddz;
+                const minDist = ri + rj;
+                if (distSq < minDist * minDist && distSq > 0.0001) {
+                  const dist = Math.sqrt(distSq);
+                  const overlap = (minDist - dist) * 0.5;
+                  const nx = ddx / dist, ny = ddy / dist, nz = ddz / dist;
+                  posX[i] -= nx * overlap; posY[i] -= ny * overlap; posZ[i] -= nz * overlap;
+                  posX[j] += nx * overlap; posY[j] += ny * overlap; posZ[j] += nz * overlap;
+                  const rvx = velX[j] - velX[i], rvy = velY[j] - velY[i], rvz = velZ[j] - velZ[i];
+                  const relN = rvx * nx + rvy * ny + rvz * nz;
+                  if (relN < 0) {
+                    const imp = relN * 0.5;
+                    velX[i] += nx * imp; velY[i] += ny * imp; velZ[i] += nz * imp;
+                    velX[j] -= nx * imp; velY[j] -= ny * imp; velZ[j] -= nz * imp;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const dummy = new THREE.Object3D();
+  function updateInstances() {
+    let ki = 0;
+    const stepCounts = new Array(STEPS).fill(0);
+    for (let i = 0; i < N; i++) {
+      const r = baseR[i] * curScale[i];
+      if (r < 0.01) continue;
+      dummy.position.set(posX[i], posY[i], posZ[i]);
+      dummy.scale.setScalar(r);
+      dummy.rotation.set(0, 0, 0);
+      dummy.updateMatrix();
+
+      if (!isBlue[i]) {
+        blackMesh.setMatrixAt(ki++, dummy.matrix);
+      } else {
+        const t = age[i] / maxAge[i];
+        const fade = smoothstep(0.62, 1.0, t); // 0=blue .. 1=white near death
+        let s = Math.round(fade * (STEPS - 1));
+        if (s < 0) s = 0; if (s > STEPS - 1) s = STEPS - 1;
+        const idx = stepCounts[s]++;
+        stepMeshes[s].setMatrixAt(idx, dummy.matrix);
+      }
+    }
+    blackMesh.count = ki;
+    blackMesh.instanceMatrix.needsUpdate = true;
+    for (let s = 0; s < STEPS; s++) {
+      stepMeshes[s].count = stepCounts[s];
+      stepMeshes[s].instanceMatrix.needsUpdate = true;
+    }
+  }
+
+  // ---------- Interaction ----------
+  let targetRotY = 0, currentRotY = 0;
+  let targetRotX = 0, currentRotX = 0;
+  let isDragging = false;
+  let lastX = 0, lastY = 0;
+  let dragRotY = 0, dragRotX = 0;
+
+  window.addEventListener('mousemove', function(e) {
+    if (isDragging) {
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      dragRotY += dx * 0.005;
+      dragRotX += dy * 0.003;
+      dragRotX = Math.max(-0.4, Math.min(0.4, dragRotX));
+      lastX = e.clientX; lastY = e.clientY;
+    } else {
+      const nx = e.clientX / width - 0.5, ny = e.clientY / height - 0.5;
+      targetRotY = nx * 0.6;
+      targetRotX = ny * 0.12;
+    }
+  });
+  window.addEventListener('mousedown', function(e) { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+  window.addEventListener('mouseup', function() { isDragging = false; });
+  window.addEventListener('wheel', function(e) {
+    camDist += e.deltaY * 0.01;
+    camDist = Math.max(8, Math.min(30, camDist));
+  }, { passive: true });
+  window.addEventListener('touchstart', function(e) { isDragging = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; }, { passive: true });
+  window.addEventListener('touchmove', function(e) {
+    const dx = e.touches[0].clientX - lastX, dy = e.touches[0].clientY - lastY;
+    dragRotY += dx * 0.005;
+    dragRotX += dy * 0.003;
+    dragRotX = Math.max(-0.4, Math.min(0.4, dragRotX));
+    lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  }, { passive: true });
+  window.addEventListener('touchend', function() { isDragging = false; });
+
+  // ---------- Main loop ----------
+  const clock = new THREE.Clock();
+  function animate() {
+    const dt = Math.min(clock.getDelta(), 1 / 30);
+    step(dt);
+    updateInstances();
+
+    currentRotY += (targetRotY + dragRotY - currentRotY) * 0.06;
+    currentRotX += (targetRotX + dragRotX - currentRotX) * 0.06;
+    group.rotation.y = currentRotY;
+    group.rotation.x = currentRotX;
+
+    camera.position.set(0, 6.5, camDist);
+    camera.lookAt(0, 6, 0);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+  animate();
+
+  window.addEventListener('resize', function() {
+    const w = window.innerWidth, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+})();
+</script>
+</body>
+</html>

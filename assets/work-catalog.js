@@ -1,5 +1,19 @@
 window.ONEZ_WORKS = [
   {
+    id: "gen-260703-sphere",
+    title: "Sphere Lifecycle <span class=\"zh\">悬浮球群</span>",
+    date: "2026-07-03",
+    section: "generative",
+    format: "Interactive WebGL",
+    url: "generative/gen-260703-sphere.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "cyan",
+    description: "A floating sphere lifecycle system with smooth step color gradients, spatial hashing collision, and drag-and-drop rotation. <span class=\"zh\">具有平滑颜色渐变、空间哈希碰撞和拖拽旋转的悬浮球群生长-收缩循环系统。</span>",
+    tags: ["Generative", "WebGL", "Interactive", "3D"],
+    cover: "assets/covers/gen-260703-sphere.png"
+  },
+  {
     id: "gen-260702-e",
     title: "Techwear Cyber-Industrial <span class=\"zh\">赛博机能</span>",
     date: "2026-07-02",
