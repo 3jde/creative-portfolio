@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON WEAVE | ONE ZEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+    :root { --neon: #ccff00; --bg: #000000; --danger: #ff003c; }
+    body { background-color: var(--bg); color: var(--neon); font-family: 'Space Mono', monospace; overflow: hidden; height: 100vh; width: 100vw; display: flex; flex-direction: column; }
+    
+    #game-container { position: relative; flex-grow: 1; display: flex; justify-content: center; align-items: center; }
+    canvas { background-color: var(--bg); display: block; }
+    
+    .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; z-index: 5; }
+    
+    .header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .title { font-family: 'VT323', monospace; font-size: 2.5rem; line-height: 1; text-shadow: 0 0 10px var(--neon); }
+    .score-container { text-align: right; }
+    .score-label { font-size: 0.8rem; opacity: 0.8; }
+    .score-value { font-family: 'VT323', monospace; font-size: 3rem; line-height: 1; text-shadow: 0 0 10px var(--neon); }
+    
+    .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 10; transition: opacity 0.3s; }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+    .game-over-title { font-family: 'VT323', monospace; font-size: 5rem; color: var(--danger); text-shadow: 0 0 20px var(--danger); margin-bottom: 20px; text-align: center;}
+    .instruction { margin-bottom: 40px; text-align: center; max-width: 320px; line-height: 1.5; font-size: 0.9rem; }
+    
+    button { background: transparent; border: 2px solid var(--neon); color: var(--neon); font-family: 'Space Mono', monospace; font-size: 1.2rem; padding: 10px 20px; cursor: pointer; text-transform: uppercase; transition: all 0.2s; box-shadow: 0 0 10px rgba(204, 255, 0, 0.3); }
+    button:hover, button:active { background: var(--neon); color: var(--bg); box-shadow: 0 0 20px var(--neon); }
+    
+    .controls-hint { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 40px; opacity: 0.5; font-size: 0.8rem; pointer-events: none; }
+    .back-btn { position: absolute; top: 20px; left: 20px; color: var(--neon); text-decoration: none; font-size: 1rem; border-bottom: 1px dashed var(--neon); pointer-events: auto; z-index: 20; }
+    
+    @media (max-width: 600px) {
+      .title { margin-left: 0 !important; text-align: center; font-size: 2rem; margin-top: 40px; }
+      .header { flex-direction: column; align-items: center; gap: 10px; }
+      .controls-hint { font-size: 0.7rem; padding: 0 10px; }
+    }
+  </style>
+</head>
+<body>
+  <a href="../games.html" class="back-btn">&lt; BACK</a>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="ui-layer">
+      <div class="header">
+        <div class="title" style="margin-left: 60px;">NEON WEAVE</div>
+        <div class="score-container">
+          <div class="score-label">TIME SURVIVED</div>
+          <div class="score-value" id="scoreValue">0.00</div>
+        </div>
+      </div>
+      
+      <div class="controls-hint" id="hints">
+        <div>&lt; TAP LEFT TO SPIN CCW</div>
+        <div>TAP RIGHT TO SPIN CW &gt;</div>
+      </div>
+    </div>
+    
+    <div class="overlay" id="startOverlay">
+      <div class="game-over-title" style="color: var(--neon); text-shadow: 0 0 20px var(--neon);">NEON WEAVE</div>
+      <div class="instruction">Tap LEFT side of screen to spin counter-clockwise. Tap RIGHT side to spin clockwise. Dodge the closing walls.</div>
+      <button id="startBtn">START SYSTEM</button>
+    </div>
+    
+    <div class="overlay hidden" id="gameOverOverlay">
+      <div class="game-over-title">CRITICAL HIT</div>
+      <div class="instruction">Final Time: <span id="finalScore">0.00</span>s</div>
+      <button id="restartBtn">REBOOT</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreValue = document.getElementById('scoreValue');
+    const startOverlay = document.getElementById('startOverlay');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const hints = document.getElementById('hints');
+    
+    let width, height, cx, cy;
+    let gameState = 'START';
+    let score = 0;
+    let lastTime = 0;
+    let gameSpeed = 1;
+    let shakeIntensity = 0;
+    
+    const playerRadius = 70;
+    let playerAngle = Math.PI / 2;
+    let playerSize = 6;
+    let playerDir = 0;
+    const playerSpeed = 0.08;
+    
+    let obstacles = [];
+    let spawnTimer = 0;
+    let spawnInterval = 1500;
+    
+    let particles = [];
+    
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      cx = width / 2;
+      cy = height / 2;
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    let leftPointerDown = false;
+    let rightPointerDown = false;
+    
+    function updateInput() {
+      if (leftPointerDown && !rightPointerDown) playerDir = -1;
+      else if (rightPointerDown && !leftPointerDown) playerDir = 1;
+      else playerDir = 0;
+    }
+    
+    function handlePointerDown(e) {
+      if (gameState !== 'PLAYING') return;
+      if (e.clientX < width / 2) leftPointerDown = true;
+      else rightPointerDown = true;
+      updateInput();
+      hints.style.opacity = '0.1';
+    }
+    
+    function handlePointerUp(e) {
+      if (e.clientX < width / 2) leftPointerDown = false;
+      else rightPointerDown = false;
+      updateInput();
+    }
+    
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+    
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') leftPointerDown = true;
+      if (e.key === 'ArrowRight' || e.key === 'd') rightPointerDown = true;
+      updateInput();
+      hints.style.opacity = '0.1';
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') leftPointerDown = false;
+      if (e.key === 'ArrowRight' || e.key === 'd') rightPointerDown = false;
+      updateInput();
+    });
+    
+    function createObstacle() {
+      const gapSize = Math.PI * (0.35 + Math.random() * 0.45);
+      const gapStart = Math.random() * Math.PI * 2;
+      
+      obstacles.push({
+        radius: Math.max(width, height) * 0.8,
+        thickness: 10,
+        gapStart: gapStart,
+        gapEnd: gapStart + gapSize,
+        speed: 150 + Math.random() * 50 * gameSpeed,
+        active: true
+      });
+    }
+    
+    function createExplosion(x, y, color) {
+      for(let i=0; i<30; i++) {
+        particles.push({
+          x: x, y: y,
+          vx: (Math.random() - 0.5) * 12,
+          vy: (Math.random() - 0.5) * 12,
+          life: 1,
+          decay: 0.02 + Math.random() * 0.03,
+          color: color,
+          size: Math.random() * 4 + 1
+        });
+      }
+    }
+    
+    function spawnPlayerTrail(x, y) {
+      if(Math.random() < 0.5) return;
+      particles.push({
+        x: x, y: y,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        life: 1,
+        decay: 0.05,
+        color: '#ccff00',
+        size: Math.random() * 2 + 1
+      });
+    }
+    
+    function resetGame() {
+      score = 0;
+      gameSpeed = 1;
+      obstacles = [];
+      particles = [];
+      playerAngle = Math.PI / 2;
+      spawnTimer = 0;
+      spawnInterval = 2000;
+      shakeIntensity = 0;
+      leftPointerDown = false;
+      rightPointerDown = false;
+      updateInput();
+      scoreValue.innerText = '0.00';
+      hints.style.opacity = '0.5';
+    }
+    
+    startBtn.addEventListener('click', () => {
+      startOverlay.classList.add('hidden');
+      resetGame();
+      gameState = 'PLAYING';
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    });
+    
+    restartBtn.addEventListener('click', () => {
+      gameOverOverlay.classList.add('hidden');
+      resetGame();
+      gameState = 'PLAYING';
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    });
+    
+    function gameOver() {
+      gameState = 'GAMEOVER';
+      shakeIntensity = 25;
+      const px = cx + Math.cos(playerAngle) * playerRadius;
+      const py = cy + Math.sin(playerAngle) * playerRadius;
+      createExplosion(px, py, '#ff003c');
+      
+      document.getElementById('finalScore').innerText = (score/1000).toFixed(2);
+      setTimeout(() => {
+        gameOverOverlay.classList.remove('hidden');
+      }, 1000);
+    }
+    
+    function isAngleInGap(angle, start, end) {
+      let a = angle % (Math.PI * 2);
+      if (a < 0) a += Math.PI * 2;
+      
+      let s = start % (Math.PI * 2);
+      let e = end % (Math.PI * 2);
+      
+      if (e >= s) {
+        return a > s && a < e;
+      } else {
+        return a > s || a < e;
+      }
+    }
+    
+    function update(dt) {
+      if (gameState !== 'PLAYING') return;
+      
+      score += dt;
+      scoreValue.innerText = (score / 1000).toFixed(2);
+      gameSpeed = 1 + (score / 15000);
+      
+      if (playerDir !== 0) {
+        playerAngle += playerDir * playerSpeed * (dt/16);
+      }
+      
+      const px = cx + Math.cos(playerAngle) * playerRadius;
+      const py = cy + Math.sin(playerAngle) * playerRadius;
+      if (playerDir !== 0) spawnPlayerTrail(px, py);
+      
+      spawnTimer += dt;
+      let currentInterval = Math.max(600, spawnInterval / gameSpeed);
+      if (spawnTimer > currentInterval) {
+        createObstacle();
+        spawnTimer = 0;
+      }
+      
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        let obs = obstacles[i];
+        obs.radius -= obs.speed * gameSpeed * (dt/1000);
+        
+        if (obs.active && obs.radius <= playerRadius + playerSize + obs.thickness/2 && obs.radius >= playerRadius - playerSize - obs.thickness/2) {
+          if (!isAngleInGap(playerAngle, obs.gapStart, obs.gapEnd)) {
+            gameOver();
+          }
+        }
+        
+        if (obs.radius < 10) {
+          obs.active = false;
+        }
+        
+        if (obs.radius < 0) {
+          obstacles.splice(i, 1);
+        }
+      }
+      
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+      
+      if (shakeIntensity > 0) {
+        shakeIntensity *= 0.9;
+        if (shakeIntensity < 0.5) shakeIntensity = 0;
+      }
+    }
+    
+    function draw() {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, width, height);
+      
+      ctx.save();
+      
+      if (shakeIntensity > 0) {
+        ctx.translate((Math.random()-0.5)*shakeIntensity, (Math.random()-0.5)*shakeIntensity);
+      }
+      
+      let pulse = 1 + 0.05 * Math.sin(performance.now() / 200);
+      ctx.beginPath();
+      ctx.arc(cx, cy, (playerRadius - 20) * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = gameState === 'GAMEOVER' ? '#ff003c' : 'rgba(204, 255, 0, 0.1)';
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.arc(cx, cy, playerRadius - 30, 0, Math.PI * 2);
+      ctx.fillStyle = gameState === 'GAMEOVER' ? '#ff003c' : '#ccff00';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      ctx.beginPath();
+      ctx.arc(cx, cy, playerRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(204, 255, 0, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      
+      ctx.lineWidth = 10;
+      ctx.lineCap = 'round';
+      for (let obs of obstacles) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, obs.radius, obs.gapEnd, obs.gapStart + Math.PI * 2);
+        ctx.strokeStyle = obs.active ? '#ccff00' : 'rgba(204, 255, 0, 0.3)';
+        if (!obs.active) {
+            ctx.shadowBlur = 0;
+        } else {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ccff00';
+        }
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      
+      for (let p of particles) {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+      
+      if (gameState !== 'GAMEOVER' || shakeIntensity > 10) {
+        const px = cx + Math.cos(playerAngle) * playerRadius;
+        const py = cy + Math.sin(playerAngle) * playerRadius;
+        ctx.beginPath();
+        ctx.arc(px, py, playerSize, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ffffff';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      
+      ctx.restore();
+    }
+    
+    function gameLoop(timestamp) {
+      const dt = timestamp - lastTime;
+      lastTime = timestamp;
+      
+      if (dt < 100) {
+        update(dt);
+      }
+      draw();
+      
+      if (gameState === 'PLAYING' || particles.length > 0 || gameState === 'GAMEOVER') {
+        if(gameState === 'GAMEOVER' && particles.length === 0 && shakeIntensity === 0) {
+           // stop loop
+        } else {
+           requestAnimationFrame(gameLoop);
+        }
+      }
+    }
+    
+    draw();
+  </script>
+</body>
+</html>
