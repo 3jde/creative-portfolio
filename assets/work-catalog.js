@@ -1,5 +1,18 @@
 window.ONEZ_WORKS = [
   {
+    id: "neon-grid",
+    title: "Neon Grid <span class=\"zh\">霓虹网格闪避</span>",
+    date: "2026-07-06",
+    section: "game",
+    format: "Arcade survival",
+    url: "games/2026-07-06-neon-grid.html",
+    status: "New Game",
+    featured: true,
+    palette: "cyan",
+    description: "Swipe to dodge incoming neon lasers on the grid. Survive as long as possible! <span class=\"zh\">滑动以在网格上躲避来袭的霓虹激光。尽可能活得更久！</span>",
+    tags: ["Game", "Touch", "Arcade", "Survival", "Mobile"]
+  },
+  {
     id: "gen-260703-sphere",
     title: "Sphere Lifecycle <span class=\"zh\">悬浮球群</span>",
     date: "2026-07-03",

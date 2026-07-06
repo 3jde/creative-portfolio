@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Grid</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #050510; color: #fff; font-family: 'Courier New', Courier, monospace; overflow: hidden; touch-action: none; }
+        #gameCanvas { display: block; width: 100%; height: 100%; }
+        #uiLayer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
+        .header { padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; text-shadow: 0 0 10px #0ff; }
+        .title { font-size: 24px; font-weight: bold; color: #0ff; }
+        .score-container { text-align: right; }
+        .score-label { font-size: 14px; color: #aaa; text-shadow: none; }
+        .score-value { font-size: 32px; font-weight: bold; color: #fff; }
+        #gameOverScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,5,16,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; opacity: 0; transition: opacity 0.3s; display: none; }
+        #gameOverScreen.visible { opacity: 1; display: flex; }
+        .go-title { font-size: 48px; color: #f0f; text-shadow: 0 0 20px #f0f; margin-bottom: 20px; text-align: center; }
+        .go-score { font-size: 24px; margin-bottom: 40px; }
+        .btn-restart { padding: 15px 40px; font-size: 20px; background: transparent; border: 2px solid #0ff; color: #0ff; border-radius: 30px; cursor: pointer; text-transform: uppercase; font-family: inherit; font-weight: bold; box-shadow: 0 0 15px rgba(0,255,255,0.3); transition: all 0.2s; outline: none; }
+        .btn-restart:hover, .btn-restart:active { background: #0ff; color: #000; box-shadow: 0 0 25px rgba(0,255,255,0.6); }
+        .instructions { position: absolute; bottom: 40px; width: 100%; text-align: center; color: rgba(255,255,255,0.5); font-size: 16px; letter-spacing: 1px; transition: opacity 0.5s; }
+        .back-btn { position: absolute; top: 20px; left: 20px; color: rgba(255,255,255,0.5); text-decoration: none; font-size: 14px; pointer-events: auto; font-weight: bold; }
+        .back-btn:hover { color: #fff; }
+        @media (max-width: 600px) {
+            .title { font-size: 20px; }
+            .score-value { font-size: 24px; }
+            .go-title { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="uiLayer">
+        <a href="../games.html" class="back-btn">&larr; BACK</a>
+        <div class="header">
+            <div style="width:60px;"></div>
+            <div class="title">NEON GRID</div>
+            <div class="score-container">
+                <div class="score-label">SCORE</div>
+                <div class="score-value" id="scoreEl">0</div>
+            </div>
+        </div>
+        <div class="instructions" id="instEl">SWIPE OR ARROW KEYS TO DODGE</div>
+    </div>
+    
+    <div id="gameOverScreen">
+        <div class="go-title">SYSTEM FAILURE</div>
+        <div class="go-score">FINAL SCORE: <span id="finalScoreEl">0</span></div>
+        <button class="btn-restart" id="restartBtn">REBOOT</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('scoreEl');
+        const finalScoreEl = document.getElementById('finalScoreEl');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const restartBtn = document.getElementById('restartBtn');
+        const instEl = document.getElementById('instEl');
+
+        let width, height;
+        let gridSize = 4;
+        let cellSize, boardX, boardY, boardSize;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Calculate board size
+            const minDim = Math.min(width, height);
+            boardSize = minDim * 0.8;
+            if (boardSize > 500) boardSize = 500;
+            cellSize = boardSize / gridSize;
+            boardX = (width - boardSize) / 2;
+            boardY = (height - boardSize) / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Game State
+        let state = 'playing'; // playing, gameover
+        let score = 0;
+        let time = 0;
+        let lastTime = 0;
+        let screenShake = 0;
+
+        // Player
+        const player = {
+            col: 1, row: 1,
+            x: 0, y: 0, // Visual position
+            targetX: 0, targetY: 0,
+            size: 0.6, // Relative to cell size
+            color: '#0ff',
+            trail: []
+        };
+
+        // Lasers
+        let lasers = [];
+        let particles = [];
+        
+        // Difficulty
+        let spawnTimer = 0;
+        let spawnInterval = 2.0; // Seconds
+        let warningDuration = 1.5;
+        let fireDuration = 0.3;
+
+        function initGame() {
+            state = 'playing';
+            score = 0;
+            scoreEl.innerText = score;
+            gameOverScreen.style.display = 'none';
+            gameOverScreen.classList.remove('visible');
+            
+            player.col = 1;
+            player.row = 1;
+            updatePlayerTarget();
+            player.x = player.targetX;
+            player.y = player.targetY;
+            player.trail = [];
+            
+            lasers = [];
+            particles = [];
+            spawnTimer = 1.0;
+            spawnInterval = 2.0;
+            warningDuration = 1.5;
+            screenShake = 0;
+            
+            instEl.style.opacity = '1';
+            setTimeout(() => instEl.style.opacity = '0', 4000);
+            
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updatePlayerTarget() {
+            player.targetX = boardX + player.col * cellSize + cellSize / 2;
+            player.targetY = boardY + player.row * cellSize + cellSize / 2;
+        }
+
+        // Input handling
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const swipeThreshold = 30;
+
+        window.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: false});
+
+        window.addEventListener('touchend', e => {
+            if (state !== 'playing') return;
+            let touchEndX = e.changedTouches[0].screenX;
+            let touchEndY = e.changedTouches[0].screenY;
+            handleSwipe(touchEndX - touchStartX, touchEndY - touchStartY);
+        }, {passive: false});
+        
+        window.addEventListener('touchmove', e => {
+            e.preventDefault(); // Prevent scrolling
+        }, {passive: false});
+
+        window.addEventListener('keydown', e => {
+            if (state !== 'playing') return;
+            let dx = 0, dy = 0;
+            if (e.key === 'ArrowUp' || e.key === 'w') dy = -1;
+            if (e.key === 'ArrowDown' || e.key === 's') dy = 1;
+            if (e.key === 'ArrowLeft' || e.key === 'a') dx = -1;
+            if (e.key === 'ArrowRight' || e.key === 'd') dx = 1;
+            
+            if (dx !== 0 || dy !== 0) {
+                movePlayer(dx, dy);
+            }
+        });
+
+        function handleSwipe(dx, dy) {
+            if (Math.abs(dx) < swipeThreshold && Math.abs(dy) < swipeThreshold) return;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                movePlayer(dx > 0 ? 1 : -1, 0);
+            } else {
+                movePlayer(0, dy > 0 ? 1 : -1);
+            }
+        }
+
+        function movePlayer(dx, dy) {
+            let newCol = player.col + dx;
+            let newRow = player.row + dy;
+            if (newCol >= 0 && newCol < gridSize && newRow >= 0 && newRow < gridSize) {
+                player.col = newCol;
+                player.row = newRow;
+                updatePlayerTarget();
+                createParticles(player.x, player.y, player.color, 5, 2);
+            }
+        }
+
+        function spawnLaser() {
+            let type = Math.random() > 0.5 ? 'row' : 'col';
+            let index = Math.floor(Math.random() * gridSize);
+            
+            // Check if already exists
+            if (lasers.some(l => l.type === type && l.index === index)) return;
+            
+            lasers.push({
+                type: type,
+                index: index,
+                state: 'warning',
+                timer: warningDuration
+            });
+        }
+
+        function createParticles(x, y, color, count, speed) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * speed * 2,
+                    vy: (Math.random() - 0.5) * speed * 2,
+                    life: 1.0,
+                    color: color,
+                    size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        function gameOver() {
+            state = 'gameover';
+            screenShake = 20;
+            createParticles(player.x, player.y, '#f00', 50, 8);
+            createParticles(player.x, player.y, '#0ff', 30, 6);
+            
+            setTimeout(() => {
+                finalScoreEl.innerText = score;
+                gameOverScreen.style.display = 'flex';
+                // Trigger reflow
+                void gameOverScreen.offsetWidth;
+                gameOverScreen.classList.add('visible');
+            }, 1000);
+        }
+
+        restartBtn.addEventListener('click', () => {
+            initGame();
+        });
+
+        function gameLoop(now) {
+            if (!lastTime) lastTime = now;
+            let dt = (now - lastTime) / 1000;
+            lastTime = now;
+            if (dt > 0.1) dt = 0.1;
+
+            update(dt);
+            draw();
+
+            if (state === 'playing' || particles.length > 0 || screenShake > 0) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function update(dt) {
+            if (state === 'playing') {
+                // Player movement lerp
+                player.x += (player.targetX - player.x) * 15 * dt;
+                player.y += (player.targetY - player.y) * 15 * dt;
+                
+                // Trail
+                player.trail.push({x: player.x, y: player.y, life: 1.0});
+                
+                // Difficulty & Spawning
+                spawnTimer -= dt;
+                if (spawnTimer <= 0) {
+                    spawnLaser();
+                    // Sometimes spawn double
+                    if (score > 10 && Math.random() > 0.5) spawnLaser();
+                    if (score > 30 && Math.random() > 0.7) spawnLaser();
+                    
+                    spawnInterval = Math.max(0.6, 2.0 - score * 0.03);
+                    warningDuration = Math.max(0.6, 1.5 - score * 0.02);
+                    spawnTimer = spawnInterval;
+                }
+
+                // Lasers
+                for (let i = lasers.length - 1; i >= 0; i--) {
+                    let l = lasers[i];
+                    l.timer -= dt;
+                    if (l.state === 'warning' && l.timer <= 0) {
+                        l.state = 'firing';
+                        l.timer = fireDuration;
+                        screenShake = Math.max(screenShake, 5);
+                        
+                        // Check hit
+                        if ((l.type === 'row' && player.row === l.index) ||
+                            (l.type === 'col' && player.col === l.index)) {
+                            gameOver();
+                        }
+                    } else if (l.state === 'firing' && l.timer <= 0) {
+                        lasers.splice(i, 1);
+                        score++;
+                        scoreEl.innerText = score;
+                    }
+                }
+            }
+
+            // Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= dt * 2;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+            
+            // Trail update
+            for (let i = player.trail.length - 1; i >= 0; i--) {
+                player.trail[i].life -= dt * 5;
+                if (player.trail[i].life <= 0) player.trail.splice(i, 1);
+            }
+
+            if (screenShake > 0) {
+                screenShake -= dt * 50;
+                if (screenShake < 0) screenShake = 0;
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#050510';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.save();
+            if (screenShake > 0) {
+                let dx = (Math.random() - 0.5) * screenShake;
+                let dy = (Math.random() - 0.5) * screenShake;
+                ctx.translate(dx, dy);
+            }
+
+            // Draw Grid
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i <= gridSize; i++) {
+                ctx.beginPath();
+                ctx.moveTo(boardX + i * cellSize, boardY);
+                ctx.lineTo(boardX + i * cellSize, boardY + boardSize);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(boardX, boardY + i * cellSize);
+                ctx.lineTo(boardX + boardSize, boardY + i * cellSize);
+                ctx.stroke();
+            }
+
+            // Draw Lasers
+            ctx.globalCompositeOperation = 'lighter';
+            for (let l of lasers) {
+                let x, y, w, h;
+                if (l.type === 'row') {
+                    x = boardX; y = boardY + l.index * cellSize;
+                    w = boardSize; h = cellSize;
+                } else {
+                    x = boardX + l.index * cellSize; y = boardY;
+                    w = cellSize; h = boardSize;
+                }
+
+                if (l.state === 'warning') {
+                    let alpha = 0.1 + (Math.sin(l.timer * 20) * 0.5 + 0.5) * 0.2;
+                    ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+                    ctx.fillRect(x, y, w, h);
+                    
+                    // Warning lines
+                    ctx.strokeStyle = `rgba(255, 0, 0, ${alpha * 2})`;
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x, y, w, h);
+                } else if (l.state === 'firing') {
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                    ctx.fillRect(x, y, w, h);
+                    ctx.fillStyle = '#fff';
+                    if (l.type === 'row') {
+                        ctx.fillRect(x, y + h/2 - 2, w, 4);
+                    } else {
+                        ctx.fillRect(x + w/2 - 2, y, 4, h);
+                    }
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = '#f00';
+                    ctx.strokeStyle = '#f0f';
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(x, y, w, h);
+                    ctx.shadowBlur = 0;
+                }
+            }
+            ctx.globalCompositeOperation = 'source-over';
+
+            // Draw Player Trail
+            if (state === 'playing') {
+                ctx.beginPath();
+                for (let i = 0; i < player.trail.length; i++) {
+                    let pt = player.trail[i];
+                    ctx.lineWidth = pt.life * cellSize * player.size;
+                    ctx.strokeStyle = `rgba(0, 255, 255, ${pt.life * 0.3})`;
+                    if (i === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw Player
+            if (state === 'playing') {
+                let pSize = cellSize * player.size;
+                ctx.fillStyle = player.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = player.color;
+                ctx.fillRect(player.x - pSize/2, player.y - pSize/2, pSize, pSize);
+                
+                // Core
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(player.x - pSize/4, player.y - pSize/4, pSize/2, pSize/2);
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw Particles
+            ctx.globalCompositeOperation = 'lighter';
+            for (let p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+            ctx.globalCompositeOperation = 'source-over';
+
+            ctx.restore();
+        }
+
+        // Start
+        initGame();
+    </script>
+</body>
+</html>
