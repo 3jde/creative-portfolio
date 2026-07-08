@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON GUIDE | ONE ZEN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+    body, html { width: 100%; height: 100%; background-color: #080808; overflow: hidden; font-family: 'Space Mono', monospace; }
+    
+    #gameCanvas { display: block; width: 100%; height: 100%; }
+    
+    .crt-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none; z-index: 10;
+    }
+    
+    .ui-layer {
+      position: absolute; top: 20px; left: 20px; right: 20px;
+      pointer-events: none; z-index: 20;
+      display: flex; justify-content: space-between;
+      color: #00ffff; text-shadow: 0 0 10px #00ffff;
+    }
+    .score-display { font-size: 2rem; font-weight: bold; }
+    
+    .back-btn {
+      position: absolute; bottom: 20px; left: 20px;
+      color: #ff00ff; text-decoration: none; font-size: 1.2rem;
+      border: 1px solid #ff00ff; padding: 8px 16px; z-index: 30;
+      background: rgba(0,0,0,0.5); pointer-events: auto; transition: all 0.2s;
+      text-shadow: 0 0 5px #ff00ff; box-shadow: 0 0 10px rgba(255,0,255,0.3);
+    }
+    .back-btn:hover { background: #ff00ff; color: #000; box-shadow: 0 0 20px #ff00ff; }
+    
+    #screens { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 25; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .screen { text-align: center; display: none; background: rgba(0,0,0,0.8); padding: 40px; border: 2px solid #00ffff; border-radius: 10px; box-shadow: 0 0 30px rgba(0,255,255,0.2); pointer-events: auto; }
+    .screen.active { display: block; animation: fadeIn 0.3s; }
+    .screen h1 { color: #00ffff; font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 15px #00ffff; font-family: 'VT323', monospace; letter-spacing: 2px; }
+    .screen p { color: #fff; margin-bottom: 25px; font-size: 1.1rem; }
+    .btn { background: transparent; color: #ccff00; border: 2px solid #ccff00; padding: 15px 30px; font-size: 1.5rem; font-family: 'VT323', monospace; cursor: pointer; text-shadow: 0 0 5px #ccff00; box-shadow: 0 0 10px rgba(204,255,0,0.3); transition: all 0.2s; }
+    .btn:hover { background: #ccff00; color: #000; box-shadow: 0 0 25px #ccff00; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+  </style>
+</head>
+<body>
+  <div class="crt-overlay"></div>
+  
+  <div class="ui-layer">
+    <div class="score-display">SCORE: <span id="scoreVal">0</span></div>
+    <div class="score-display" style="color:#ff00ff; text-shadow: 0 0 10px #ff00ff;">BEST: <span id="bestVal">0</span></div>
+  </div>
+  
+  <div id="screens">
+    <div id="startScreen" class="screen active">
+      <h1>NEON GUIDE</h1>
+      <p>Draw glowing lines to bounce the orb.<br>Collect Cyan nodes. Avoid Red hazards.<br>Don't let it fall!</p>
+      <button class="btn" onclick="startGame()">START GAME</button>
+    </div>
+    <div id="gameOverScreen" class="screen">
+      <h1 style="color:#ff003c; text-shadow: 0 0 15px #ff003c; border-color: #ff003c;">SYSTEM FAILURE</h1>
+      <p>Final Score: <span id="finalScore" style="color:#00ffff; font-weight:bold; font-size:1.5rem;">0</span></p>
+      <button class="btn" style="color:#00ffff; border-color:#00ffff; text-shadow:0 0 5px #00ffff; box-shadow: 0 0 10px rgba(0,255,255,0.3);" onmouseover="this.style.background='#00ffff'; this.style.color='#000'" onmouseout="this.style.background='transparent'; this.style.color='#00ffff'" onclick="startGame()">REBOOT</button>
+    </div>
+  </div>
+  
+  <canvas id="gameCanvas"></canvas>
+  <a href="games.html" class="back-btn">&larr; BACK</a>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreVal = document.getElementById('scoreVal');
+    const bestVal = document.getElementById('bestVal');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreEl = document.getElementById('finalScore');
+    
+    let width, height;
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    
+    let state = 'menu'; // menu, playing, gameover
+    let score = 0;
+    let bestScore = localStorage.getItem('neonGuideBest') || 0;
+    bestVal.innerText = bestScore;
+    
+    let ball = { x: 0, y: 0, vx: 0, vy: 0, radius: 12 };
+    let lines = [];
+    let currentLine = null;
+    let nodes = [];
+    let hazards = [];
+    let particles = [];
+    
+    const COLORS = {
+      ball: '#ccff00',
+      line: '#00ffff',
+      node: '#00ffff',
+      hazard: '#ff003c'
+    };
+    
+    function startGame() {
+      state = 'playing';
+      startScreen.classList.remove('active');
+      gameOverScreen.classList.remove('active');
+      score = 0;
+      scoreVal.innerText = score;
+      
+      ball = { x: width / 2, y: 100, vx: (Math.random() - 0.5) * 5, vy: 2, radius: Math.min(width * 0.03, 15) };
+      lines = [];
+      nodes = [];
+      hazards = [];
+      particles = [];
+      
+      spawnNode();
+      requestAnimationFrame(gameLoop);
+    }
+    
+    function spawnNode() {
+      let r = ball.radius * 1.5;
+      let x = r * 2 + Math.random() * (width - r * 4);
+      let y = r * 2 + height * 0.2 + Math.random() * (height * 0.5);
+      nodes.push({ x, y, radius: r, time: 0 });
+    }
+    
+    function spawnHazard() {
+      let r = ball.radius * 1.2;
+      let x = r * 2 + Math.random() * (width - r * 4);
+      let y = r * 2 + height * 0.2 + Math.random() * (height * 0.6);
+      hazards.push({ x, y, radius: r, time: Math.random() * Math.PI });
+    }
+    
+    function spawnParticles(x, y, color, count) {
+      for(let i=0; i<count; i++) {
+        let angle = Math.random() * Math.PI * 2;
+        let speed = Math.random() * 8 + 2;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1.0,
+          color
+        });
+      }
+    }
+    
+    // Input handling
+    let isDrawing = false;
+    let lastP = null;
+    
+    function getPointerPos(e) {
+      if(e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      return { x: e.clientX, y: e.clientY };
+    }
+    
+    function startDraw(e) {
+      if(state !== 'playing') return;
+      if(e.target === canvas) e.preventDefault();
+      isDrawing = true;
+      let p = getPointerPos(e);
+      currentLine = { points: [p], life: 3.0 }; // 3 seconds life
+      lastP = p;
+    }
+    
+    function moveDraw(e) {
+      if(!isDrawing || state !== 'playing') return;
+      e.preventDefault();
+      let p = getPointerPos(e);
+      let dx = p.x - lastP.x;
+      let dy = p.y - lastP.y;
+      if(Math.sqrt(dx*dx + dy*dy) > 10) {
+        currentLine.points.push(p);
+        lastP = p;
+      }
+    }
+    
+    function endDraw(e) {
+      if(!isDrawing) return;
+      isDrawing = false;
+      if(currentLine && currentLine.points.length > 1) {
+        lines.push(currentLine);
+      }
+      currentLine = null;
+    }
+    
+    canvas.addEventListener('touchstart', startDraw, {passive: false});
+    canvas.addEventListener('touchmove', moveDraw, {passive: false});
+    window.addEventListener('touchend', endDraw);
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', moveDraw);
+    window.addEventListener('mouseup', endDraw);
+    
+    // Physics
+    function closestPointOnLineSegment(A, B, P) {
+      let AB = { x: B.x - A.x, y: B.y - A.y };
+      let AP = { x: P.x - A.x, y: P.y - A.y };
+      let lengthSqrAB = AB.x * AB.x + AB.y * AB.y;
+      if (lengthSqrAB === 0) return A;
+      let t = (AP.x * AB.x + AP.y * AB.y) / lengthSqrAB;
+      t = Math.max(0, Math.min(1, t));
+      return { x: A.x + t * AB.x, y: A.y + t * AB.y };
+    }
+    
+    let lastTime = 0;
+    function gameLoop(time) {
+      if(state !== 'playing') return;
+      requestAnimationFrame(gameLoop);
+      
+      let dt = (time - lastTime) / 1000;
+      if(dt > 0.1) dt = 0.016;
+      lastTime = time;
+      
+      // Update particles
+      for(let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.life -= dt * 2;
+        if(p.life <= 0) particles.splice(i, 1);
+      }
+      
+      // Update lines
+      for(let i = lines.length - 1; i >= 0; i--) {
+        lines[i].life -= dt;
+        if(lines[i].life <= 0) lines.splice(i, 1);
+      }
+      
+      // Update nodes/hazards
+      nodes.forEach(n => n.time += dt * 3);
+      hazards.forEach(h => h.time += dt * 2);
+      
+      // Sub-step physics
+      const subSteps = 3;
+      let sdt = dt / subSteps;
+      
+      for(let s=0; s<subSteps; s++) {
+        // Gravity
+        ball.vy += 800 * sdt; 
+        
+        ball.x += ball.vx * sdt;
+        ball.y += ball.vy * sdt;
+        
+        // Wall bounce
+        if(ball.x < ball.radius) { ball.x = ball.radius; ball.vx *= -0.8; }
+        if(ball.x > width - ball.radius) { ball.x = width - ball.radius; ball.vx *= -0.8; }
+        
+        // Line collision
+        let combinedLines = [...lines];
+        if(currentLine && currentLine.points.length > 1) combinedLines.push(currentLine);
+        
+        for(let l of combinedLines) {
+          for(let i=0; i<l.points.length - 1; i++) {
+            let p1 = l.points[i];
+            let p2 = l.points[i+1];
+            let cp = closestPointOnLineSegment(p1, p2, ball);
+            
+            let dx = ball.x - cp.x;
+            let dy = ball.y - cp.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if(dist < ball.radius && dist > 0) {
+              let nx = dx / dist;
+              let ny = dy / dist;
+              
+              // Push out
+              let overlap = ball.radius - dist;
+              ball.x += nx * overlap;
+              ball.y += ny * overlap;
+              
+              // Reflect velocity
+              let dot = ball.vx * nx + ball.vy * ny;
+              if(dot < 0) { // Only bounce if moving towards line
+                let bounce = 0.6; // bounciness
+                ball.vx = ball.vx - (1 + bounce) * dot * nx;
+                ball.vy = ball.vy - (1 + bounce) * dot * ny;
+                
+                // Add friction
+                ball.vx *= 0.95;
+                
+                // Max speed
+                let speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
+                if(speed > 1200) {
+                  ball.vx = (ball.vx / speed) * 1200;
+                  ball.vy = (ball.vy / speed) * 1200;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Node collision
+      for(let i = nodes.length - 1; i >= 0; i--) {
+        let n = nodes[i];
+        let dx = ball.x - n.x;
+        let dy = ball.y - n.y;
+        if(Math.sqrt(dx*dx + dy*dy) < ball.radius + n.radius) {
+          nodes.splice(i, 1);
+          score++;
+          scoreVal.innerText = score;
+          spawnParticles(n.x, n.y, COLORS.node, 20);
+          spawnNode();
+          
+          if(score % 3 === 0) spawnHazard();
+        }
+      }
+      
+      // Hazard collision
+      for(let h of hazards) {
+        let dx = ball.x - h.x;
+        let dy = ball.y - h.y;
+        if(Math.sqrt(dx*dx + dy*dy) < ball.radius + h.radius * 0.8) {
+          spawnParticles(ball.x, ball.y, COLORS.hazard, 40);
+          gameOver();
+          return;
+        }
+      }
+      
+      // Fall off
+      if(ball.y > height + ball.radius) {
+        gameOver();
+        return;
+      }
+      
+      draw();
+    }
+    
+    function gameOver() {
+      state = 'gameover';
+      if(score > bestScore) {
+        bestScore = score;
+        localStorage.setItem('neonGuideBest', bestScore);
+        bestVal.innerText = bestScore;
+      }
+      finalScoreEl.innerText = score;
+      gameOverScreen.classList.add('active');
+    }
+    
+    function draw() {
+      // Clear with trail effect
+      ctx.fillStyle = 'rgba(8, 8, 8, 0.3)';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw lines
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      let allLines = [...lines];
+      if(currentLine && currentLine.points.length > 1) allLines.push(currentLine);
+      
+      for(let l of allLines) {
+        let alpha = l.life / 3.0;
+        if(l === currentLine) alpha = 1;
+        
+        ctx.beginPath();
+        ctx.moveTo(l.points[0].x, l.points[0].y);
+        for(let i=1; i<l.points.length; i++) {
+          ctx.lineTo(l.points[i].x, l.points[i].y);
+        }
+        
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = `rgba(0, 255, 255, ${alpha})`;
+        ctx.shadowColor = COLORS.line;
+        ctx.shadowBlur = 15;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+      
+      // Draw nodes
+      for(let n of nodes) {
+        let pulse = Math.sin(n.time) * 0.2 + 0.8;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.radius * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS.node;
+        ctx.shadowColor = COLORS.node;
+        ctx.shadowBlur = 20;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // inner ring
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.radius * 0.4, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      
+      // Draw hazards
+      for(let h of hazards) {
+        ctx.save();
+        ctx.translate(h.x, h.y);
+        ctx.rotate(h.time);
+        ctx.beginPath();
+        ctx.moveTo(0, -h.radius);
+        ctx.lineTo(h.radius * 0.866, h.radius * 0.5);
+        ctx.lineTo(-h.radius * 0.866, h.radius * 0.5);
+        ctx.closePath();
+        ctx.fillStyle = COLORS.hazard;
+        ctx.shadowColor = COLORS.hazard;
+        ctx.shadowBlur = 15;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
+      
+      // Draw ball
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = COLORS.ball;
+      ctx.shadowColor = COLORS.ball;
+      ctx.shadowBlur = 25;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // Draw particles
+      for(let p of particles) {
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+    }
+    
+    // Initial render
+    ctx.fillStyle = '#080808';
+    ctx.fillRect(0, 0, width, height);
+  </script>
+</body>
+</html>
