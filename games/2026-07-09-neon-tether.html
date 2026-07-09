@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Tether</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050510;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .hud {
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+        #center-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            text-align: center;
+            text-shadow: 0 0 10px #f0f;
+        }
+        h1 { margin: 0; font-size: 48px; color: #f0f; }
+        p { font-size: 18px; color: #0ff; margin-top: 10px; }
+        .hidden { display: none !important; }
+        
+        .back-btn {
+            pointer-events: auto;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #0ff;
+            text-decoration: none;
+            border: 1px solid #0ff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            background: rgba(0,255,255,0.1);
+            text-shadow: 0 0 5px #0ff;
+            box-shadow: 0 0 5px #0ff, inset 0 0 5px #0ff;
+        }
+        .back-btn:active {
+            background: rgba(0,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui">
+        <div class="hud">
+            <span id="scoreEl">Score: 0</span>
+            <span id="bestEl">Best: 0</span>
+        </div>
+        <div id="center-msg">
+            <h1>NEON TETHER</h1>
+            <p>Tap and Hold to Swing</p>
+            <p style="font-size: 14px; opacity: 0.7;">Release to launch</p>
+        </div>
+    </div>
+    <a href="../playground.html" class="back-btn">Back to Playground</a>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const uiCenter = document.getElementById('center-msg');
+        const scoreEl = document.getElementById('scoreEl');
+        const bestEl = document.getElementById('bestEl');
+
+        let width, height;
+        const LOGICAL_WIDTH = 600;
+        let logicalHeight;
+        let scale;
+
+        // Game State
+        let state = 'START'; // START, PLAYING, GAMEOVER
+        let score = 0;
+        let bestScore = localStorage.getItem('neonTetherBest') || 0;
+        bestEl.innerText = `Best: ${bestScore}`;
+        
+        const SPEED = 450; 
+        
+        let player = { x: 0, y: 0, vx: 0, vy: -SPEED, radius: 10, trail: [] };
+        let isTethered = false;
+        let tetherAnchor = null;
+        let tetherAngle = 0;
+        let tetherLength = 0;
+        let angularDir = 1;
+        
+        let anchors = [];
+        let mines = [];
+        let cameraY = 0;
+        let shakeTime = 0;
+        let nextY = 0;
+        
+        let lastTime = 0;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            scale = width / LOGICAL_WIDTH;
+            logicalHeight = height / scale;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function initGame() {
+            player.x = LOGICAL_WIDTH / 2;
+            player.y = logicalHeight * 0.8;
+            player.vx = 0;
+            player.vy = -SPEED;
+            player.trail = [];
+            isTethered = false;
+            tetherAnchor = null;
+            score = 0;
+            cameraY = player.y - logicalHeight * 0.7;
+            anchors = [];
+            mines = [];
+            nextY = player.y - 300;
+            generateChunks(5);
+            state = 'PLAYING';
+            uiCenter.classList.add('hidden');
+        }
+
+        function generateChunks(count) {
+            for(let i=0; i<count; i++) {
+                // Add anchor
+                let ax = 150 + Math.random() * (LOGICAL_WIDTH - 300);
+                anchors.push({ x: ax, y: nextY, active: true });
+                
+                // Maybe add a mine
+                if(Math.random() > 0.3) {
+                    let mx = 50 + Math.random() * (LOGICAL_WIDTH - 100);
+                    // Avoid overlapping anchor
+                    if(Math.abs(mx - ax) < 80) {
+                        mx = mx > LOGICAL_WIDTH/2 ? mx - 100 : mx + 100;
+                    }
+                    mines.push({ x: mx, y: nextY + (Math.random()*100 - 50), radius: 12 });
+                }
+                nextY -= 250 + Math.random() * 150;
+            }
+        }
+
+        function gameOver() {
+            state = 'GAMEOVER';
+            shakeTime = 0.5;
+            uiCenter.innerHTML = `<h1>CRASHED</h1><p>Score: ${Math.floor(score)}</p><p>Tap to Restart</p>`;
+            uiCenter.classList.remove('hidden');
+            if (score > bestScore) {
+                bestScore = Math.floor(score);
+                localStorage.setItem('neonTetherBest', bestScore);
+                bestEl.innerText = `Best: ${bestScore}`;
+            }
+        }
+
+        function handleInputStart(e) {
+            if (e.target.className === 'back-btn') return;
+            if (state === 'START' || state === 'GAMEOVER') {
+                initGame();
+                return;
+            }
+            if (state === 'PLAYING' && !isTethered) {
+                // Find closest anchor on screen ahead
+                let closest = null;
+                let minDist = Infinity;
+                for(let a of anchors) {
+                    if (a.y > cameraY + logicalHeight) continue; // below screen
+                    let dx = player.x - a.x;
+                    let dy = player.y - a.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if(dist < minDist) {
+                        minDist = dist;
+                        closest = a;
+                    }
+                }
+                if (closest) {
+                    isTethered = true;
+                    tetherAnchor = closest;
+                    tetherLength = minDist;
+                    tetherAngle = Math.atan2(player.y - closest.y, player.x - closest.x);
+                    
+                    // Cross product to determine swing direction
+                    let rx = player.x - closest.x;
+                    let ry = player.y - closest.y;
+                    let cross = rx * player.vy - ry * player.vx;
+                    angularDir = cross > 0 ? 1 : -1;
+                }
+            }
+        }
+
+        function handleInputEnd(e) {
+            if (state === 'PLAYING' && isTethered) {
+                isTethered = false;
+            }
+        }
+
+        window.addEventListener('mousedown', handleInputStart);
+        window.addEventListener('touchstart', (e) => {
+            if(e.target.className !== 'back-btn') e.preventDefault();
+            handleInputStart(e);
+        }, {passive: false});
+        
+        window.addEventListener('mouseup', handleInputEnd);
+        window.addEventListener('touchend', handleInputEnd);
+
+        function update(dt) {
+            if (dt > 0.1) dt = 0.1;
+            
+            if (shakeTime > 0) {
+                shakeTime -= dt;
+            }
+
+            if (state === 'PLAYING') {
+                if (isTethered) {
+                    let angularVelocity = (angularDir * SPEED) / tetherLength;
+                    tetherAngle += angularVelocity * dt;
+                    player.x = tetherAnchor.x + Math.cos(tetherAngle) * tetherLength;
+                    player.y = tetherAnchor.y + Math.sin(tetherAngle) * tetherLength;
+                    
+                    player.vx = -Math.sin(tetherAngle) * angularDir * SPEED;
+                    player.vy = Math.cos(tetherAngle) * angularDir * SPEED;
+                } else {
+                    player.x += player.vx * dt;
+                    player.y += player.vy * dt;
+                }
+
+                // Trail
+                player.trail.push({x: player.x, y: player.y});
+                if(player.trail.length > 20) player.trail.shift();
+
+                // Collision with walls
+                if (player.x < player.radius || player.x > LOGICAL_WIDTH - player.radius) {
+                    gameOver();
+                }
+                
+                // Collision with mines
+                for(let m of mines) {
+                    let dx = player.x - m.x;
+                    let dy = player.y - m.y;
+                    if(dx*dx + dy*dy < (player.radius + m.radius) * (player.radius + m.radius)) {
+                        gameOver();
+                    }
+                }
+
+                // Score and Camera
+                if (player.y < cameraY + logicalHeight * 0.7) {
+                    cameraY = player.y - logicalHeight * 0.7;
+                }
+                let currentScore = Math.max(0, -player.y / 100);
+                if (currentScore > score) score = currentScore;
+                
+                // Out of bounds (falling behind)
+                if (player.y > cameraY + logicalHeight + 50) {
+                    gameOver();
+                }
+
+                // Generate new chunks
+                if (cameraY < nextY + logicalHeight) {
+                    generateChunks(2);
+                }
+                
+                scoreEl.innerText = `Score: ${Math.floor(score)}`;
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#050510';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.save();
+            
+            if (shakeTime > 0) {
+                let mag = shakeTime * 20;
+                ctx.translate((Math.random()-0.5)*mag, (Math.random()-0.5)*mag);
+            }
+            
+            ctx.scale(scale, scale);
+            ctx.translate(0, -cameraY);
+
+            // Grid background
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            let startY = Math.floor(cameraY / 100) * 100;
+            for(let i=0; i<LOGICAL_WIDTH; i+=50) {
+                ctx.beginPath(); ctx.moveTo(i, cameraY); ctx.lineTo(i, cameraY + logicalHeight); ctx.stroke();
+            }
+            for(let i=startY; i<cameraY+logicalHeight; i+=50) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(LOGICAL_WIDTH, i); ctx.stroke();
+            }
+
+            // Walls
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+            ctx.fillRect(0, cameraY, 5, logicalHeight);
+            ctx.fillRect(LOGICAL_WIDTH-5, cameraY, 5, logicalHeight);
+
+            // Tether
+            if (isTethered && state === 'PLAYING') {
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y);
+                ctx.lineTo(tetherAnchor.x, tetherAnchor.y);
+                ctx.strokeStyle = '#0ff';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Anchors
+            for(let a of anchors) {
+                if (a.y > cameraY + logicalHeight + 50) continue;
+                ctx.beginPath();
+                ctx.arc(a.x, a.y, 8, 0, Math.PI*2);
+                ctx.fillStyle = (isTethered && tetherAnchor === a) ? '#fff' : '#f90';
+                ctx.fill();
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#f90';
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Mines
+            for(let m of mines) {
+                if (m.y > cameraY + logicalHeight + 50) continue;
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.radius, 0, Math.PI*2);
+                ctx.fillStyle = '#f0f';
+                ctx.fill();
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#f0f';
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Trail
+            if (player.trail.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(player.trail[0].x, player.trail[0].y);
+                for(let i=1; i<player.trail.length; i++) {
+                    ctx.lineTo(player.trail[i].x, player.trail[i].y);
+                }
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+
+            // Player
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
+            ctx.fillStyle = '#0ff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#0ff';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+        }
+
+        function loop(timestamp) {
+            let dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+            update(dt);
+            draw();
+            requestAnimationFrame(loop);
+        }
+        
+        requestAnimationFrame((t) => { lastTime = t; loop(t); });
+    </script>
+</body>
+</html>

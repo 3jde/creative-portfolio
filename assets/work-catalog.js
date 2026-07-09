@@ -1,5 +1,18 @@
 window.ONEZ_WORKS = [
   {
+    id: "neon-tether",
+    title: "Neon Tether <span class=\"zh\">霓虹系绳</span>",
+    date: "2026-07-09",
+    section: "game",
+    format: "One-touch grappling arcade",
+    url: "games/2026-07-09-neon-tether.html",
+    status: "New Game",
+    featured: true,
+    palette: "cyan",
+    description: "Tap and hold to tether to the nearest anchor and swing in this momentum-based arcade game. Release to launch forward and avoid the red virus mines. <span class=\"zh\">基于动量的街机游戏。点击并按住以系住最近的锚点并摆动，松开以向前发射并避开红色病毒地雷。</span>",
+    tags: ["Game", "Touch", "Physics", "Momentum", "Arcade"]
+  },
+  {
     id: "neon-grid",
     title: "Neon Grid <span class=\"zh\">霓虹网格闪避</span>",
     date: "2026-07-06",
