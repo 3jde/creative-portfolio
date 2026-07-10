@@ -1,5 +1,18 @@
 window.ONEZ_WORKS = [
   {
+    id: "neon-pulse",
+    title: "Neon Pulse <span class=\"zh\">霓虹脉冲</span>",
+    date: "2026-07-10",
+    section: "game",
+    format: "Risk/Reward Charge Arcade",
+    url: "games/2026-07-10-neon-pulse.html",
+    status: "New Game",
+    featured: true,
+    palette: "cyan",
+    description: "Hold to charge an expanding energy wave, release to obliterate the incoming neon swarm. Mobile-first one-touch interaction. <span class=\"zh\">按住以蓄力不断扩大的能量波，松开以消灭来袭的霓虹蜂群。移动端优先的一键互动游戏。</span>",
+    tags: ["Game", "Touch", "Arcade", "Survival", "Mobile"]
+  },
+  {
     id: "neon-tether",
     title: "Neon Tether <span class=\"zh\">霓虹系绳</span>",
     date: "2026-07-09",
