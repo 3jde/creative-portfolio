@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Neon Descent - Onez Games</title>
+  <style>
+    :root {
+      --bg-color: #050510;
+      --player-color: #00ffff;
+      --obstacle-color: #ff0055;
+      --text-color: #ffffff;
+      --ui-bg: rgba(5, 5, 16, 0.85);
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; touch-action: none; }
+    
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Courier New', Courier, monospace;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 600px;
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(0, 255, 255, 0.1);
+      background: linear-gradient(180deg, #020205 0%, #080818 100%);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* UI Overlay */
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    #hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 0 10px var(--player-color);
+      z-index: 10;
+    }
+
+    #score-display {
+      color: var(--player-color);
+    }
+    
+    .screen {
+      background: var(--ui-bg);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      padding: 40px;
+      border-radius: 10px;
+      text-align: center;
+      pointer-events: auto;
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+      backdrop-filter: blur(5px);
+      max-width: 90%;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #fff;
+      text-shadow: 0 0 15px var(--player-color), 0 0 30px var(--player-color);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    p {
+      font-size: 16px;
+      margin-bottom: 30px;
+      line-height: 1.5;
+      color: #aaa;
+    }
+
+    button {
+      background: transparent;
+      color: var(--player-color);
+      border: 2px solid var(--player-color);
+      padding: 15px 40px;
+      font-size: 20px;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    }
+
+    button:hover, button:active {
+      background: var(--player-color);
+      color: var(--bg-color);
+      box-shadow: 0 0 25px var(--player-color);
+    }
+
+    #start-screen, #game-over-screen {
+      display: none;
+    }
+    
+    #start-screen.active, #game-over-screen.active {
+      display: block;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      opacity: 0.5;
+      pointer-events: auto;
+      z-index: 100;
+      transition: opacity 0.2s;
+    }
+    .back-btn:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <a href="../games.html" class="back-btn">&lt; BACK</a>
+  <canvas id="game-canvas"></canvas>
+  
+  <div id="hud">
+    <div id="score-display">DEPTH: 0m</div>
+  </div>
+
+  <div id="ui-layer">
+    <div id="start-screen" class="screen active">
+      <h1>NEON DESCENT</h1>
+      <p>Drag or move pointer to guide the core.<br>Avoid the red barriers.<br>Descend into the depths.</p>
+      <button id="start-btn">INITIATE</button>
+    </div>
+
+    <div id="game-over-screen" class="screen">
+      <h1 style="color: var(--obstacle-color); text-shadow: 0 0 15px var(--obstacle-color);">SIGNAL LOST</h1>
+      <p id="final-score">DEPTH REACHED: 0m</p>
+      <button id="restart-btn">RETRY</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const container = document.getElementById('game-container');
+  
+  // UI Elements
+  const startScreen = document.getElementById('start-screen');
+  const gameOverScreen = document.getElementById('game-over-screen');
+  const startBtn = document.getElementById('start-btn');
+  const restartBtn = document.getElementById('restart-btn');
+  const scoreDisplay = document.getElementById('score-display');
+  const finalScore = document.getElementById('final-score');
+
+  // Game State
+  let GAME_STATE = 'start'; // start, playing, gameover
+  let score = 0;
+  let lastTime = 0;
+  
+  // Canvas Size
+  let width, height;
+  function resize() {
+    const rect = container.getBoundingClientRect();
+    width = canvas.width = rect.width;
+    height = canvas.height = rect.height;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Settings
+  const PLAYER_COLOR = '#00ffff';
+  const OBSTACLE_COLOR = '#ff0055';
+  
+  // Entities
+  let player = {
+    x: width / 2,
+    y: height * 0.2, // Player stays mostly near top while obstacles come up
+    radius: 12,
+    vx: 0,
+    targetX: width / 2
+  };
+  
+  let obstacles = [];
+  let particles = [];
+  let trails = [];
+  
+  let baseSpeed = 0;
+  let currentSpeed = 0;
+  let distanceTraveled = 0;
+  let framesSinceLastObstacle = 0;
+  let obstacleInterval = 0;
+  
+  // Shake effect
+  let shakeTime = 0;
+  let shakeMagnitude = 0;
+
+  // Input Handling (Mobile & Mouse)
+  let isPointerDown = false;
+  
+  function handlePointerMove(e) {
+    if (GAME_STATE !== 'playing') return;
+    
+    // Prevent default scrolling
+    e.preventDefault();
+    
+    const rect = canvas.getBoundingClientRect();
+    let clientX;
+    
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = e.clientX;
+    }
+    
+    player.targetX = clientX - rect.left;
+    
+    // Clamp to screen
+    player.targetX = Math.max(player.radius, Math.min(width - player.radius, player.targetX));
+  }
+
+  canvas.addEventListener('mousedown', (e) => { isPointerDown = true; handlePointerMove(e); });
+  canvas.addEventListener('mousemove', (e) => { if (isPointerDown) handlePointerMove(e); });
+  window.addEventListener('mouseup', () => { isPointerDown = false; });
+  
+  canvas.addEventListener('touchstart', (e) => { isPointerDown = true; handlePointerMove(e); }, {passive: false});
+  canvas.addEventListener('touchmove', (e) => { if (isPointerDown) handlePointerMove(e); }, {passive: false});
+  window.addEventListener('touchend', () => { isPointerDown = false; });
+
+  function initGame() {
+    score = 0;
+    distanceTraveled = 0;
+    baseSpeed = height * 0.4; // Pixels per second
+    player.x = width / 2;
+    player.targetX = width / 2;
+    obstacles = [];
+    particles = [];
+    trails = [];
+    framesSinceLastObstacle = 999;
+    obstacleInterval = Math.max(300, height * 0.5); 
+    
+    scoreDisplay.innerText = `DEPTH: 0m`;
+    
+    startScreen.classList.remove('active');
+    gameOverScreen.classList.remove('active');
+    GAME_STATE = 'playing';
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+  }
+
+  startBtn.addEventListener('click', initGame);
+  restartBtn.addEventListener('click', initGame);
+
+  function createObstacle() {
+    const gapWidth = Math.max(player.radius * 6, width * 0.25 - (score * 0.5));
+    const maxGapX = width - gapWidth - 20;
+    const gapX = 10 + Math.random() * (maxGapX - 10);
+    
+    const h = 20;
+    
+    obstacles.push({
+      y: height + 50,
+      h: h,
+      gapX: gapX,
+      gapWidth: gapWidth,
+      passed: false
+    });
+  }
+
+  function createExplosion(x, y, color) {
+    for (let i = 0; i < 40; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 8;
+      particles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1.0,
+        decay: 0.01 + Math.random() * 0.03,
+        color: color,
+        size: 1 + Math.random() * 4
+      });
+    }
+  }
+
+  function applyShake(magnitude, duration) {
+    shakeMagnitude = magnitude;
+    shakeTime = duration;
+  }
+
+  function die() {
+    GAME_STATE = 'gameover';
+    createExplosion(player.x, player.y, PLAYER_COLOR);
+    applyShake(15, 0.5);
+    
+    setTimeout(() => {
+      finalScore.innerText = `DEPTH REACHED: ${Math.floor(score)}m`;
+      gameOverScreen.classList.add('active');
+    }, 1000);
+  }
+
+  function update(dt) {
+    if (GAME_STATE === 'gameover' && particles.length === 0) return;
+
+    // Shake
+    let shakeX = 0, shakeY = 0;
+    if (shakeTime > 0) {
+      shakeX = (Math.random() - 0.5) * shakeMagnitude;
+      shakeY = (Math.random() - 0.5) * shakeMagnitude;
+      shakeTime -= dt;
+      shakeMagnitude *= 0.9;
+    }
+    
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // Speed progression
+    if (GAME_STATE === 'playing') {
+      currentSpeed = baseSpeed + (score * 1.5);
+      distanceTraveled += currentSpeed * dt;
+      score = distanceTraveled / 100;
+      scoreDisplay.innerText = `DEPTH: ${Math.floor(score)}m`;
+      
+      // Player movement (smooth damping)
+      player.x += (player.targetX - player.x) * 15 * dt;
+      
+      // Add trail
+      if (Math.random() > 0.3) {
+        trails.push({
+          x: player.x,
+          y: player.y,
+          life: 1.0,
+          size: player.radius * 0.8
+        });
+      }
+    }
+
+    // Update Trails
+    for (let i = trails.length - 1; i >= 0; i--) {
+      let t = trails[i];
+      if (GAME_STATE === 'playing') t.y -= currentSpeed * dt * 0.5; // Trail drifts up slightly relative to ball
+      t.life -= dt * 3;
+      if (t.life <= 0) trails.splice(i, 1);
+    }
+
+    // Obstacles
+    if (GAME_STATE === 'playing') {
+      framesSinceLastObstacle += currentSpeed * dt;
+      if (framesSinceLastObstacle > obstacleInterval) {
+        createObstacle();
+        framesSinceLastObstacle = 0;
+        obstacleInterval = Math.max(200, height * 0.45 - (score * 0.5)); // gets closer over time
+      }
+    }
+
+    // Check collisions and move obstacles
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      let obs = obstacles[i];
+      if (GAME_STATE === 'playing') {
+        obs.y -= currentSpeed * dt;
+      }
+      
+      // Collision
+      if (GAME_STATE === 'playing') {
+        // Simple AABB vs Circle
+        const top = obs.y;
+        const bottom = obs.y + obs.h;
+        
+        // If player Y is vertically inside the obstacle rect
+        if (player.y + player.radius > top && player.y - player.radius < bottom) {
+          // Check horizontal (the walls)
+          if (player.x - player.radius < obs.gapX || player.x + player.radius > obs.gapX + obs.gapWidth) {
+            die();
+          }
+        }
+        
+        // Score logic
+        if (!obs.passed && obs.y + obs.h < player.y - player.radius) {
+          obs.passed = true;
+          // small subtle effect?
+        }
+      }
+      
+      if (obs.y < -50) obstacles.splice(i, 1);
+    }
+
+    // Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      let p = particles[i];
+      p.x += p.vx * dt * 60;
+      p.y += p.vy * dt * 60;
+      p.life -= p.decay * dt * 60;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function draw() {
+    // Background clear with slight trail effect
+    ctx.fillStyle = '#050510';
+    ctx.fillRect(0, 0, width, height);
+
+    // Grid lines for speed illusion
+    ctx.strokeStyle = 'rgba(0, 255, 255, 0.03)';
+    ctx.lineWidth = 1;
+    let gridOffset = (distanceTraveled % 50);
+    ctx.beginPath();
+    for (let y = height - gridOffset; y > 0; y -= 50) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+    }
+    for(let x = 0; x < width; x+= 50) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+    }
+    ctx.stroke();
+
+    ctx.globalCompositeOperation = 'screen';
+
+    // Draw obstacles
+    for (let obs of obstacles) {
+      ctx.fillStyle = OBSTACLE_COLOR;
+      ctx.shadowColor = OBSTACLE_COLOR;
+      ctx.shadowBlur = 15;
+      
+      // Left part
+      ctx.fillRect(0, obs.y, obs.gapX, obs.h);
+      // Right part
+      ctx.fillRect(obs.gapX + obs.gapWidth, obs.y, width - (obs.gapX + obs.gapWidth), obs.h);
+      
+      // Highlight lines
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 0;
+      ctx.fillRect(obs.gapX - 2, obs.y, 2, obs.h);
+      ctx.fillRect(obs.gapX + obs.gapWidth, obs.y, 2, obs.h);
+    }
+
+    // Draw trails
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = PLAYER_COLOR;
+    for (let t of trails) {
+      ctx.fillStyle = `rgba(0, 255, 255, ${t.life * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw Player
+    if (GAME_STATE === 'playing') {
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = PLAYER_COLOR;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Core inner
+      ctx.fillStyle = PLAYER_COLOR;
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw Particles
+    ctx.shadowBlur = 10;
+    for (let p of particles) {
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.globalAlpha = p.life;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+    ctx.globalCompositeOperation = 'source-over';
+    
+    ctx.restore();
+  }
+
+  function gameLoop(time) {
+    let dt = (time - lastTime) / 1000;
+    if (dt > 0.1) dt = 0.1; // cap
+    lastTime = time;
+
+    update(dt);
+    draw();
+
+    if (GAME_STATE === 'playing' || particles.length > 0 || shakeTime > 0) {
+      requestAnimationFrame(gameLoop);
+    } else if (GAME_STATE === 'start') {
+       draw();
+       requestAnimationFrame(gameLoop);
+    }
+  }
+  
+  // Initial draw loop for start screen background
+  requestAnimationFrame(gameLoop);
+
+</script>
+</body>
+</html>
