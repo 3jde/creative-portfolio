@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Swarm Evader</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #050510; font-family: monospace; color: #fff; touch-action: none; }
+        canvas { display: block; width: 100%; height: 100%; }
+        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .score-box { text-align: left; }
+        .score-label { font-size: 14px; color: #0ff; text-transform: uppercase; letter-spacing: 2px; }
+        #score { font-size: 32px; font-weight: bold; color: #fff; text-shadow: 0 0 10px #0ff; }
+        .back-btn { pointer-events: auto; text-decoration: none; color: #f0f; border: 1px solid #f0f; padding: 5px 10px; font-size: 14px; text-transform: uppercase; background: rgba(255,0,255,0.1); }
+        .back-btn:hover { background: #f0f; color: #000; }
+        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; pointer-events: auto; }
+        #game-over h1 { font-size: 48px; color: #f00; text-shadow: 0 0 20px #f00; margin-bottom: 20px; text-transform: uppercase; }
+        #restart-btn { background: transparent; border: 2px solid #0ff; color: #0ff; padding: 15px 30px; font-size: 20px; font-family: monospace; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 5px #0ff; box-shadow: 0 0 10px inset #0ff, 0 0 10px #0ff; transition: all 0.2s; }
+        #restart-btn:hover { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; }
+        #intro { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; transition: opacity 0.5s; }
+        #intro p { font-size: 18px; color: #aaa; text-shadow: 0 0 5px #fff; margin-bottom: 10px; }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui">
+        <div class="header">
+            <div class="score-box">
+                <div class="score-label">Time Survived</div>
+                <div id="score">0.0s</div>
+            </div>
+            <a href="../games.html" class="back-btn">← Back</a>
+        </div>
+        <div id="intro">
+            <p style="color: #0ff; font-size: 24px; font-weight: bold; margin-bottom: 20px;">NEON SWARM EVADER</p>
+            <p>Drag anywhere to move.</p>
+            <p style="color: #0ff;">Collect Cyan cores to detonate swarm.</p>
+            <p class="blink" style="margin-top:20px;">Touch to start</p>
+        </div>
+        <div id="game-over">
+            <h1>SWARMED</h1>
+            <button id="restart-btn">Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const gameOverEl = document.getElementById('game-over');
+        const restartBtn = document.getElementById('restart-btn');
+        const introEl = document.getElementById('intro');
+
+        let width, height;
+        let dpr = window.devicePixelRatio || 1;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Game State
+        let state = 'start'; // start, playing, gameover
+        let score = 0;
+        let startTime = 0;
+        
+        let player = {
+            x: width / 2, y: height / 2, radius: 10,
+            vx: 0, vy: 0, speed: 0.15,
+            targetX: width / 2, targetY: height / 2,
+            trail: []
+        };
+        let inputActive = false;
+        let dragOffset = { x: 0, y: 0 };
+        let pointerPos = { x: width/2, y: height/2 };
+        let initialPointer = null;
+        let initialPlayer = null;
+
+        let swarm = [];
+        let particles = [];
+        let powerups = [];
+        let shockwaves = [];
+
+        let lastTime = 0;
+        let spawnTimer = 0;
+        let powerupTimer = 0;
+        let screenShake = 0;
+
+        // Colors
+        const C_PLAYER = '#0ff';
+        const C_ENEMY = '#f0f';
+        const C_POWERUP = '#0ff';
+
+        function init() {
+            player.x = width / 2;
+            player.y = height / 2;
+            player.targetX = player.x;
+            player.targetY = player.y;
+            player.trail = [];
+            
+            swarm = [];
+            particles = [];
+            powerups = [];
+            shockwaves = [];
+            
+            score = 0;
+            scoreEl.innerText = "0.0s";
+            state = 'playing';
+            gameOverEl.style.display = 'none';
+            introEl.style.opacity = '0';
+            startTime = performance.now();
+            spawnTimer = 0;
+            powerupTimer = 0;
+            screenShake = 0;
+
+            for(let i=0; i<30; i++) spawnEnemy(); // initial swarm
+        }
+
+        function spawnEnemy() {
+            // Spawn around edges
+            let ex, ey;
+            if (Math.random() > 0.5) {
+                ex = Math.random() > 0.5 ? -20 : width + 20;
+                ey = Math.random() * height;
+            } else {
+                ex = Math.random() * width;
+                ey = Math.random() > 0.5 ? -20 : height + 20;
+            }
+            swarm.push({
+                x: ex, y: ey,
+                vx: 0, vy: 0,
+                radius: 4 + Math.random() * 3,
+                speed: 60 + Math.random() * 80 // pixels per second max
+            });
+        }
+
+        function spawnPowerup() {
+            powerups.push({
+                x: 50 + Math.random() * (width - 100),
+                y: 50 + Math.random() * (height - 100),
+                radius: 12,
+                pulse: 0
+            });
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 3 + 1;
+                particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    color: color,
+                    size: Math.random() * 3 + 1
+                });
+            }
+        }
+
+        function createShockwave(x, y) {
+            shockwaves.push({ x: x, y: y, radius: 0, maxRadius: Math.max(width, height) * 0.7, life: 1.0 });
+            screenShake = 20;
+        }
+
+        function triggerDeath() {
+            if (state !== 'playing') return;
+            state = 'gameover';
+            createParticles(player.x, player.y, C_PLAYER, 50);
+            setTimeout(() => {
+                gameOverEl.style.display = 'block';
+            }, 500);
+        }
+
+        // Input Handling
+        function updateTarget(px, py) {
+            if (initialPointer && initialPlayer) {
+                let dx = px - initialPointer.x;
+                let dy = py - initialPointer.y;
+                player.targetX = initialPlayer.x + dx;
+                player.targetY = initialPlayer.y + dy;
+            } else {
+                player.targetX = px;
+                player.targetY = py;
+            }
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (state === 'start') {
+                init();
+            } else if (state === 'playing') {
+                inputActive = true;
+                initialPointer = { x: e.clientX, y: e.clientY };
+                initialPlayer = { x: player.x, y: player.y };
+            }
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (!inputActive) return;
+            updateTarget(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener('pointerup', () => { inputActive = false; initialPointer = null; initialPlayer = null; });
+        canvas.addEventListener('pointercancel', () => { inputActive = false; initialPointer = null; initialPlayer = null; });
+        
+        restartBtn.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            init();
+        });
+
+        // Loop
+        function loop(time) {
+            requestAnimationFrame(loop);
+            if (!lastTime) lastTime = time;
+            let dt = (time - lastTime) / 1000;
+            lastTime = time;
+
+            if (dt > 0.1) dt = 0.1; // Clamp dt
+
+            update(dt, time);
+            draw();
+        }
+
+        function update(dt, time) {
+            if (state === 'playing') {
+                score = (time - startTime) / 1000;
+                scoreEl.innerText = score.toFixed(1) + "s";
+
+                // Player movement (Lerp towards target)
+                player.targetX = Math.max(player.radius, Math.min(width - player.radius, player.targetX));
+                player.targetY = Math.max(player.radius, Math.min(height - player.radius, player.targetY));
+
+                player.x += (player.targetX - player.x) * 10 * dt;
+                player.y += (player.targetY - player.y) * 10 * dt;
+
+                // Trail
+                player.trail.push({ x: player.x, y: player.y });
+                if (player.trail.length > 15) player.trail.shift();
+
+                // Spawning
+                spawnTimer -= dt;
+                if (spawnTimer <= 0) {
+                    spawnEnemy();
+                    // Spawn faster over time
+                    spawnTimer = Math.max(0.1, 0.5 - score * 0.005);
+                }
+
+                powerupTimer -= dt;
+                if (powerupTimer <= 0 && powerups.length < 2) {
+                    spawnPowerup();
+                    powerupTimer = 8 + Math.random() * 5;
+                }
+
+                // Swarm movement
+                for (let i = swarm.length - 1; i >= 0; i--) {
+                    let s = swarm[i];
+                    let dx = player.x - s.x;
+                    let dy = player.y - s.y;
+                    let dist = Math.hypot(dx, dy);
+                    
+                    if (dist > 0) {
+                        s.vx += (dx / dist) * s.speed * dt * 2;
+                        s.vy += (dy / dist) * s.speed * dt * 2;
+                    }
+
+                    // Slight separation
+                    for (let j = 0; j < swarm.length; j++) {
+                        if (i === j) continue;
+                        let s2 = swarm[j];
+                        let ddx = s.x - s2.x;
+                        let ddy = s.y - s2.y;
+                        let ddist = Math.hypot(ddx, ddy);
+                        if (ddist < 20 && ddist > 0) {
+                            s.vx += (ddx / ddist) * 200 * dt;
+                            s.vy += (ddy / ddist) * 200 * dt;
+                        }
+                    }
+
+                    // Friction / Speed limit
+                    let currentSpeed = Math.hypot(s.vx, s.vy);
+                    if (currentSpeed > s.speed) {
+                        s.vx = (s.vx / currentSpeed) * s.speed;
+                        s.vy = (s.vy / currentSpeed) * s.speed;
+                    }
+
+                    s.x += s.vx * dt;
+                    s.y += s.vy * dt;
+
+                    // Collision with player
+                    if (dist < player.radius + s.radius - 2) {
+                        triggerDeath();
+                    }
+                }
+
+                // Powerups
+                for (let i = powerups.length - 1; i >= 0; i--) {
+                    let p = powerups[i];
+                    p.pulse += dt * 5;
+                    let dist = Math.hypot(player.x - p.x, player.y - p.y);
+                    if (dist < player.radius + p.radius) {
+                        createShockwave(p.x, p.y);
+                        powerups.splice(i, 1);
+                    }
+                }
+            }
+
+            if (screenShake > 0) {
+                screenShake -= dt * 60;
+                if (screenShake < 0) screenShake = 0;
+            }
+
+            // Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx * dt * 60;
+                p.y += p.vy * dt * 60;
+                p.life -= dt;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            // Shockwaves
+            for (let i = shockwaves.length - 1; i >= 0; i--) {
+                let w = shockwaves[i];
+                w.radius += (w.maxRadius * 2) * dt;
+                w.life -= dt * 1.5;
+
+                // Destroy swarm
+                for (let j = swarm.length - 1; j >= 0; j--) {
+                    let s = swarm[j];
+                    let dist = Math.hypot(s.x - w.x, s.y - w.y);
+                    if (dist < w.radius && dist > w.radius - 100) {
+                        createParticles(s.x, s.y, C_ENEMY, 5);
+                        swarm.splice(j, 1);
+                    }
+                }
+
+                if (w.life <= 0) shockwaves.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#050510';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.save();
+            if (screenShake > 0) {
+                let sx = (Math.random() - 0.5) * screenShake;
+                let sy = (Math.random() - 0.5) * screenShake;
+                ctx.translate(sx, sy);
+            }
+
+            ctx.globalCompositeOperation = 'lighter';
+
+            // Particles
+            for (let p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Shockwaves
+            for (let w of shockwaves) {
+                ctx.strokeStyle = C_POWERUP;
+                ctx.lineWidth = 10 * w.life;
+                ctx.globalAlpha = w.life;
+                ctx.beginPath();
+                ctx.arc(w.x, w.y, w.radius, 0, Math.PI*2);
+                ctx.stroke();
+                // Inner fill
+                ctx.fillStyle = C_POWERUP;
+                ctx.globalAlpha = w.life * 0.2;
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Swarm
+            ctx.fillStyle = C_ENEMY;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = C_ENEMY;
+            for (let s of swarm) {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.radius, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            // Powerups
+            ctx.shadowColor = C_POWERUP;
+            for (let p of powerups) {
+                ctx.strokeStyle = C_POWERUP;
+                ctx.lineWidth = 3;
+                let r = p.radius + Math.sin(p.pulse) * 3;
+                
+                // Diamond shape
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y - r);
+                ctx.lineTo(p.x + r, p.y);
+                ctx.lineTo(p.x, p.y + r);
+                ctx.lineTo(p.x - r, p.y);
+                ctx.closePath();
+                ctx.stroke();
+
+                ctx.fillStyle = C_POWERUP;
+                ctx.fill();
+            }
+
+            // Player
+            if (state !== 'gameover') {
+                ctx.shadowColor = C_PLAYER;
+                ctx.strokeStyle = C_PLAYER;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(player.trail[0]?.x || player.x, player.trail[0]?.y || player.y);
+                for (let i=1; i<player.trail.length; i++) {
+                    ctx.lineTo(player.trail[i].x, player.trail[i].y);
+                }
+                ctx.lineTo(player.x, player.y);
+                ctx.stroke();
+
+                ctx.fillStyle = '#fff';
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
+                ctx.fill();
+                ctx.strokeStyle = C_PLAYER;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
