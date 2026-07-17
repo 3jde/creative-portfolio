@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON DETONATOR | Daily Mini Game</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap');
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background: #050505;
+      overflow: hidden;
+      touch-action: none;
+      font-family: 'Space Mono', monospace;
+      color: #ccff00;
+      user-select: none;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .title {
+      font-family: 'VT323', monospace;
+      font-size: 2.5rem;
+      line-height: 1;
+      text-shadow: 0 0 10px rgba(204, 255, 0, 0.5);
+    }
+    .score-container {
+      text-align: right;
+    }
+    .score {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    .multiplier {
+      font-size: 1.2rem;
+      color: #ff00ff;
+    }
+    .health {
+      font-size: 1.5rem;
+      color: #00ffff;
+      margin-top: 10px;
+    }
+    
+    #gameOverScreen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(5, 5, 5, 0.9);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+    }
+    #gameOverScreen.active {
+      display: flex;
+    }
+    .game-over-title {
+      font-family: 'VT323', monospace;
+      font-size: 5rem;
+      color: #ff0055;
+      margin-bottom: 10px;
+      text-shadow: 0 0 20px rgba(255, 0, 85, 0.5);
+    }
+    .final-score {
+      font-size: 2rem;
+      margin-bottom: 40px;
+    }
+    .restart-btn {
+      background: transparent;
+      border: 2px solid #ccff00;
+      color: #ccff00;
+      font-family: 'Space Mono', monospace;
+      font-size: 1.5rem;
+      padding: 15px 40px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    .restart-btn:hover, .restart-btn:active {
+      background: #ccff00;
+      color: #050505;
+    }
+    .instructions {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 0.9rem;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    
+    /* Screen shake class */
+    body.shake {
+      animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-2px, 2px, 0); }
+      20%, 80% { transform: translate3d(4px, -2px, 0); }
+      30%, 50%, 70% { transform: translate3d(-8px, 4px, 0); }
+      40%, 60% { transform: translate3d(8px, -4px, 0); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  
+  <div class="ui-layer">
+    <div class="header">
+      <div>
+        <div class="title">NEON DETONATOR</div>
+        <div class="health" id="healthDisplay">CORE: ■■■</div>
+      </div>
+      <div class="score-container">
+        <div class="score" id="scoreDisplay">0</div>
+        <div class="multiplier" id="multiDisplay"></div>
+      </div>
+    </div>
+    
+    <div class="instructions" id="instructionText">
+      DRAW A LINE THROUGH ENEMIES.<br>RELEASE TO DETONATE.
+    </div>
+  </div>
+  
+  <div id="gameOverScreen">
+    <div class="game-over-title">SYSTEM FAILURE</div>
+    <div class="final-score">SCORE: <span id="finalScore">0</span></div>
+    <button class="restart-btn" id="restartBtn">REBOOT SYSTEM</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const multiDisplay = document.getElementById('multiDisplay');
+    const healthDisplay = document.getElementById('healthDisplay');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScore = document.getElementById('finalScore');
+    const restartBtn = document.getElementById('restartBtn');
+    const instructionText = document.getElementById('instructionText');
+    
+    let width, height, cx, cy;
+    let time = 0;
+    
+    // Game state
+    let state = 'menu'; // menu, playing, gameover
+    let score = 0;
+    let health = 3;
+    let comboTimer = 0;
+    let comboCount = 0;
+    
+    let enemies = [];
+    let particles = [];
+    let explosions = [];
+    
+    // Input state
+    let isDrawing = false;
+    let drawPath = [];
+    const MAX_PATH_LENGTH = 800; // Total pixels
+    
+    // Difficulty
+    let spawnRate = 2000;
+    let lastSpawn = 0;
+    let enemySpeedMult = 1.0;
+    
+    // Game Feel
+    let hitPauseTimer = 0;
+    
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      cx = width / 2;
+      cy = height / 2;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // --- INPUT HANDLING ---
+    function handlePointerDown(e) {
+      if (state === 'gameover') return;
+      if (state === 'menu') {
+        startGame();
+        return;
+      }
+      isDrawing = true;
+      drawPath = [];
+      addPointToPath(e.clientX || (e.touches && e.touches[0].clientX), 
+                     e.clientY || (e.touches && e.touches[0].clientY));
+      instructionText.style.opacity = '0';
+    }
+    
+    function handlePointerMove(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      addPointToPath(e.clientX || (e.touches && e.touches[0].clientX), 
+                     e.clientY || (e.touches && e.touches[0].clientY));
+    }
+    
+    function handlePointerUp() {
+      if (!isDrawing) return;
+      isDrawing = false;
+      detonatePath();
+    }
+    
+    canvas.addEventListener('mousedown', handlePointerDown);
+    canvas.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    
+    canvas.addEventListener('touchstart', handlePointerDown, {passive: false});
+    canvas.addEventListener('touchmove', handlePointerMove, {passive: false});
+    window.addEventListener('touchend', handlePointerUp);
+    
+    function addPointToPath(x, y) {
+      if (!x || !y) return;
+      
+      // Calculate current length
+      let currentLength = 0;
+      for (let i = 1; i < drawPath.length; i++) {
+        let dx = drawPath[i].x - drawPath[i-1].x;
+        let dy = drawPath[i].y - drawPath[i-1].y;
+        currentLength += Math.sqrt(dx*dx + dy*dy);
+      }
+      
+      if (drawPath.length > 0) {
+        let lastPt = drawPath[drawPath.length-1];
+        let dx = x - lastPt.x;
+        let dy = y - lastPt.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > 5) { // min distance between points
+          if (currentLength + dist > MAX_PATH_LENGTH) {
+            // Trim point to fit max length
+            let remaining = MAX_PATH_LENGTH - currentLength;
+            if (remaining > 0) {
+              x = lastPt.x + (dx / dist) * remaining;
+              y = lastPt.y + (dy / dist) * remaining;
+              drawPath.push({x, y});
+            }
+          } else {
+            drawPath.push({x, y});
+          }
+        }
+      } else {
+        drawPath.push({x, y});
+      }
+    }
+    
+    // --- GAME LOGIC ---
+    function startGame() {
+      state = 'playing';
+      score = 0;
+      health = 3;
+      comboCount = 0;
+      enemies = [];
+      particles = [];
+      explosions = [];
+      spawnRate = 2000;
+      enemySpeedMult = 1.0;
+      updateUI();
+      gameOverScreen.classList.remove('active');
+    }
+    
+    function gameOver() {
+      state = 'gameover';
+      isDrawing = false;
+      drawPath = [];
+      finalScore.textContent = score;
+      gameOverScreen.classList.add('active');
+      shakeScreen();
+      createExplosion(cx, cy, 100, '#00ffff');
+    }
+    
+    restartBtn.addEventListener('click', startGame);
+    
+    function spawnEnemy() {
+      // Spawn along the edges
+      let x, y;
+      if (Math.random() > 0.5) {
+        x = Math.random() > 0.5 ? 0 : width;
+        y = Math.random() * height;
+      } else {
+        x = Math.random() * width;
+        y = Math.random() > 0.5 ? 0 : height;
+      }
+      
+      // Calculate angle to center
+      let angle = Math.atan2(cy - y, cx - x);
+      let speed = (0.5 + Math.random() * 1.5) * enemySpeedMult;
+      
+      enemies.push({
+        x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        size: 10 + Math.random() * 10,
+        type: Math.random() > 0.8 ? 'fast' : 'normal',
+        angle: 0
+      });
+    }
+    
+    function detonatePath() {
+      if (drawPath.length < 2) return;
+      
+      let hitCount = 0;
+      
+      // Create visual explosion line
+      explosions.push({
+        path: [...drawPath],
+        life: 1.0
+      });
+      
+      // Check collisions with enemies
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        let e = enemies[i];
+        let hit = false;
+        
+        // Line segment intersection test roughly
+        for (let j = 0; j < drawPath.length - 1; j++) {
+          let p1 = drawPath[j];
+          let p2 = drawPath[j+1];
+          if (distToSegment(e, p1, p2) < e.size + 15) {
+            hit = true; break;
+          }
+        }
+        
+        if (hit) {
+          hitCount++;
+          // Destroy enemy
+          createParticles(e.x, e.y, e.type === 'fast' ? '#ff00ff' : '#ff0055');
+          enemies.splice(i, 1);
+        }
+      }
+      
+      if (hitCount > 0) {
+        comboCount += hitCount;
+        comboTimer = 120; // frames to keep combo
+        let points = hitCount * 10 * comboCount;
+        score += points;
+        
+        updateUI();
+        shakeScreen();
+        
+        // Hit pause effect
+        hitPauseTimer = Math.min(10, hitCount * 3);
+      }
+      
+      drawPath = [];
+    }
+    
+    // Utility for segment distance
+    function distToSegment(p, v, w) {
+      let l2 = (w.x - v.x)**2 + (w.y - v.y)**2;
+      if (l2 == 0) return Math.sqrt((p.x - v.x)**2 + (p.y - v.y)**2);
+      let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      let proj = { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) };
+      return Math.sqrt((p.x - proj.x)**2 + (p.y - proj.y)**2);
+    }
+    
+    function createParticles(x, y, color) {
+      for (let i=0; i<15; i++) {
+        let a = Math.random() * Math.PI * 2;
+        let s = Math.random() * 5 + 2;
+        particles.push({
+          x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+          life: 1.0, color, size: Math.random() * 4 + 2
+        });
+      }
+    }
+    
+    function createExplosion(x, y, size, color) {
+      for (let i=0; i<30; i++) {
+        let a = Math.random() * Math.PI * 2;
+        let s = Math.random() * 8 + 2;
+        particles.push({
+          x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+          life: 1.0, color, size: Math.random() * 6 + 2
+        });
+      }
+    }
+    
+    function shakeScreen() {
+      document.body.classList.remove('shake');
+      void document.body.offsetWidth; // trigger reflow
+      document.body.classList.add('shake');
+    }
+    
+    function updateUI() {
+      scoreDisplay.textContent = score;
+      if (comboCount > 1) {
+        multiDisplay.textContent = `x${comboCount}`;
+        multiDisplay.style.color = '#fff';
+        setTimeout(() => multiDisplay.style.color = '#ff00ff', 50);
+      } else {
+        multiDisplay.textContent = '';
+      }
+      
+      let hStr = 'CORE: ';
+      for(let i=0; i<3; i++) hStr += (i < health) ? '■' : '□';
+      healthDisplay.textContent = hStr;
+      
+      if (health <= 0 && state === 'playing') {
+        gameOver();
+      }
+    }
+    
+    // --- RENDER LOOP ---
+    let lastTime = performance.now();
+    
+    function loop(now) {
+      requestAnimationFrame(loop);
+      let dt = now - lastTime;
+      lastTime = now;
+      
+      // Hit pause
+      if (hitPauseTimer > 0) {
+        hitPauseTimer--;
+        return;
+      }
+      
+      // Clear bg
+      ctx.fillStyle = '#050505';
+      ctx.fillRect(0, 0, width, height);
+      
+      time += dt * 0.001;
+      
+      if (state === 'playing') {
+        // Difficulty scaling
+        spawnRate = Math.max(500, 2000 - time * 20);
+        enemySpeedMult = 1.0 + time * 0.05;
+        
+        // Spawning
+        if (now - lastSpawn > spawnRate) {
+          spawnEnemy();
+          lastSpawn = now;
+        }
+        
+        // Combo decay
+        if (comboTimer > 0) {
+          comboTimer--;
+          if (comboTimer <= 0) {
+            comboCount = 0;
+            updateUI();
+          }
+        }
+        
+        // Update & Draw Core
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(time * 0.5);
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        let coreSize = 20 + Math.sin(time * 5) * 5;
+        ctx.rect(-coreSize/2, -coreSize/2, coreSize, coreSize);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Update Enemies
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          let e = enemies[i];
+          if (e.type === 'fast') {
+            e.x += e.vx * 1.5; e.y += e.vy * 1.5;
+            e.angle += 0.1;
+          } else {
+            e.x += e.vx; e.y += e.vy;
+            e.angle -= 0.05;
+          }
+          
+          // Check core hit
+          let distToCore = Math.sqrt((e.x - cx)**2 + (e.y - cy)**2);
+          if (distToCore < 30) {
+            health--;
+            updateUI();
+            shakeScreen();
+            createExplosion(cx, cy, 50, '#ff0000');
+            enemies.splice(i, 1);
+            continue;
+          }
+          
+          // Draw Enemy
+          ctx.save();
+          ctx.translate(e.x, e.y);
+          ctx.rotate(e.angle);
+          ctx.strokeStyle = e.type === 'fast' ? '#ff00ff' : '#ff0055';
+          ctx.lineWidth = 2;
+          ctx.shadowColor = ctx.strokeStyle;
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          if (e.type === 'fast') {
+            ctx.moveTo(0, -e.size);
+            ctx.lineTo(e.size, e.size);
+            ctx.lineTo(-e.size, e.size);
+            ctx.closePath();
+          } else {
+            ctx.rect(-e.size/2, -e.size/2, e.size, e.size);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+      } else if (state === 'menu') {
+        // Draw Core preview
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(time * 0.5);
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.rect(-15, -15, 30, 30);
+        ctx.stroke();
+        ctx.restore();
+      }
+      
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.life -= 0.02;
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+        ctx.globalAlpha = 1.0;
+      }
+      
+      // Draw Explosions (detonated paths)
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        let ex = explosions[i];
+        ex.life -= 0.05;
+        if (ex.life <= 0) {
+          explosions.splice(i, 1);
+          continue;
+        }
+        
+        ctx.beginPath();
+        for (let j = 0; j < ex.path.length; j++) {
+          let pt = ex.path[j];
+          if (j === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 10 * ex.life;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 20;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = ex.life;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
+      }
+      
+      // Draw current path
+      if (isDrawing && drawPath.length > 0) {
+        ctx.beginPath();
+        for (let i = 0; i < drawPath.length; i++) {
+          let pt = drawPath[i];
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        
+        // Calculate length to determine color
+        let currentLength = 0;
+        for (let i = 1; i < drawPath.length; i++) {
+          currentLength += Math.sqrt((drawPath[i].x-drawPath[i-1].x)**2 + (drawPath[i].y-drawPath[i-1].y)**2);
+        }
+        let lengthRatio = currentLength / MAX_PATH_LENGTH;
+        
+        ctx.strokeStyle = lengthRatio > 0.9 ? '#ff0000' : '#ccff00';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = 10;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        
+        // Draw head
+        let head = drawPath[drawPath.length-1];
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(head.x, head.y, 5, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+    
+    // Start loop
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
