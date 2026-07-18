@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON POLARITY | Daily Mini Game</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap');
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background: #050505;
+      overflow: hidden;
+      touch-action: none;
+      font-family: 'Space Mono', monospace;
+      color: #ffffff;
+      user-select: none;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+      box-sizing: border-box;
+      z-index: 10;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .title {
+      font-family: 'VT323', monospace;
+      font-size: 2.5rem;
+      line-height: 1;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+    .score-container {
+      text-align: right;
+    }
+    .score {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #ccff00;
+      text-shadow: 0 0 10px rgba(204, 255, 0, 0.5);
+    }
+    .multiplier {
+      font-size: 1.2rem;
+      color: #ff00ff;
+    }
+    .health {
+      font-size: 1.5rem;
+      color: #00ffff;
+      margin-top: 10px;
+    }
+    
+    #gameOverScreen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(5, 5, 5, 0.85);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+      z-index: 20;
+      backdrop-filter: blur(4px);
+    }
+    #gameOverScreen.active {
+      display: flex;
+    }
+    .game-over-title {
+      font-family: 'VT323', monospace;
+      font-size: 4rem;
+      color: #ff0055;
+      margin-bottom: 10px;
+      text-shadow: 0 0 20px rgba(255, 0, 85, 0.8);
+      text-align: center;
+    }
+    .final-score {
+      font-size: 2rem;
+      margin-bottom: 40px;
+      color: #ccff00;
+    }
+    .restart-btn {
+      background: transparent;
+      border: 2px solid #00ffff;
+      color: #00ffff;
+      font-family: 'Space Mono', monospace;
+      font-size: 1.5rem;
+      padding: 15px 40px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.2s;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    }
+    .restart-btn:hover {
+      background: #00ffff;
+      color: #050505;
+      box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
+    }
+    .back-btn {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      font-size: 1rem;
+      pointer-events: auto;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 5px 10px;
+      transition: all 0.2s;
+    }
+    .back-btn:hover {
+      color: #fff;
+      border-color: #fff;
+    }
+    .instructions {
+      position: absolute;
+      bottom: 80px;
+      width: 100%;
+      text-align: center;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.9rem;
+      pointer-events: none;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="gameCanvas"></canvas>
+  
+  <div class="ui-layer">
+    <div class="header">
+      <div class="title">NEON<br>POLARITY</div>
+      <div class="score-container">
+        <div class="score" id="scoreDisplay">0</div>
+        <div class="multiplier" id="multDisplay">x1</div>
+        <div class="health" id="healthDisplay">HP: 3</div>
+      </div>
+    </div>
+    <div class="instructions" id="instructions">
+      TAP ANYWHERE TO SWAP POLARITY<br>MATCH INCOMING COLORS
+    </div>
+    <a href="games.html" class="back-btn">← BACK</a>
+  </div>
+
+  <div id="gameOverScreen">
+    <div class="game-over-title">SYSTEM FAILURE</div>
+    <div class="final-score">SCORE: <span id="finalScore">0</span></div>
+    <button class="restart-btn" id="restartBtn">REBOOT SYSTEM</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const multDisplay = document.getElementById('multDisplay');
+    const healthDisplay = document.getElementById('healthDisplay');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreDisplay = document.getElementById('finalScore');
+    const restartBtn = document.getElementById('restartBtn');
+    const instructions = document.getElementById('instructions');
+
+    let width, height, cx, cy;
+    
+    // Game state
+    let state = 'playing'; // playing, gameover
+    let score = 0;
+    let multiplier = 1;
+    let combo = 0;
+    let health = 3;
+    let frames = 0;
+    
+    // Polish & Juice variables
+    let screenShakeTime = 0;
+    let screenShakeMagnitude = 0;
+    let hitPauseFrames = 0;
+    let pulseScale = 1;
+
+    // Entities
+    const COLOR_CYAN = '#00ffff';
+    const COLOR_MAGENTA = '#ff00ff';
+
+    const player = {
+      radius: 40,
+      orbRadius: 15,
+      angle: 0,
+      targetAngle: 0,
+      colorA: COLOR_CYAN,
+      colorB: COLOR_MAGENTA
+    };
+
+    let enemies = [];
+    let particles = [];
+    let floatingTexts = [];
+
+    // Difficulty
+    let spawnRate = 100;
+    let enemySpeed = 2;
+    
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      cx = width / 2;
+      cy = height / 2;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Input handling
+    function handleInput(e) {
+      if (e.type === 'touchstart') e.preventDefault(); // Prevent zoom/scroll
+      if (state === 'playing') {
+        // Swap polarity by rotating 180 degrees
+        player.targetAngle += Math.PI;
+        instructions.style.display = 'none'; // hide instructions after first tap
+      }
+    }
+    window.addEventListener('mousedown', handleInput);
+    window.addEventListener('touchstart', handleInput, { passive: false });
+    
+    restartBtn.addEventListener('click', resetGame);
+    restartBtn.addEventListener('touchstart', (e) => { e.preventDefault(); resetGame(); }, { passive: false });
+
+    function resetGame() {
+      state = 'playing';
+      score = 0;
+      multiplier = 1;
+      combo = 0;
+      health = 3;
+      frames = 0;
+      enemies = [];
+      particles = [];
+      floatingTexts = [];
+      spawnRate = 100;
+      enemySpeed = 2.5;
+      player.angle = 0;
+      player.targetAngle = 0;
+      updateUI();
+      gameOverScreen.classList.remove('active');
+    }
+
+    function addScreenShake(magnitude, time) {
+      screenShakeMagnitude = magnitude;
+      screenShakeTime = time;
+    }
+
+    function spawnEnemy() {
+      // Spawn at a random angle from a distance just outside the screen
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.max(width, height) / 2 + 50;
+      const x = cx + Math.cos(angle) * dist;
+      const y = cy + Math.sin(angle) * dist;
+      const color = Math.random() > 0.5 ? COLOR_CYAN : COLOR_MAGENTA;
+      
+      enemies.push({
+        x: x,
+        y: y,
+        angle: angle,
+        dist: dist,
+        color: color,
+        radius: 12,
+        speed: enemySpeed + Math.random() * 0.5,
+        trail: []
+      });
+    }
+
+    function spawnParticles(x, y, color, count) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 2;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color: color,
+          life: 1,
+          decay: Math.random() * 0.03 + 0.01,
+          size: Math.random() * 4 + 2
+        });
+      }
+    }
+
+    function spawnFloatingText(x, y, text, color) {
+      floatingTexts.push({
+        x: x,
+        y: y,
+        text: text,
+        color: color,
+        life: 1,
+        vy: -2
+      });
+    }
+
+    function updateUI() {
+      scoreDisplay.innerText = score;
+      multDisplay.innerText = 'x' + multiplier;
+      healthDisplay.innerText = 'HP: ' + health;
+      if (health <= 1) {
+        healthDisplay.style.color = '#ff0055';
+      } else {
+        healthDisplay.style.color = '#00ffff';
+      }
+    }
+
+    function gameOver() {
+      state = 'gameover';
+      finalScoreDisplay.innerText = score;
+      gameOverScreen.classList.add('active');
+      addScreenShake(20, 30);
+    }
+
+    function update() {
+      if (hitPauseFrames > 0) {
+        hitPauseFrames--;
+        return; // Skip update for hit pause
+      }
+
+      if (state !== 'playing') {
+        // still update particles for juice during game over
+        updateParticles();
+        return;
+      }
+
+      frames++;
+      
+      // Difficulty ramp
+      if (frames % 600 === 0) {
+        spawnRate = Math.max(30, spawnRate - 10);
+        enemySpeed += 0.2;
+      }
+
+      if (frames % spawnRate === 0) {
+        spawnEnemy();
+      }
+
+      // Smooth rotate player
+      player.angle += (player.targetAngle - player.angle) * 0.2;
+      
+      // Pulse effect decays
+      pulseScale += (1 - pulseScale) * 0.1;
+
+      // Update enemies
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        let e = enemies[i];
+        
+        // Move towards center
+        e.dist -= e.speed;
+        e.x = cx + Math.cos(e.angle) * e.dist;
+        e.y = cy + Math.sin(e.angle) * e.dist;
+
+        // Trail logic
+        e.trail.push({x: e.x, y: e.y});
+        if (e.trail.length > 10) e.trail.shift();
+
+        // Collision logic with player orbs
+        if (e.dist <= player.radius + e.radius + player.orbRadius) {
+          // Determine which orb it hit.
+          // Orb A is at player.angle, Orb B is at player.angle + PI
+          // Normalize angles for comparison
+          let angleToCenter = Math.atan2(e.y - cy, e.x - cx); // Angle from center to enemy
+          
+          // Orb A position angle
+          let orbAAngle = player.angle % (Math.PI * 2);
+          if (orbAAngle < 0) orbAAngle += Math.PI * 2;
+          
+          // Check angular difference to Orb A
+          let diffA = Math.abs(orbAAngle - angleToCenter);
+          if (diffA > Math.PI) diffA = Math.PI * 2 - diffA;
+          
+          let hitOrbA = diffA < Math.PI / 2;
+          let hitColor = hitOrbA ? player.colorA : player.colorB;
+          let hitX = cx + Math.cos(angleToCenter) * player.radius;
+          let hitY = cy + Math.sin(angleToCenter) * player.radius;
+
+          if (e.color === hitColor) {
+            // MATCH! (Juice it)
+            combo++;
+            if (combo > 5) multiplier = 2;
+            if (combo > 15) multiplier = 3;
+            if (combo > 30) multiplier = 4;
+            
+            let pts = 10 * multiplier;
+            score += pts;
+            
+            spawnParticles(hitX, hitY, hitColor, 15);
+            spawnFloatingText(hitX, hitY - 20, '+' + pts, hitColor);
+            pulseScale = 1.3;
+            updateUI();
+          } else {
+            // MISMATCH! (Ouch)
+            health--;
+            combo = 0;
+            multiplier = 1;
+            
+            addScreenShake(10, 15);
+            hitPauseFrames = 5; // 5 frames of sleep/freeze
+            
+            spawnParticles(hitX, hitY, '#ffffff', 30);
+            spawnFloatingText(hitX, hitY - 20, 'MISS!', '#ff0055');
+            updateUI();
+
+            if (health <= 0) {
+              gameOver();
+            }
+          }
+          
+          // Remove enemy
+          enemies.splice(i, 1);
+        }
+      }
+
+      updateParticles();
+    }
+
+    function updateParticles() {
+      // Update particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      // Update floating texts
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        let ft = floatingTexts[i];
+        ft.y += ft.vy;
+        ft.life -= 0.02;
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
+      }
+
+      // Screen shake decay
+      if (screenShakeTime > 0) {
+        screenShakeTime--;
+        screenShakeMagnitude *= 0.9;
+      }
+    }
+
+    function draw() {
+      // Clear with trailing effect
+      ctx.fillStyle = 'rgba(5, 5, 5, 0.4)';
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      
+      // Apply screen shake
+      if (screenShakeTime > 0) {
+        let dx = (Math.random() - 0.5) * screenShakeMagnitude;
+        let dy = (Math.random() - 0.5) * screenShakeMagnitude;
+        ctx.translate(dx, dy);
+      }
+
+      // Draw Grid (Juice: pulses with the beat/scale)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.lineWidth = 1;
+      let gridSize = 50 * pulseScale;
+      ctx.beginPath();
+      for (let x = (cx % gridSize); x < width; x += gridSize) {
+        ctx.moveTo(x, 0); ctx.lineTo(x, height);
+      }
+      for (let y = (cy % gridSize); y < height; y += gridSize) {
+        ctx.moveTo(0, y); ctx.lineTo(width, y);
+      }
+      ctx.stroke();
+
+      // Draw Enemies
+      for (let e of enemies) {
+        // Trail
+        if (e.trail.length > 0) {
+          ctx.beginPath();
+          ctx.moveTo(e.trail[0].x, e.trail[0].y);
+          for (let i = 1; i < e.trail.length; i++) {
+            ctx.lineTo(e.trail[i].x, e.trail[i].y);
+          }
+          ctx.strokeStyle = e.color;
+          ctx.lineWidth = e.radius;
+          ctx.lineCap = 'round';
+          ctx.globalAlpha = 0.3;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+
+        // Body
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Inner glow
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw Player
+      let currentRadius = player.radius * pulseScale;
+      
+      // Center connector
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, currentRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Orb A
+      let ax = cx + Math.cos(player.angle) * currentRadius;
+      let ay = cy + Math.sin(player.angle) * currentRadius;
+      ctx.fillStyle = player.colorA;
+      ctx.shadowColor = player.colorA;
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(ax, ay, player.orbRadius * pulseScale, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Orb B
+      let bx = cx + Math.cos(player.angle + Math.PI) * currentRadius;
+      let by = cy + Math.sin(player.angle + Math.PI) * currentRadius;
+      ctx.fillStyle = player.colorB;
+      ctx.shadowColor = player.colorB;
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(bx, by, player.orbRadius * pulseScale, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.shadowBlur = 0; // reset
+
+      // Draw Particles
+      for (let p of particles) {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+
+      // Draw Floating Texts
+      ctx.font = 'bold 20px "Space Mono"';
+      ctx.textAlign = 'center';
+      for (let ft of floatingTexts) {
+        ctx.fillStyle = ft.color;
+        ctx.globalAlpha = ft.life;
+        ctx.fillText(ft.text, ft.x, ft.y);
+      }
+      ctx.globalAlpha = 1.0;
+
+      ctx.restore();
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+    
+    // Start game
+    loop();
+  </script>
+</body>
+</html>
