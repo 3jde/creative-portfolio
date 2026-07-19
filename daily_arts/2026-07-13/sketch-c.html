@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch C: Algorithmic Wave (Artistic Quality)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #e0d8c3; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+// Sketch C: Generative interpretation of Hokusai's Great Wave
+// Focus: Algorithmic composition, sine waves, artistic minimalism
+let time = 0;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  noFill();
+}
+
+function draw() {
+  background('#e0d8c3'); // Traditional paper color
+  
+  // Minimalist sun
+  noStroke();
+  fill('#bc4749');
+  circle(width * 0.75, height * 0.4, min(width, height) * 0.2);
+  
+  // Algorithmic waves
+  strokeWeight(2);
+  noFill();
+  
+  let lines = 40;
+  for (let i = 0; i < lines; i++) {
+    beginShape();
+    let yOffset = map(i, 0, lines, height * 0.4, height);
+    
+    // Gradient of wave colors: deep blue to crest white
+    let c = lerpColor(color('#1d3557'), color('#f1faee'), i/lines);
+    stroke(c);
+    
+    for (let x = 0; x <= width; x += 10) {
+      let noiseVal = noise(x * 0.005, i * 0.1, time * 0.5);
+      let waveHeight = map(noiseVal, 0, 1, -100, 100);
+      
+      // Add a peaking effect resembling the great wave on the left side
+      let peak = map(x, 0, width/2, 2, 0);
+      peak = max(peak, 0);
+      
+      let y = yOffset + waveHeight * peak + sin(x * 0.01 + time) * 30;
+      vertex(x, y);
+    }
+    endShape();
+  }
+  
+  time += 0.02;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>

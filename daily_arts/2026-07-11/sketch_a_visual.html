@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch A: Visual Impact (Starry Night Particles)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>body { margin: 0; overflow: hidden; background: #000; }</style>
+</head>
+<body>
+  <script>
+    let particles = [];
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      for(let i=0; i<1000; i++) {
+        particles.push(new Particle());
+      }
+      background(10, 20, 40);
+    }
+    function draw() {
+      background(10, 20, 40, 20);
+      for(let p of particles) {
+        p.update();
+        p.show();
+      }
+    }
+    class Particle {
+      constructor() {
+        this.pos = createVector(random(width), random(height));
+        this.vel = createVector(0, 0);
+        this.acc = createVector(0, 0);
+        this.maxSpeed = 3;
+        this.color = random(["#ffcc00", "#ffaa00", "#ffffff", "#4488ff", "#112255"]);
+      }
+      update() {
+        let angle = noise(this.pos.x * 0.005, this.pos.y * 0.005, frameCount * 0.002) * TWO_PI * 4;
+        this.acc = p5.Vector.fromAngle(angle);
+        this.vel.add(this.acc);
+        this.vel.limit(this.maxSpeed);
+        this.pos.add(this.vel);
+        if (this.pos.x > width) this.pos.x = 0;
+        if (this.pos.x < 0) this.pos.x = width;
+        if (this.pos.y > height) this.pos.y = 0;
+        if (this.pos.y < 0) this.pos.y = height;
+      }
+      show() {
+        stroke(this.color);
+        strokeWeight(2);
+        point(this.pos.x, this.pos.y);
+      }
+    }
+  </script>
+</body>
+</html>

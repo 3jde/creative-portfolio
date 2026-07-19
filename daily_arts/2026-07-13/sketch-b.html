@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch B: Elastic Mondrian (Novel Interaction)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #fff; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+// Sketch B: Generative interpretation of Mondrian's Composition
+// Focus: Novel Interaction - geometric grid that reacts to mouse physics
+let grid = [];
+let cols = 5;
+let rows = 5;
+let cellW, cellH;
+let colors = ['#e63946', '#f1faee', '#a8dadc', '#457b9d', '#1d3557', '#ffd166'];
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  cellW = width / cols;
+  cellH = height / rows;
+  for(let i=0; i<cols; i++) {
+    for(let j=0; j<rows; j++) {
+      grid.push({
+        x: i*cellW,
+        y: j*cellH,
+        w: cellW,
+        h: cellH,
+        targetX: i*cellW,
+        targetY: j*cellH,
+        col: random(colors)
+      });
+    }
+  }
+}
+
+function draw() {
+  background(255);
+  stroke(0);
+  strokeWeight(8);
+  
+  for(let cell of grid) {
+    // Distance to mouse
+    let d = dist(mouseX, mouseY, cell.x + cell.w/2, cell.y + cell.h/2);
+    let influence = map(constrain(d, 0, 300), 0, 300, 50, 0);
+    
+    // Spring physics back to target
+    cell.x += (cell.targetX - cell.x) * 0.1;
+    cell.y += (cell.targetY - cell.y) * 0.1;
+    
+    if (mouseIsPressed && d < 200) {
+      let angle = atan2(cell.y + cell.h/2 - mouseY, cell.x + cell.w/2 - mouseX);
+      cell.x += cos(angle) * influence;
+      cell.y += sin(angle) * influence;
+    }
+    
+    fill(cell.col);
+    rect(cell.x, cell.y, cell.w, cell.h);
+  }
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  cellW = width / cols;
+  cellH = height / rows;
+  let idx = 0;
+  for(let i=0; i<cols; i++) {
+    for(let j=0; j<rows; j++) {
+      grid[idx].targetX = i*cellW;
+      grid[idx].targetY = j*cellH;
+      grid[idx].w = cellW;
+      grid[idx].h = cellH;
+      idx++;
+    }
+  }
+}
+</script>
+</body>
+</html>

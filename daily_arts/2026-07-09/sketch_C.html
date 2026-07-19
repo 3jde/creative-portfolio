@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Great Wave - Sketch C (Minimalist Generative)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style> body { margin: 0; padding: 0; background: #efeae1; overflow: hidden; } </style>
+</head>
+<body>
+  <script>
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      noFill();
+      strokeWeight(1);
+    }
+
+    function draw() {
+      background(239, 234, 225, 20); // Paper-like background with fade
+      let t = frameCount * 0.01;
+      
+      translate(width / 2, height / 2);
+      
+      // Draw geometric concentric waves
+      for(let i = 0; i < 20; i++) {
+        let r = i * 20 + noise(i, t) * 100;
+        let x = cos(t + i*0.1) * r;
+        let y = sin(t + i*0.1) * r;
+        
+        let c = map(i, 0, 20, 50, 255);
+        stroke(20, c, 180, 150);
+        
+        ellipse(x - 100, y + 50, r, r*1.2);
+        
+        // Minimalist foam points
+        if(random() > 0.9) {
+          fill(255);
+          noStroke();
+          circle(x - 100 + cos(t)*r, y + 50 - sin(t)*r, 4);
+          noFill();
+        }
+      }
+    }
+  </script>
+</body>
+</html>

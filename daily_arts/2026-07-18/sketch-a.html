@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch A: Water Lilies Flow (Visual Impact)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #0b1a1f; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+// Sketch A: Generative interpretation of Monet's Water Lilies
+// Focus: Organic flowing fields, soft pastel colors, rippling interactions
+let offset = 0;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  noStroke();
+}
+
+function draw() {
+  background(11, 26, 31, 20); // Deep pond water, slight trail effect
+
+  let cols = 30;
+  let rows = 20;
+  let w = width / cols;
+  let h = height / rows;
+
+  for(let i=0; i<cols; i++) {
+    for(let j=0; j<rows; j++) {
+      let x = i * w + w/2;
+      let y = j * h + h/2;
+      
+      // Noise field for water flow
+      let n = noise(i * 0.1, j * 0.1, offset);
+      let angle = n * TWO_PI;
+      
+      // Mouse interaction ripples
+      let d = dist(mouseX, mouseY, x, y);
+      let ripple = 0;
+      if (d < 150) {
+        ripple = map(d, 0, 150, TWO_PI, 0);
+        angle += ripple;
+      }
+
+      push();
+      translate(x, y);
+      rotate(angle);
+      
+      // Monet color palette
+      if(n < 0.3) fill(70, 120, 110, 150); // Deep green
+      else if (n < 0.6) fill(100, 150, 180, 150); // Soft blue
+      else fill(220, 150, 170, 150); // Lily pink/white
+
+      // Draw soft organic shapes
+      let size = w * 1.5 * (n + 0.2);
+      ellipse(0, 0, size, size * 0.4);
+      pop();
+    }
+  }
+  
+  offset += 0.005;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Hokusai's Topography</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #e5dac1; }</style>
+</head>
+<body>
+  <script>
+    let t = 0;
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+    }
+    
+    function draw() {
+      background('#e5dac1');
+      noFill();
+      strokeWeight(1.5);
+      
+      let mx = map(mouseX, 0, width, 0, 0.1);
+      
+      for (let y = 100; y < height; y += 15) {
+        beginShape();
+        for (let x = 0; x <= width; x += 10) {
+          // Topographic noise mimicking woodblock print curves
+          let n = noise(x * 0.005 + t, y * 0.01);
+          let drop = map(n, 0, 1, -50, 50);
+          
+          // Add a dominant "mountain" peak
+          let d = dist(x, 0, width/2, 0);
+          if (d < 300) {
+            drop -= map(d, 0, 300, 150, 0) * (y/height);
+          }
+          
+          let c = lerpColor(color('#3b5998'), color('#253c5e'), y/height);
+          stroke(c);
+          
+          vertex(x, y + drop);
+        }
+        endShape();
+      }
+      
+      t += mx; 
+      if(mx === 0) t += 0.002;
+    }
+  </script>
+</body>
+</html>

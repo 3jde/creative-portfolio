@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Calder's Kinetic Mobile</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #fdfdfc; }</style>
+</head>
+<body>
+  <script>
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      strokeCap(ROUND);
+    }
+    
+    function draw() {
+      background('#fdfdfc');
+      translate(width / 2, 50);
+      
+      let mx = constrain(map(mouseX, 0, width, -PI/4, PI/4), -PI/4, PI/4);
+      
+      drawMobile(150, 4, mx);
+    }
+    
+    function drawMobile(len, depth, angleOffset) {
+      if (depth === 0) {
+        // Draw shape
+        noStroke();
+        let c = random(1) > 0.5 ? '#d92c20' : (random(1) > 0.5 ? '#1f3e70' : '#141414');
+        fill(c);
+        if (random() > 0.5) circle(0, 0, random(20, 50));
+        else rect(-20, -10, 40, 20);
+        return;
+      }
+      
+      // Wire
+      stroke('#141414');
+      strokeWeight(depth);
+      line(0, 0, 0, len);
+      translate(0, len);
+      
+      // Balance bar
+      let barLen = len * 0.8;
+      strokeWeight(depth * 0.5);
+      line(-barLen, 0, barLen, 0);
+      
+      // Left side
+      push();
+      translate(-barLen, 0);
+      rotate(sin(frameCount * 0.01 + depth) * 0.2 + angleOffset);
+      drawMobile(len * 0.7, depth - 1, angleOffset * 0.8);
+      pop();
+      
+      // Right side
+      push();
+      translate(barLen, 0);
+      rotate(cos(frameCount * 0.015 - depth) * 0.2 - angleOffset);
+      drawMobile(len * 0.6, depth - 1, angleOffset * 0.8);
+      pop();
+    }
+  </script>
+</body>
+</html>

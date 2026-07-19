@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch A: Quantum Lattice (Visual Impact)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #050505; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+// Sketch A: Quantum Lattice
+// Focus: WEBGL, complex geometry, visual impact
+let angle = 0;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight, WEBGL);
+  noStroke();
+}
+
+function draw() {
+  background(5, 5, 5);
+  
+  // Dynamic lighting
+  ambientLight(50, 50, 50);
+  pointLight(255, 100, 255, mouseX - width/2, mouseY - height/2, 200);
+  directionalLight(100, 200, 255, 1, 1, -1);
+  
+  rotateX(angle * 0.3);
+  rotateY(angle * 0.2);
+  
+  let size = min(width, height) * 0.15;
+  let count = 6;
+  
+  for(let x = -count/2; x <= count/2; x++) {
+    for(let y = -count/2; y <= count/2; y++) {
+      for(let z = -count/2; z <= count/2; z++) {
+        push();
+        let d = dist(x, y, z, 0, 0, 0);
+        let offset = sin(angle * 2 + d * 0.5) * size * 0.5;
+        translate(x * size + offset, y * size + offset, z * size + offset);
+        
+        let c = map(d, 0, count, 0, 255);
+        specularMaterial(c, 150, 255 - c);
+        shininess(50);
+        
+        box(size * 0.3);
+        pop();
+      }
+    }
+  }
+  
+  angle += 0.01;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>

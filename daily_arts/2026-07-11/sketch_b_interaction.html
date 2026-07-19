@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch B: Novel Interaction (Mondrian Physics)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>body { margin: 0; overflow: hidden; background: #fff; }</style>
+</head>
+<body>
+  <script>
+    let boxes = [];
+    let colors = ["#ff0000", "#0000ff", "#ffff00", "#ffffff", "#ffffff"];
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      for (let i = 0; i < 20; i++) {
+        boxes.push({
+          x: random(width), y: random(height),
+          w: random(50, 200), h: random(50, 200),
+          c: random(colors),
+          vx: random(-2, 2), vy: random(-2, 2)
+        });
+      }
+    }
+    function draw() {
+      background(240);
+      stroke(0);
+      strokeWeight(8);
+      
+      let mx = mouseX;
+      let my = mouseY;
+      
+      for (let b of boxes) {
+        let d = dist(mx, my, b.x + b.w/2, b.y + b.h/2);
+        if (d < 150) {
+          b.vx += (b.x + b.w/2 - mx) * 0.005;
+          b.vy += (b.y + b.h/2 - my) * 0.005;
+        }
+        
+        b.x += b.vx;
+        b.y += b.vy;
+        
+        b.vx *= 0.95;
+        b.vy *= 0.95;
+        
+        if (b.x < 0 || b.x + b.w > width) b.vx *= -1;
+        if (b.y < 0 || b.y + b.h > height) b.vy *= -1;
+        
+        fill(b.c);
+        rect(b.x, b.y, b.w, b.h);
+      }
+    }
+  </script>
+</body>
+</html>

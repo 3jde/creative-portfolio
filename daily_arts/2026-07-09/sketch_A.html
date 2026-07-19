@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Great Wave - Sketch A (Visual Impact/Particles)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style> body { margin: 0; padding: 0; background: #000; overflow: hidden; } </style>
+</head>
+<body>
+  <script>
+    let particles = [];
+    const num = 1000;
+    const noiseScale = 0.01;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      for(let i = 0; i < num; i ++) {
+        particles.push(createVector(random(width), random(height)));
+      }
+      strokeWeight(2);
+      clear();
+    }
+
+    function draw() {
+      background(0, 10);
+      for(let i = 0; i < num; i ++) {
+        let p = particles[i];
+        let n = noise(p.x * noiseScale, p.y * noiseScale, frameCount * noiseScale);
+        let a = TAU * n;
+        
+        // Colors inspired by Hokusai's Great Wave
+        let c = lerpColor(color(10, 30, 80), color(220, 240, 255), n);
+        stroke(c);
+        
+        point(p.x, p.y);
+        
+        p.x += cos(a) * 2;
+        p.y += sin(a) * 2 - 0.5; // Slight upward drift (wave rising)
+        
+        if(!onScreen(p)) {
+          p.x = random(width);
+          p.y = height;
+        }
+      }
+    }
+
+    function onScreen(v) {
+      return v.x >= 0 && v.x <= width && v.y >= 0 && v.y <= height;
+    }
+  </script>
+</body>
+</html>

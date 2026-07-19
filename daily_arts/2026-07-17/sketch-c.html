@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch C: Bauhaus Echo (Artistic Quality)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #EAE6DF; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+// Sketch C: Bauhaus Echo
+// Focus: Generative composition, strict color theory, minimalism
+let colors = ['#D93829', '#F2A93B', '#1E4C73', '#1A1A1A', '#EAE6DF'];
+let shapes = [];
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  noLoop();
+  generateComposition();
+}
+
+function generateComposition() {
+  background('#EAE6DF');
+  shapes = [];
+  
+  let gridCount = 6;
+  let w = width / gridCount;
+  let h = height / gridCount;
+  
+  for (let i = 0; i < gridCount; i++) {
+    for (let j = 0; j < gridCount; j++) {
+      if (random() > 0.3) {
+        let type = random(['circle', 'rect', 'arc', 'triangle']);
+        let col = random(colors);
+        shapes.push({
+          x: i * w,
+          y: j * h,
+          w: w,
+          h: h,
+          type: type,
+          col: col,
+          rot: floor(random(4)) * HALF_PI
+        });
+      }
+    }
+  }
+}
+
+function draw() {
+  for (let s of shapes) {
+    push();
+    translate(s.x + s.w/2, s.y + s.h/2);
+    rotate(s.rot);
+    fill(s.col);
+    noStroke();
+    
+    let margin = s.w * 0.1;
+    let drawW = s.w - margin;
+    let drawH = s.h - margin;
+    
+    if (s.type === 'circle') {
+      circle(0, 0, drawW);
+    } else if (s.type === 'rect') {
+      rectMode(CENTER);
+      rect(0, 0, drawW, drawH);
+    } else if (s.type === 'arc') {
+      arc(-drawW/2, -drawH/2, drawW*2, drawH*2, 0, HALF_PI);
+    } else if (s.type === 'triangle') {
+      triangle(-drawW/2, -drawH/2, drawW/2, -drawH/2, -drawW/2, drawH/2);
+    }
+    pop();
+  }
+}
+
+function mousePressed() {
+  generateComposition();
+  redraw();
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  generateComposition();
+  redraw();
+}
+</script>
+</body>
+</html>

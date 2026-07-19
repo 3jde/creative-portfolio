@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Great Wave - Sketch B (Interactive/Physics)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style> body { margin: 0; padding: 0; background: #222; overflow: hidden; } </style>
+</head>
+<body>
+  <script>
+    let wavePoints = [];
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      for(let i = 0; i < width; i += 20) {
+        wavePoints.push({ x: i, y: height/2, base: height/2 + sin(i*0.05)*100, vy: 0 });
+      }
+    }
+
+    function draw() {
+      background(30, 50, 90);
+      noStroke();
+      
+      // Mouse interaction
+      for(let i = 0; i < wavePoints.length; i++) {
+        let p = wavePoints[i];
+        let d = dist(mouseX, mouseY, p.x, p.y);
+        if (d < 100 && mouseIsPressed) {
+          p.vy += (mouseY - p.y) * 0.1;
+        }
+        
+        // Spring physics
+        let force = (p.base - p.y) * 0.05;
+        p.vy += force;
+        p.vy *= 0.95; // dampening
+        p.y += p.vy;
+        
+        // Dynamic base (rolling wave)
+        p.base = height * 0.6 + sin(frameCount * 0.05 + i * 0.1) * 100;
+      }
+      
+      // Draw wave
+      fill(100, 150, 220);
+      beginShape();
+      vertex(0, height);
+      for(let p of wavePoints) {
+        curveVertex(p.x, p.y);
+      }
+      vertex(width, height);
+      endShape(CLOSE);
+      
+      // Foam
+      fill(255, 240);
+      beginShape();
+      vertex(0, height);
+      for(let p of wavePoints) {
+        curveVertex(p.x, p.y - 15 + sin(frameCount*0.1 + p.x*0.05)*10);
+      }
+      vertex(width, height);
+      endShape(CLOSE);
+    }
+  </script>
+</body>
+</html>

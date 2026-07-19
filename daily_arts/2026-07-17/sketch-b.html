@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch B: Magnetic Threads (Novel Interaction)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #f0f0f0; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+// Sketch B: Magnetic Threads
+// Focus: Mouse interaction, physics-based line snapping
+let threads = [];
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  let cols = 40;
+  let rows = 20;
+  let xStep = width / cols;
+  let yStep = height / rows;
+  
+  for(let i = 0; i <= cols; i++) {
+    for(let j = 0; j <= rows; j++) {
+      threads.push({
+        baseX: i * xStep,
+        baseY: j * yStep,
+        x: i * xStep,
+        y: j * yStep
+      });
+    }
+  }
+}
+
+function draw() {
+  background(240, 240, 245);
+  stroke(30, 80, 200, 100);
+  strokeWeight(1);
+  
+  for(let t of threads) {
+    let d = dist(mouseX, mouseY, t.baseX, t.baseY);
+    if(d < 150) {
+      let angle = atan2(mouseY - t.baseY, mouseX - t.baseX);
+      // Repel from mouse
+      let force = map(d, 0, 150, 50, 0);
+      t.x = t.baseX - cos(angle) * force;
+      t.y = t.baseY - sin(angle) * force;
+    } else {
+      // Spring back
+      t.x += (t.baseX - t.x) * 0.1;
+      t.y += (t.baseY - t.y) * 0.1;
+    }
+    
+    // Draw connecting lines to nearby base points to form a grid
+    // For simplicity, just draw dots and short lines to origin
+    line(t.x, t.y, t.baseX, t.baseY);
+    fill(30, 80, 200);
+    noStroke();
+    circle(t.x, t.y, 3);
+    stroke(30, 80, 200, 100);
+  }
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  // Re-init on resize omitted for brevity
+}
+</script>
+</body>
+</html>

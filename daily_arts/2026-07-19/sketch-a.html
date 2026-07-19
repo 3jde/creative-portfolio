@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch A: WebGL Distorted Geometry (Visual Impact)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #080808; }</style>
+</head>
+<body>
+  <script>
+    // Inspiration: Cubism + Cyberpunk Glitch
+    let angle = 0;
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      noStroke();
+    }
+    function draw() {
+      background(8);
+      ambientLight(60, 60, 80);
+      pointLight(255, 50, 150, mouseX - width/2, mouseY - height/2, 100);
+      pointLight(50, 200, 255, -mouseX + width/2, -mouseY + height/2, 100);
+      
+      rotateX(angle * 0.2);
+      rotateY(angle * 0.3);
+      
+      for(let i=0; i<30; i++) {
+        push();
+        let r = 200;
+        let x = sin(angle + i) * r;
+        let y = cos(angle * 0.5 + i) * r;
+        let z = sin(angle * 0.2 + i*2) * r;
+        translate(x, y, z);
+        rotateX(frameCount * 0.01 + i);
+        rotateY(frameCount * 0.02 + i);
+        
+        // Glitch effect based on mouse movement speed
+        let glitch = dist(pmouseX, pmouseY, mouseX, mouseY) * 0.5;
+        specularMaterial(200);
+        shininess(50);
+        box(random(20, 60) + glitch, random(20, 60), random(20, 60));
+        pop();
+      }
+      angle += 0.01;
+    }
+    function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+  </script>
+</body>
+</html>

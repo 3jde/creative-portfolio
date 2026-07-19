@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch C: Artistic Quality (The Great Wave Curves)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>body { margin: 0; overflow: hidden; background: #e0d8c8; }</style>
+</head>
+<body>
+  <script>
+    let t = 0;
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      noFill();
+    }
+    function draw() {
+      background(224, 216, 200, 30);
+      let xOffset = 0;
+      
+      stroke(30, 80, 140, 150);
+      strokeWeight(2);
+      
+      beginShape();
+      for (let x = 0; x <= width; x += 10) {
+        let y = height / 2 + map(noise(xOffset, t), 0, 1, -200, 200) * sin(x * 0.005 + t);
+        vertex(x, y);
+        xOffset += 0.05;
+      }
+      endShape();
+      
+      t += 0.01;
+    }
+  </script>
+</body>
+</html>

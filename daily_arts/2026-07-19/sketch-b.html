@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch B: Physics Chain Gravity (Novel Interaction)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #e0e0e0; }</style>
+</head>
+<body>
+  <script>
+    // Inspiration: Kinetic Sculpture / Mobile
+    let nodes = [];
+    const numNodes = 15;
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      for (let i = 0; i < numNodes; i++) {
+        nodes.push(createVector(width/2, i * 30));
+      }
+    }
+    
+    function draw() {
+      background(224, 224, 224, 150); // slight trail
+      
+      let head = nodes[0];
+      if (mouseIsPressed) {
+        head.x = lerp(head.x, mouseX, 0.2);
+        head.y = lerp(head.y, mouseY, 0.2);
+      } else {
+        // Natural swing
+        head.x = width/2 + sin(frameCount * 0.05) * 200;
+        head.y = height/4 + cos(frameCount * 0.03) * 50;
+      }
+      
+      for (let i = 1; i < nodes.length; i++) {
+        let current = nodes[i];
+        let prev = nodes[i-1];
+        
+        // IK / Spring logic
+        let dir = p5.Vector.sub(current, prev);
+        let dist = dir.mag();
+        dir.normalize();
+        
+        let targetDist = 40;
+        let force = (dist - targetDist) * 0.1;
+        
+        dir.mult(force);
+        current.sub(dir);
+        
+        // Gravity
+        current.y += 2;
+        
+        // Friction
+        current.x = lerp(current.x, prev.x, 0.05);
+      }
+      
+      // Draw lines
+      stroke(50);
+      strokeWeight(2);
+      noFill();
+      beginShape();
+      for (let n of nodes) {
+        vertex(n.x, n.y);
+      }
+      endShape();
+      
+      // Draw joints
+      for (let i = 0; i < nodes.length; i++) {
+        fill(i === 0 ? '#ff3366' : '#333');
+        noStroke();
+        circle(nodes[i].x, nodes[i].y, i === 0 ? 20 : 10);
+      }
+    }
+    function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+  </script>
+</body>
+</html>

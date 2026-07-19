@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch A: Starry Flow (Visual Impact)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+// Sketch A: Generative interpretation of Van Gogh's Starry Night
+// Focus: Flow fields, particle systems, swirling visual impact
+let particles = [];
+let num = 1000;
+let noiseScale = 0.01;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  for(let i = 0; i < num; i ++) {
+    particles.push(createVector(random(width), random(height)));
+  }
+  strokeWeight(2);
+  clear();
+}
+
+function draw() {
+  background(10, 15, 30, 20); // Deep night blue with low opacity for trails
+  for(let i = 0; i < num; i ++) {
+    let p = particles[i];
+    let n = noise(p.x * noiseScale, p.y * noiseScale, frameCount * 0.005);
+    let a = TAU * n;
+    
+    p.x += cos(a) * 2;
+    p.y += sin(a) * 2;
+    
+    // Starry night color palette: yellows, blues, whites
+    let colIndex = floor(random(3));
+    if (colIndex === 0) stroke(255, 200, 50, 150); // Yellow
+    else if (colIndex === 1) stroke(100, 150, 255, 150); // Light blue
+    else stroke(255, 255, 255, 100); // White
+    
+    point(p.x, p.y);
+    
+    if(!onScreen(p)) {
+      p.x = random(width);
+      p.y = random(height);
+    }
+  }
+}
+
+function onScreen(v) {
+  return v.x >= 0 && v.x <= width && v.y >= 0 && v.y <= height;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>

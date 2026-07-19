@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sketch B: Kandinsky Explosions (Novel Interaction)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #fdf6e3; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+</head>
+<body>
+<script>
+// Sketch B: Generative interpretation of Kandinsky's Composition VIII
+// Focus: Sharp geometry, musical chaos reacting to mouse speed
+let shapes = [];
+let pmouseX, pmouseY;
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  // Generate stable geometric composition
+  for(let i=0; i<50; i++) {
+    shapes.push({
+      baseX: random(width), baseY: random(height),
+      x: 0, y: 0,
+      vx: 0, vy: 0,
+      type: random(['circle', 'line', 'triangle']),
+      size: random(10, 100),
+      col: random(['#d9281c', '#2c5a85', '#e9b425', '#1a1a1a'])
+    });
+  }
+  for(let s of shapes) {
+    s.x = s.baseX; s.y = s.baseY;
+  }
+}
+
+function draw() {
+  background('#fdf6e3'); // Warm paper
+  
+  // Calculate mouse speed
+  let mouseSpeed = dist(mouseX, mouseY, pmouseX, pmouseY);
+  
+  for(let s of shapes) {
+    let d = dist(mouseX, mouseY, s.x, s.y);
+    
+    // Explosion on fast movement
+    if(mouseSpeed > 10 && d < 200) {
+      let angle = atan2(s.y - mouseY, s.x - mouseX);
+      s.vx += cos(angle) * (mouseSpeed * 0.5);
+      s.vy += sin(angle) * (mouseSpeed * 0.5);
+    }
+    
+    // Spring back to base position
+    s.vx += (s.baseX - s.x) * 0.05;
+    s.vy += (s.baseY - s.y) * 0.05;
+    
+    // Friction
+    s.vx *= 0.8;
+    s.vy *= 0.8;
+    
+    s.x += s.vx;
+    s.y += s.vy;
+    
+    // Draw
+    noStroke();
+    fill(s.col);
+    if(s.type === 'circle') {
+      circle(s.x, s.y, s.size);
+    } else if(s.type === 'line') {
+      stroke(s.col);
+      strokeWeight(4);
+      line(s.x, s.y, s.x + s.size, s.y - s.size);
+    } else {
+      triangle(s.x, s.y - s.size/2, s.x - s.size/2, s.y + s.size/2, s.x + s.size/2, s.y + s.size/2);
+    }
+  }
+  
+  pmouseX = mouseX;
+  pmouseY = mouseY;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>

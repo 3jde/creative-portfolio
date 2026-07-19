@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sketch C: Minimalist Horizon (Artistic Quality)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>body { margin: 0; padding: 0; overflow: hidden; background: #fff5e6; }</style>
+</head>
+<body>
+  <script>
+    // Inspiration: Rothko Color Fields + Generative Landscapes
+    let t = 0;
+    let palette = ['#e07a5f', '#3d405b', '#81b29a', '#f2cc8f'];
+    
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      noStroke();
+    }
+    
+    function draw() {
+      // Sky
+      let skyColor = lerpColor(color('#3d405b'), color('#f4f1de'), map(sin(t), -1, 1, 0, 1));
+      fill(skyColor);
+      rect(0, 0, width, height);
+      
+      // Sun/Moon
+      let sunY = map(cos(t), -1, 1, height * 0.8, height * 0.2);
+      fill(242, 204, 143, 200);
+      circle(width/2, sunY, min(width, height) * 0.4);
+      
+      // Mountains/Horizon (Generative)
+      let mHeight = height * 0.6;
+      fill('#e07a5f');
+      beginShape();
+      vertex(0, height);
+      for(let x = 0; x <= width; x += 10) {
+        let y = mHeight - noise(x * 0.005 + t * 0.2) * 200;
+        vertex(x, y);
+      }
+      vertex(width, height);
+      endShape(CLOSE);
+      
+      // Foreground
+      fill('#81b29a');
+      beginShape();
+      vertex(0, height);
+      for(let x = 0; x <= width; x += 15) {
+        let y = height * 0.8 - noise(x * 0.01 + 100 - t * 0.3) * 100;
+        vertex(x, y);
+      }
+      vertex(width, height);
+      endShape(CLOSE);
+      
+      // Add paper texture overlay
+      fill(255, 245, 230, 20);
+      rect(0, 0, width, height);
+      
+      t += 0.005;
+    }
+    function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+  </script>
+</body>
+</html>
