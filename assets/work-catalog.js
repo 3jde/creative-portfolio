@@ -1,5 +1,18 @@
 window.ONEZ_WORKS = [
   {
+    id: "neon-encircle",
+    title: "Neon Encircle <span class=\"zh\">霓虹圈禁</span>",
+    date: "2026-07-19",
+    section: "game",
+    format: "Territory capture arcade",
+    url: "games/2026-07-19-neon-encircle.html",
+    status: "New Game",
+    featured: true,
+    palette: "lime",
+    description: "Draw neon trails to encircle and capture the invading swarm. Close each loop to trap enemies inside for points. A territory-capture arcade game with fluid touch drag controls. <span class=\"zh\">绘制霓虹轨迹以包围并捕获入侵的蜂群。闭合回路即可困住敌人得分。具有流畅触控拖拽操作的领土占领街机游戏。</span>",
+    tags: ["Game", "Touch", "Drawing", "Capture", "Arcade"]
+  },
+  {
     id: "neon-pulse",
     title: "Neon Pulse <span class=\"zh\">霓虹脉冲</span>",
     date: "2026-07-10",
