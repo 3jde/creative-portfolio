@@ -7,3 +7,6 @@
 /fix-autodesk-popups-admin.ps1
 /WORKS_GUIDE.md
 /wrangler.jsonc
+
+/game-sources/
+/game-sources/**

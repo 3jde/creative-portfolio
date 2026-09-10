@@ -1,5 +1,20 @@
 window.ONEZ_WORKS = [
   {
+    id: "feather-club",
+    title: "Feather Club <span class=\"zh\">羽众不同</span>",
+    date: "2026-09-10",
+    section: "game",
+    format: "First-person 3D badminton",
+    url: "games/feather-club/",
+    status: "New Game",
+    featured: true,
+    published: true,
+    palette: "lime",
+    cover: "assets/covers/feather-club.png",
+    description: "A cozy first-person badminton match. Move your racket, charge your shots and outplay your AI rival. <span class=\"zh\">可爱的第一人称羽毛球对决：鼠标挥拍、左键蓄力、右键切换近网与底线，支持对手难度与换装。</span>",
+    tags: ["Game", "3D", "Badminton", "Mouse", "AI"]
+  },
+  {
     id: "neon-encircle",
     title: "Neon Encircle <span class=\"zh\">霓虹圈禁</span>",
     date: "2026-07-19",
