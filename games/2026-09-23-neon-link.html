@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Link - Daily Mini Game</title>
+    <style>
+        :root {
+            --bg-color: #050510;
+            --text-color: #e0e0ff;
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ea;
+            --neon-yellow: #fffb00;
+            --neon-green: #00ff66;
+            --glow-spread: 10px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            touch-action: none; /* Prevent scroll on drag */
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .hud-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 0 0 5px currentColor;
+        }
+
+        #score-display { color: var(--neon-blue); }
+        #timer-display { color: var(--neon-pink); }
+
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #screens {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .screen {
+            background: rgba(5, 5, 16, 0.85);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
+            text-align: center;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 90%;
+        }
+
+        .screen.active { display: flex; }
+
+        h1 {
+            color: var(--neon-pink);
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px var(--neon-pink);
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            color: #aaa;
+        }
+
+        button {
+            background: transparent;
+            color: var(--neon-green);
+            border: 2px solid var(--neon-green);
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.2), inset 0 0 10px rgba(0, 255, 102, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        button:hover, button:active {
+            background: var(--neon-green);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px var(--neon-green);
+        }
+
+        #back-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            font-size: 0.9rem;
+            padding: 10px 20px;
+            border-color: #555;
+            color: #aaa;
+            box-shadow: none;
+        }
+        #back-btn:hover {
+            border-color: var(--text-color);
+            color: var(--text-color);
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="game-canvas"></canvas>
+
+    <div id="ui-layer">
+        <div class="hud-text" id="score-display">Score: 0</div>
+        <div class="hud-text" id="timer-display">60s</div>
+    </div>
+
+    <div id="screens">
+        <div id="start-screen" class="screen active">
+            <h1>Neon Link</h1>
+            <p>Drag to connect matching colored dots.<br>Connect 2 or more to score.<br>Longer chains = exponentially more points!</p>
+            <button id="start-btn">Play Now</button>
+        </div>
+
+        <div id="game-over-screen" class="screen">
+            <h1>Time's Up!</h1>
+            <p>Final Score: <span id="final-score" style="color: var(--neon-yellow); font-weight: bold; font-size: 1.5rem;">0</span></p>
+            <button id="restart-btn">Play Again</button>
+        </div>
+    </div>
+
+    <button id="back-btn" onclick="window.location.href='../games.html'">Back to Games</button>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let dpr = window.devicePixelRatio || 1;
+        
+        const colors = ['#00f3ff', '#ff00ea', '#fffb00', '#00ff66'];
+        
+        const gridCols = 6;
+        const gridRows = 8;
+        let cellSize = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        let dots = [];
+        let particles = [];
+        let floaters = [];
+        
+        let isDrawing = false;
+        let currentChain = [];
+        let currentPointer = { x: 0, y: 0 };
+        
+        let score = 0;
+        let timeLeft = 60;
+        let gameActive = false;
+        let lastTime = 0;
+        let timerInterval;
+
+        const scoreEl = document.getElementById('score-display');
+        const timerEl = document.getElementById('timer-display');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreEl = document.getElementById('final-score');
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            // Calculate grid size
+            const maxW = width * 0.9;
+            const maxH = height * 0.7; // Leave room for UI
+            
+            cellSize = Math.min(maxW / gridCols, maxH / gridRows);
+            offsetX = (width - (cellSize * gridCols)) / 2;
+            offsetY = (height - (cellSize * gridRows)) / 2 + 30; // Shift down slightly
+            
+            if (gameActive) updateDotPositions();
+        }
+
+        window.addEventListener('resize', resize);
+
+        class Dot {
+            constructor(col, row) {
+                this.col = col;
+                this.row = row;
+                this.targetRow = row;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.x = 0;
+                this.y = 0;
+                this.updatePos();
+                this.y = offsetY - (gridRows - row) * cellSize; // Drop from above initially
+                this.scale = 1;
+                this.selected = false;
+            }
+
+            updatePos() {
+                this.x = offsetX + this.col * cellSize + cellSize / 2;
+                this.y = offsetY + this.row * cellSize + cellSize / 2;
+            }
+
+            draw() {
+                // Move towards target
+                const targetY = offsetY + this.row * cellSize + cellSize / 2;
+                if (this.y < targetY) {
+                    this.y += (targetY - this.y) * 0.2 + 2;
+                    if (this.y > targetY) this.y = targetY;
+                }
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                if (this.selected) {
+                    this.scale = 1.2 + Math.sin(Date.now() / 100) * 0.1;
+                } else {
+                    this.scale = this.scale > 1 ? this.scale - 0.1 : 1;
+                }
+                ctx.scale(this.scale, this.scale);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, cellSize * 0.3, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 15;
+                ctx.fill();
+
+                if (this.selected) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, cellSize * 0.4, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = (Math.random() - 0.5) * 10;
+                this.life = 1;
+                this.decay = Math.random() * 0.05 + 0.02;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+            }
+            draw() {
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3 * this.life, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+        
+        class Floater {
+            constructor(x, y, text, color) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.life = 1;
+            }
+            update() {
+                this.y -= 2;
+                this.life -= 0.02;
+            }
+            draw() {
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.font = 'bold 24px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 10;
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function initGrid() {
+            dots = [];
+            for (let c = 0; c < gridCols; c++) {
+                dots[c] = [];
+                for (let r = 0; r < gridRows; r++) {
+                    dots[c][r] = new Dot(c, r);
+                }
+            }
+        }
+
+        function updateDotPositions() {
+            for (let c = 0; c < gridCols; c++) {
+                for (let r = 0; r < gridRows; r++) {
+                    if (dots[c][r]) dots[c][r].updatePos();
+                }
+            }
+        }
+
+        function getDotAtPos(x, y) {
+            const c = Math.floor((x - offsetX) / cellSize);
+            const r = Math.floor((y - offsetY) / cellSize);
+            if (c >= 0 && c < gridCols && r >= 0 && r < gridRows) {
+                const d = dots[c][r];
+                if (d) {
+                    const dist = Math.hypot(x - d.x, y - d.y);
+                    if (dist < cellSize * 0.45) return d;
+                }
+            }
+            return null;
+        }
+
+        function handlePointerDown(e) {
+            if (!gameActive) return;
+            const x = e.clientX || e.touches[0].clientX;
+            const y = e.clientY || e.touches[0].clientY;
+            
+            const dot = getDotAtPos(x, y);
+            if (dot) {
+                isDrawing = true;
+                currentChain = [dot];
+                dot.selected = true;
+                currentPointer = { x, y };
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!isDrawing || !gameActive) return;
+            e.preventDefault(); // Prevent scroll on mobile
+            
+            const x = e.clientX || e.touches[0].clientX;
+            const y = e.clientY || e.touches[0].clientY;
+            currentPointer = { x, y };
+            
+            const dot = getDotAtPos(x, y);
+            if (dot && currentChain.length > 0) {
+                const lastDot = currentChain[currentChain.length - 1];
+                
+                // If it's the previous dot, backtrack
+                if (currentChain.length > 1 && dot === currentChain[currentChain.length - 2]) {
+                    lastDot.selected = false;
+                    currentChain.pop();
+                    return;
+                }
+
+                // If not in chain, same color, and adjacent
+                if (!currentChain.includes(dot) && dot.color === lastDot.color) {
+                    const dx = Math.abs(dot.col - lastDot.col);
+                    const dy = Math.abs(dot.row - lastDot.row);
+                    if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1) || (dx === 1 && dy === 1)) {
+                        dot.selected = true;
+                        currentChain.push(dot);
+                    }
+                }
+            }
+        }
+
+        function handlePointerUp() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            
+            if (currentChain.length >= 2) {
+                // Valid chain
+                const pts = currentChain.length * currentChain.length * 10;
+                score += pts;
+                scoreEl.textContent = `Score: ${score}`;
+                scoreEl.style.textShadow = `0 0 10px ${currentChain[0].color}`;
+                setTimeout(() => scoreEl.style.textShadow = '', 200);
+
+                // Floater
+                const lastDot = currentChain[currentChain.length - 1];
+                floaters.push(new Floater(lastDot.x, lastDot.y - 20, `+${pts}`, lastDot.color));
+
+                // Process removal
+                currentChain.forEach(d => {
+                    // Particles
+                    for(let i=0; i<8; i++) particles.push(new Particle(d.x, d.y, d.color));
+                    dots[d.col][d.row] = null;
+                });
+                
+                applyGravity();
+            } else {
+                // Cancel
+                currentChain.forEach(d => d.selected = false);
+            }
+            currentChain = [];
+        }
+
+        function applyGravity() {
+            for (let c = 0; c < gridCols; c++) {
+                let writeR = gridRows - 1;
+                for (let r = gridRows - 1; r >= 0; r--) {
+                    if (dots[c][r]) {
+                        if (writeR !== r) {
+                            dots[c][writeR] = dots[c][r];
+                            dots[c][writeR].row = writeR;
+                            dots[c][r] = null;
+                        }
+                        writeR--;
+                    }
+                }
+                // Fill new
+                for (let r = writeR; r >= 0; r--) {
+                    dots[c][r] = new Dot(c, r);
+                    dots[c][r].y = offsetY - (writeR - r + 1) * cellSize; // Drop from top
+                }
+            }
+        }
+
+        function startGame() {
+            startScreen.classList.remove('active');
+            gameOverScreen.classList.remove('active');
+            score = 0;
+            timeLeft = 60;
+            scoreEl.textContent = 'Score: 0';
+            timerEl.textContent = '60s';
+            initGrid();
+            gameActive = true;
+            
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = `${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    endGame();
+                } else if (timeLeft <= 10) {
+                    timerEl.style.color = '#ff0000';
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            timerEl.style.color = 'var(--neon-pink)';
+            finalScoreEl.textContent = score;
+            gameOverScreen.classList.add('active');
+            isDrawing = false;
+            currentChain.forEach(d => d.selected = false);
+            currentChain = [];
+        }
+
+        function gameLoop(timestamp) {
+            requestAnimationFrame(gameLoop);
+            
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw line
+            if (isDrawing && currentChain.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(currentChain[0].x, currentChain[0].y);
+                for (let i = 1; i < currentChain.length; i++) {
+                    ctx.lineTo(currentChain[i].x, currentChain[i].y);
+                }
+                ctx.lineTo(currentPointer.x, currentPointer.y);
+                ctx.strokeStyle = currentChain[0].color;
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowColor = currentChain[0].color;
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw dots
+            if (gameActive || dots.length > 0) {
+                for (let c = 0; c < gridCols; c++) {
+                    if(!dots[c]) continue;
+                    for (let r = 0; r < gridRows; r++) {
+                        if (dots[c][r]) dots[c][r].draw();
+                    }
+                }
+            }
+
+            // Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].life <= 0) particles.splice(i, 1);
+            }
+            
+            // Floaters
+            for (let i = floaters.length - 1; i >= 0; i--) {
+                floaters[i].update();
+                floaters[i].draw();
+                if (floaters[i].life <= 0) floaters.splice(i, 1);
+            }
+        }
+
+        // Events
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+        
+        canvas.addEventListener('touchstart', handlePointerDown, {passive: false});
+        canvas.addEventListener('touchmove', handlePointerMove, {passive: false});
+        window.addEventListener('touchend', handlePointerUp);
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+
+        resize();
+        requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>
