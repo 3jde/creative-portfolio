@@ -1,5 +1,33 @@
 window.ONEZ_WORKS = [
   {
+    id: "seurat-pointillism",
+    title: "Seurat Pointillism <span class=\"zh\">修拉点彩交互</span>",
+    date: "2026-09-23",
+    section: "generative",
+    format: "Interactive p5.js",
+    url: "interactive_arts/2026-09-23/sketch_b_seurat.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "amber",
+    description: "A pointillist interactive particle system inspired by Seurat. <span class=\"zh\">受修拉启发的点彩粒子交互系统，鼠标悬停产生排斥离散效果。</span>",
+    tags: ["Generative", "Interactive", "Particles", "Seurat"],
+    cover: "assets/covers/seurat-pointillism.png"
+  },
+  {
+    id: "rothko-colorfield",
+    title: "Rothko Color Field <span class=\"zh\">罗斯科色域</span>",
+    date: "2026-09-23",
+    section: "generative",
+    format: "Interactive p5.js",
+    url: "interactive_arts/2026-09-23/sketch_c_rothko.html",
+    status: "Daily <span class=\"zh\">日常</span>",
+    featured: true,
+    palette: "pink",
+    description: "A breathing color field interaction inspired by Mark Rothko. <span class=\"zh\">受马克·罗斯科启发的无边界色域交互，点击重构色彩。</span>",
+    tags: ["Generative", "Interactive", "Color", "Rothko"],
+    cover: "assets/covers/rothko-colorfield.png"
+  },
+  {
     id: "feather-club",
     title: "Feather Club <span class=\"zh\">羽众不同</span>",
     date: "2026-09-10",
