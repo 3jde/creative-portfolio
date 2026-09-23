@@ -222,8 +222,31 @@
     window.requestAnimationFrame(draw);
   }
 
+  async function renderVisitorCount() {
+    const counter = document.querySelector("[data-visitor-count]");
+    if (!counter) return;
+
+    try {
+      const response = await fetch("/api/visitor-count", {
+        headers: { accept: "application/json" },
+        cache: "no-store"
+      });
+      if (!response.ok) throw new Error("Counter request failed");
+
+      const data = await response.json();
+      if (!Number.isSafeInteger(data.count) || data.count < 0) {
+        throw new Error("Invalid counter response");
+      }
+
+      counter.textContent = data.count.toLocaleString("zh-CN");
+    } catch {
+      counter.textContent = "暂时不可用";
+    }
+  }
+
   renderStats();
   renderFeatured();
   renderArchive();
   renderHeroCanvas();
+  renderVisitorCount();
 })();
